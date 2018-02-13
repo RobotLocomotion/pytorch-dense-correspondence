@@ -7,3 +7,17 @@ The aim of this repo is to provide tools for dense correspondence learning in Py
 - Integration with open-source RGBD fusion (ElasticFusion)
   
   
+### Setup
+
+Need to document this carefully later but the overview is:
+
+- Clone in `warmspringwinds/pytorch-segmentation-detection` (will probably point to my fork)
+- Clone in this repo
+
+
+All development has actually happened inside Docker, and this workflow is also available:
+
+- Get PyTorchDocker
+- Clone in above repos
+- Run docker
+
