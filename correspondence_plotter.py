@@ -8,10 +8,10 @@ def plot_pixel_correspondence(log_dir, img_a, img_b, uv_a, uv_b, use_previous_pl
     else:
         fig, axes = use_previous_plot[0], use_previous_plot[1]
 
-    img1_filename = log_dir+"images/"+img_a+"_rgb.png"
-    img2_filename = log_dir+"images/"+img_b+"_rgb.png"
-    img1_depth_filename = log_dir+"images/"+img_a+"_depth.png"
-    img2_depth_filename = log_dir+"images/"+img_b+"_depth.png"
+    img1_filename = log_dir+"/images/"+img_a+"_rgb.png"
+    img2_filename = log_dir+"/images/"+img_b+"_rgb.png"
+    img1_depth_filename = log_dir+"/images/"+img_a+"_depth.png"
+    img2_depth_filename = log_dir+"/images/"+img_b+"_depth.png"
     images = [img1_filename, img2_filename, img1_depth_filename, img2_depth_filename]
     images = [mpimg.imread(x) for x in images]
     fig.set_figheight(10)

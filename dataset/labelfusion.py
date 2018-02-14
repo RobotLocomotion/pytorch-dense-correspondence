@@ -141,6 +141,23 @@ class LabelFusionDataset(data.Dataset):
         random_rgb_image = random.choice(all_rgb_images_in_scene)
         return random_rgb_image
 
+    def get_specific_rgbd_with_pose(self, scene_name, img_index):
+        rgb_filename   = self.get_specific_rgb_image_filname(scene_name, img_index)
+        depth_filename = self.get_depth_filename(rgb_filename)
+        time_filename  = self.get_time_filename(rgb_filename) 
+
+        rgb   = self.get_rgb_image(rgb_filename)
+        depth = self.get_depth_image(depth_filename)
+        pose  = self.get_pose(time_filename)
+
+        return rgb, depth, pose
+
+    def get_specific_rgb_image_filname(self, scene_name, img_index):
+        scene_directory = self.get_full_path_for_scene(scene_name)
+        images_dir = os.path.join(scene_directory, "images")
+        rgb_image_filename = os.path.join(images_dir, img_index+"_rgb.png")
+        return rgb_image_filename
+
     def get_depth_filename(self, rgb_image):
         prefix = rgb_image.split("rgb")[0]
         depth_filename = prefix+"depth.png"

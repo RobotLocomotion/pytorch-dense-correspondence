@@ -13,12 +13,12 @@ def rand_select_pixel(width,height):
     return (x,y)
 
 def find_pixel_correspondence(log_dir, img_a, img_b, uv_a=None):
-    img1_filename = log_dir+"images/"+img_a+"_rgb.png"
-    img2_filename = log_dir+"images/"+img_b+"_rgb.png"
-    img1_depth_filename = log_dir+"images/"+img_a+"_depth.png"
-    img2_depth_filename = log_dir+"images/"+img_b+"_depth.png"
-    img1_time_filename = log_dir+"images/"+img_a+"_utime.txt"
-    img2_time_filename = log_dir+"images/"+img_b+"_utime.txt"
+    img1_filename = log_dir+"/images/"+img_a+"_rgb.png"
+    img2_filename = log_dir+"/images/"+img_b+"_rgb.png"
+    img1_depth_filename = log_dir+"/images/"+img_a+"_depth.png"
+    img2_depth_filename = log_dir+"/images/"+img_b+"_depth.png"
+    img1_time_filename = log_dir+"/images/"+img_a+"_utime.txt"
+    img2_time_filename = log_dir+"/images/"+img_b+"_utime.txt"
 
     def get_time(time_filename):
         with open (time_filename) as f:
@@ -28,7 +28,7 @@ def find_pixel_correspondence(log_dir, img_a, img_b, uv_a=None):
     img1_time = get_time(img1_time_filename)
     img2_time = get_time(img2_time_filename)
 
-    posegraph_filename = log_dir+"posegraph.posegraph"
+    posegraph_filename = log_dir+"/posegraph.posegraph"
     with open(posegraph_filename) as f:
         content = f.readlines()
     pose_list = [x.strip().split() for x in content] 
