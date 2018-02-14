@@ -46,26 +46,17 @@ class LabelFusionDataset(data.Dataset):
 
         self.init_length()
 
+        self.both_to_tensor = ComposeJoint(
+            [
+                [transforms.ToTensor(), transforms.ToTensor()]
+            ])
+
         self.tensor_transform = ComposeJoint(
                 [
                     [transforms.ToTensor(), None],
                     [None, transforms.Lambda(lambda x: torch.from_numpy(x).long()) ]
                 ])
-
-        # Pete Todo: would be great to automate this later        
-        # if download:
-            
-        #     self._download_dataset()
-        #     self._extract_dataset()
-        #     self._prepare_dataset()
-        
-        # Pete Todo: separate train/val?
-        # if train:
-        #     self.img_anno_pairs = pascal_annotation_filename_pairs_train_val[0]
-        # else:
-        #     self.img_anno_pairs = pascal_annotation_filename_pairs_train_val[1]
-                   
-        
+      
     def __len__(self):
         return self.num_images_total
     
@@ -107,12 +98,9 @@ class LabelFusionDataset(data.Dataset):
 
 
         if self.tensor_transform is not None:
-            rgbd_a = self.tensor_transform([image_a_rgb, image_a_depth])
-            rgbd_a.append(image_a_pose)
-            rgbd_b = self.tensor_transform([image_b_rgb, image_b_depth])
-            rgbd_a.append(image_b_pose)
+            image_a_rgb, image_b_rgb = self.both_to_tensor([image_a_rgb, image_a_rgb])
 
-        return rgbd_a, rgbd_b
+        return image_a_rgb, image_b_rgb, uv_a, uv_b, uv_b_non_matches
 
     def get_random_rgbd_with_pose(self, scene_directory):
         rgb_filename   = self.get_random_rgb_image_filename(scene_directory)
