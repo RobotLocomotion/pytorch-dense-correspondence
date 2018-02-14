@@ -2,18 +2,12 @@ import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 
-def plot_pixel_correspondence(log_dir, img_a, img_b, uv_a, uv_b, use_previous_plot=None, circ_color='g', show=True):
+def plot_correspondences(images, uv_a, uv_b, use_previous_plot=None, circ_color='g', show=True):
     if use_previous_plot is None:
         fig, axes = plt.subplots(nrows=2, ncols=2)
     else:
         fig, axes = use_previous_plot[0], use_previous_plot[1]
 
-    img1_filename = log_dir+"/images/"+img_a+"_rgb.png"
-    img2_filename = log_dir+"/images/"+img_b+"_rgb.png"
-    img1_depth_filename = log_dir+"/images/"+img_a+"_depth.png"
-    img2_depth_filename = log_dir+"/images/"+img_b+"_depth.png"
-    images = [img1_filename, img2_filename, img1_depth_filename, img2_depth_filename]
-    images = [mpimg.imread(x) for x in images]
     fig.set_figheight(10)
     fig.set_figwidth(15)
     pixel_locs = [uv_a, uv_b, uv_a, uv_b]
@@ -37,3 +31,19 @@ def plot_pixel_correspondence(log_dir, img_a, img_b, uv_a, uv_b, use_previous_pl
         return None
     else:
         return fig, axes
+
+def plot_correspondences_from_dir(log_dir, img_a, img_b, uv_a, uv_b, use_previous_plot=None, circ_color='g', show=True):
+    img1_filename = log_dir+"/images/"+img_a+"_rgb.png"
+    img2_filename = log_dir+"/images/"+img_b+"_rgb.png"
+    img1_depth_filename = log_dir+"/images/"+img_a+"_depth.png"
+    img2_depth_filename = log_dir+"/images/"+img_b+"_depth.png"
+    images = [img1_filename, img2_filename, img1_depth_filename, img2_depth_filename]
+    images = [mpimg.imread(x) for x in images]
+    return plot_correspondences(images, uv_a, uv_b, use_previous_plot=use_previous_plot, circ_color=circ_color, show=show)
+
+def plot_correspondences_direct(img_a_rgb, img_a_depth, img_b_rgb, img_b_depth, uv_a, uv_b, use_previous_plot=None, circ_color='g', show=True):
+    print "plotting direct"
+    images = [img_a_rgb, img_b_rgb, img_a_depth, img_b_depth]
+    images = [mpimg.imread(x) for x in images]
+    return plot_correspondences(images, uv_a, uv_b, use_previous_plot=use_previous_plot, circ_color=circ_color, show=show)
+    

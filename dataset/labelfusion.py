@@ -16,6 +16,9 @@ sys.path.insert(0, '../pytorch-segmentation-detection/vision/')
 from torchvision import transforms
 sys.path.append('../pytorch-segmentation-detection/')
 from pytorch_segmentation_detection.transforms import ComposeJoint
+sys.path.append('../')
+import correspondence_finder
+import correspondence_plotter
 
 # This implements an abstract Dataset class in PyTorch
 # to load in LabelFusion data (labelfusion.csail.mit.edu)
@@ -76,10 +79,17 @@ class LabelFusionDataset(data.Dataset):
         
         # image b
         image_b_rgb, image_b_depth, image_b_pose = self.get_different_rgbd_with_pose(scene_directory, image_a_pose)
+
+        uv_a, uv_b = correspondence_finder.batch_find_pixel_correspondences(image_a_depth, image_a_pose, 
+                                                                            image_b_depth, image_b_pose, 
+                                                                            num_attempts=5000)
         
         if self.debug:
-            self.debug_show_data(image_a_rgb, image_a_depth, image_b_pose,
-                              image_b_rgb, image_b_depth, image_b_pose)
+
+            #self.debug_show_data(image_a_rgb, image_a_depth, image_b_pose,
+            #                  image_b_rgb, image_b_depth, image_b_pose)
+            
+            correspondence_plotter.plot_correspondences_direct(image_a_rgb, image_a_depth, image_b_rgb, image_b_depth, uv_a, uv_b)
 
 
         if self.tensor_transform is not None:
