@@ -62,7 +62,6 @@ class LabelFusionDataset(data.Dataset):
                    
         
     def __len__(self):
-        return 1
         return self.num_images_total
     
     def __getitem__(self, index):
@@ -224,8 +223,11 @@ class LabelFusionDataset(data.Dataset):
 
     def init_length(self):
         self.num_images_total = 0
-        for scene_directory in self.scenes:
+        for scene_name in self.scenes:
+            scene_directory = self.get_full_path_for_scene(scene_name)
             rgb_images_regex = os.path.join(scene_directory, "images/*_rgb.png")
+            print scene_directory
             all_rgb_images_in_scene = glob.glob(rgb_images_regex)
             num_images_this_scene = len(all_rgb_images_in_scene)
+            print num_images_this_scene
             self.num_images_total += num_images_this_scene
