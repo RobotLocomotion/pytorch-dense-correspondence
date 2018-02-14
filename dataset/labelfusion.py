@@ -68,15 +68,19 @@ class LabelFusionDataset(data.Dataset):
         scene_directory = self.get_random_scene_directory()
 
         # image a
-        image_a_rgb, image_a_depth, image_a_pose = self.get_random_rgbd_with_pose(scene_directory)
+        # image_a_rgb, image_a_depth, image_a_pose = self.get_random_rgbd_with_pose(scene_directory)
+        img_a_index = "0000000001"
+        img_b_index = "0000001000"
+        image_a_rgb, image_a_depth, image_a_pose = self.get_specific_rgbd_with_pose(self.scenes[0], img_a_index)
+        image_b_rgb, image_b_depth, image_b_pose = self.get_specific_rgbd_with_pose(self.scenes[0], img_b_index)
         
         # image b
-        image_b_rgb, image_b_depth, image_b_pose = self.get_different_rgbd_with_pose(scene_directory, image_a_pose)
+        # image_b_rgb, image_b_depth, image_b_pose = self.get_different_rgbd_with_pose(scene_directory, image_a_pose)
 
         # find correspondences
         uv_a, uv_b = correspondence_finder.batch_find_pixel_correspondences(image_a_depth, image_a_pose, 
                                                                             image_b_depth, image_b_pose, 
-                                                                            num_attempts=5000)
+                                                                            num_attempts=50000)
 
         # find non_correspondences
         num_non_matches_per_match = 100
@@ -87,6 +91,9 @@ class LabelFusionDataset(data.Dataset):
             # Just show all images 
             # self.debug_show_data(image_a_rgb, image_a_depth, image_b_pose,
             #                  image_b_rgb, image_b_depth, image_b_pose)
+            uv_a_long = (torch.t(uv_a[0].repeat(num_non_matches_per_match, 1)).contiguous().view(-1,1), 
+                     torch.t(uv_a[1].repeat(num_non_matches_per_match, 1)).contiguous().view(-1,1))
+            uv_b_non_matches_long = (uv_b_non_matches[0].view(-1,1), uv_b_non_matches[1].view(-1,1) )
             
             # Show correspondences
             if uv_a is not None:
@@ -98,7 +105,7 @@ class LabelFusionDataset(data.Dataset):
 
 
         if self.tensor_transform is not None:
-            image_a_rgb, image_b_rgb = self.both_to_tensor([image_a_rgb, image_a_rgb])
+            image_a_rgb, image_b_rgb = self.both_to_tensor([image_a_rgb, image_b_rgb])
 
         dtype_long = torch.LongTensor
         if uv_a is None:
