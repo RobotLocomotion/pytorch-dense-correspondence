@@ -95,8 +95,8 @@ class LabelFusionDataset(data.Dataset):
         depth_filename = self.get_depth_filename(rgb_filename)
         time_filename  = self.get_time_filename(rgb_filename) 
 
-        rgb   = Image.open(rgb_filename).convert('RGB')
-        depth = np.asarray(Image.open(depth_filename))
+        rgb   = self.get_rgb_image(rgb_filename)
+        depth = self.get_depth_image(depth_filename)
         pose  = self.get_pose(time_filename)
 
         return rgb, depth, pose
@@ -114,9 +114,15 @@ class LabelFusionDataset(data.Dataset):
                 break
             num_attempts += 1
 
-        rgb   = Image.open(rgb_filename).convert('RGB')
-        depth = np.asarray(Image.open(depth_filename))
+        rgb   = self.get_rgb_image(rgb_filename)
+        depth = self.get_depth_image(depth_filename)
         return rgb, depth, pose
+
+    def get_rgb_image(self, rgb_filename):
+        return Image.open(rgb_filename).convert('RGB')
+
+    def get_depth_image(self, depth_filename):
+        return np.asarray(Image.open(depth_filename))
 
     def different_enough(self, pose_1, pose_2):
         translation_1 = np.asarray(pose_1[0,3], pose_1[1,3], pose_1[2,3])
@@ -127,7 +133,6 @@ class LabelFusionDataset(data.Dataset):
             return True
 
         # later implement something that is different_enough for rotations?
-
         return False
 
     def get_random_rgb_image_filename(self, scene_directory):
