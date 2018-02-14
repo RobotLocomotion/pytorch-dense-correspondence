@@ -173,10 +173,6 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
     body_to_rdf = get_body_to_rdf()
     rdf_to_body = inv(body_to_rdf)
 
-    # to_tensor_transform = transforms.Compose(
-    # [
-    #      transforms.ToTensor(),
-    # ])
     img_a_depth_torch = torch.from_numpy(img_a_depth).type(dtype_float)
     img_a_depth_torch = torch.squeeze(img_a_depth_torch, 0)
     img_a_depth_torch = img_a_depth_torch.view(-1,1)
