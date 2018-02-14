@@ -29,8 +29,10 @@ from pytorch_segmentation_detection.transforms import ComposeJoint
 
 class LabelFusionDataset(data.Dataset):
 
-    def __init__(self, joint_transform=None):
+    def __init__(self, debug=False):
         
+        self.debug = debug
+
         self.labelfusion_logs_test_root_path = "/media/peteflo/3TBbackup/local-only/logs_test/"
         
         # later this could just automatically populate all scenes available
@@ -44,7 +46,7 @@ class LabelFusionDataset(data.Dataset):
         self.tensor_transform = ComposeJoint(
                 [
                     [transforms.ToTensor(), None],
-                    [None, transforms.Lambda(lambda x: torch.from_numpy(np.asarray(x)).long()) ]
+                    [None, transforms.Lambda(lambda x: torch.from_numpy(x).long()) ]
                 ])
 
         # Pete Todo: would be great to automate this later        
@@ -75,18 +77,10 @@ class LabelFusionDataset(data.Dataset):
         # image b
         image_b_rgb, image_b_depth, image_b_pose = self.get_different_rgbd_with_pose(scene_directory, image_a_pose)
         
-        debug_this_function = True
-        if debug_this_function:
-            plt.imshow(image_a_rgb)
-            plt.show()
-            plt.imshow(image_a_depth)
-            plt.show()
-            print "image_a_pose", image_a_pose
-            plt.imshow(image_b_rgb)
-            plt.show()
-            plt.imshow(image_b_depth)
-            plt.show()
-            print "image_b_pose", image_b_pose
+        if self.debug:
+            self.debug_show_data(image_a_rgb, image_a_depth, image_b_pose,
+                              image_b_rgb, image_b_depth, image_b_pose)
+
 
         if self.tensor_transform is not None:
             rgbd_a = self.tensor_transform([image_a_rgb, image_a_depth])
@@ -144,9 +138,7 @@ class LabelFusionDataset(data.Dataset):
 
     def get_depth_filename(self, rgb_image):
         prefix = rgb_image.split("rgb")[0]
-        print prefix
         depth_filename = prefix+"depth.png"
-        print depth_filename
         return depth_filename
 
     def get_time_filename(self, rgb_image):
@@ -226,8 +218,22 @@ class LabelFusionDataset(data.Dataset):
         for scene_name in self.scenes:
             scene_directory = self.get_full_path_for_scene(scene_name)
             rgb_images_regex = os.path.join(scene_directory, "images/*_rgb.png")
-            print scene_directory
             all_rgb_images_in_scene = glob.glob(rgb_images_regex)
             num_images_this_scene = len(all_rgb_images_in_scene)
-            print num_images_this_scene
             self.num_images_total += num_images_this_scene
+
+    """
+    Debug
+    """
+    def debug_show_data(self, image_a_rgb, image_a_depth, image_a_pose,
+                              image_b_rgb, image_b_depth, image_b_pose):
+        plt.imshow(image_a_rgb)
+        plt.show()
+        plt.imshow(image_a_depth)
+        plt.show()
+        print "image_a_pose", image_a_pose
+        plt.imshow(image_b_rgb)
+        plt.show()
+        plt.imshow(image_b_depth)
+        plt.show()
+        print "image_b_pose", image_b_pose
