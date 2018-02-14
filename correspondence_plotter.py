@@ -44,6 +44,5 @@ def plot_correspondences_from_dir(log_dir, img_a, img_b, uv_a, uv_b, use_previou
 def plot_correspondences_direct(img_a_rgb, img_a_depth, img_b_rgb, img_b_depth, uv_a, uv_b, use_previous_plot=None, circ_color='g', show=True):
     print "plotting direct"
     images = [img_a_rgb, img_b_rgb, img_a_depth, img_b_depth]
-    images = [mpimg.imread(x) for x in images]
     return plot_correspondences(images, uv_a, uv_b, use_previous_plot=use_previous_plot, circ_color=circ_color, show=show)
     

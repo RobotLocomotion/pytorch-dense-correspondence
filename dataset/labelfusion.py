@@ -82,14 +82,17 @@ class LabelFusionDataset(data.Dataset):
 
         uv_a, uv_b = correspondence_finder.batch_find_pixel_correspondences(image_a_depth, image_a_pose, 
                                                                             image_b_depth, image_b_pose, 
-                                                                            num_attempts=5000)
+                                                                            num_attempts=50)
         
         if self.debug:
 
-            #self.debug_show_data(image_a_rgb, image_a_depth, image_b_pose,
+            # Just show all images 
+            # self.debug_show_data(image_a_rgb, image_a_depth, image_b_pose,
             #                  image_b_rgb, image_b_depth, image_b_pose)
             
-            correspondence_plotter.plot_correspondences_direct(image_a_rgb, image_a_depth, image_b_rgb, image_b_depth, uv_a, uv_b)
+            # Show correspondences
+            if uv_a is not None:
+                correspondence_plotter.plot_correspondences_direct(image_a_rgb, image_a_depth, image_b_rgb, image_b_depth, uv_a, uv_b)
 
 
         if self.tensor_transform is not None:
