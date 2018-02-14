@@ -77,8 +77,9 @@ class LabelFusionDataset(data.Dataset):
                                                                             num_attempts=5000)
 
         # find non_correspondences
-        uv_b_non_matches = correspondence_finder.create_non_correspondences(uv_a, uv_b, num_non_matches_per_match=100)
-        
+        num_non_matches_per_match = 100
+        uv_b_non_matches = correspondence_finder.create_non_correspondences(uv_a, uv_b, num_non_matches_per_match=num_non_matches_per_match)
+
         if self.debug:
 
             # Just show all images 
@@ -88,9 +89,6 @@ class LabelFusionDataset(data.Dataset):
             # Show correspondences
             if uv_a is not None:
                 fig, axes = correspondence_plotter.plot_correspondences_direct(image_a_rgb, image_a_depth, image_b_rgb, image_b_depth, uv_a, uv_b, show=False)
-
-                uv_a_long = (torch.t(uv_a[0].repeat(3, 1)).contiguous().view(-1,1), torch.t(uv_a[1].repeat(3, 1)).contiguous().view(-1,1))
-                uv_b_non_matches_long = (uv_b_non_matches[0].view(-1,1), uv_b_non_matches[1].view(-1,1) )
                 correspondence_plotter.plot_correspondences_direct(image_a_rgb, image_a_depth, image_b_rgb, image_b_depth,
                                                   uv_a_long, uv_b_non_matches_long,
                                                   use_previous_plot=(fig,axes),
@@ -100,7 +98,24 @@ class LabelFusionDataset(data.Dataset):
         if self.tensor_transform is not None:
             image_a_rgb, image_b_rgb = self.both_to_tensor([image_a_rgb, image_a_rgb])
 
-        return image_a_rgb, image_b_rgb, uv_a, uv_b, uv_b_non_matches
+        print "INSIDE"
+
+        if uv_a is None:
+            print "No matches this time"
+            return image_a_rgb, image_b_rgb, torch.zeros(1,1), torch.zeros(1,1), torch.zeros(1,1) 
+
+        uv_a_long = (torch.t(uv_a[0].repeat(num_non_matches_per_match, 1)).contiguous().view(-1,1), 
+                     torch.t(uv_a[1].repeat(num_non_matches_per_match, 1)).contiguous().view(-1,1))
+        uv_b_non_matches_long = (uv_b_non_matches[0].view(-1,1), uv_b_non_matches[1].view(-1,1) )
+
+        # flatten correspondences and non_correspondences
+        dtype_long = torch.LongTensor
+        uv_a = uv_a[1].type(dtype_long)*640+uv_b[0].type(dtype_long)
+        uv_b = uv_b[1].type(dtype_long)*640+uv_b[0].type(dtype_long)
+        uv_a_long = uv_a_long[1].type(dtype_long)*640+uv_a_long[0].type(dtype_long)
+        uv_b_non_matches_long = uv_b_non_matches_long[1].type(dtype_long)*640+uv_b_non_matches_long[0].type(dtype_long)
+
+        return image_a_rgb, image_b_rgb, uv_a, uv_b, uv_a_long, uv_b_non_matches_long
 
     def get_random_rgbd_with_pose(self, scene_directory):
         rgb_filename   = self.get_random_rgb_image_filename(scene_directory)
