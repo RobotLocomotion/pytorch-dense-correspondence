@@ -98,8 +98,6 @@ class LabelFusionDataset(data.Dataset):
         if self.tensor_transform is not None:
             image_a_rgb, image_b_rgb = self.both_to_tensor([image_a_rgb, image_a_rgb])
 
-        print "INSIDE"
-
         if uv_a is None:
             print "No matches this time"
             return image_a_rgb, image_b_rgb, torch.zeros(1,1), torch.zeros(1,1), torch.zeros(1,1) 
@@ -114,6 +112,9 @@ class LabelFusionDataset(data.Dataset):
         uv_b = uv_b[1].type(dtype_long)*640+uv_b[0].type(dtype_long)
         uv_a_long = uv_a_long[1].type(dtype_long)*640+uv_a_long[0].type(dtype_long)
         uv_b_non_matches_long = uv_b_non_matches_long[1].type(dtype_long)*640+uv_b_non_matches_long[0].type(dtype_long)
+        uv_a_long = uv_a_long.squeeze(1)
+        uv_b_non_matches_long = uv_b_non_matches_long.squeeze(1)
+
 
         return image_a_rgb, image_b_rgb, uv_a, uv_b, uv_a_long, uv_b_non_matches_long
 
