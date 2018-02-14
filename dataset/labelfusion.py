@@ -40,9 +40,11 @@ class LabelFusionDataset(data.Dataset):
         
         # later this could just automatically populate all scenes available
         # for now though, need a list since haven't extracted all depths
-        self.scenes = ["2017-06-16-21",
-                       "2017-06-14-63",
-                       "2017-06-13-12"]
+        # self.scenes = ["2017-06-16-21",
+        #                "2017-06-14-63",
+        #                "2017-06-13-12"]
+
+        self.scenes = ["2017-06-13-12"] # just drill scene
 
         self.init_length()
 
@@ -98,16 +100,16 @@ class LabelFusionDataset(data.Dataset):
         if self.tensor_transform is not None:
             image_a_rgb, image_b_rgb = self.both_to_tensor([image_a_rgb, image_a_rgb])
 
+        dtype_long = torch.LongTensor
         if uv_a is None:
             print "No matches this time"
-            return image_a_rgb, image_b_rgb, torch.zeros(1,1), torch.zeros(1,1), torch.zeros(1,1) 
+            return image_a_rgb, image_b_rgb, torch.zeros(1,1).type(dtype_long), torch.zeros(1,1).type(dtype_long), torch.zeros(1,1).type(dtype_long), torch.zeros(1,1).type(dtype_long)
 
         uv_a_long = (torch.t(uv_a[0].repeat(num_non_matches_per_match, 1)).contiguous().view(-1,1), 
                      torch.t(uv_a[1].repeat(num_non_matches_per_match, 1)).contiguous().view(-1,1))
         uv_b_non_matches_long = (uv_b_non_matches[0].view(-1,1), uv_b_non_matches[1].view(-1,1) )
 
         # flatten correspondences and non_correspondences
-        dtype_long = torch.LongTensor
         uv_a = uv_a[1].type(dtype_long)*640+uv_b[0].type(dtype_long)
         uv_b = uv_b[1].type(dtype_long)*640+uv_b[0].type(dtype_long)
         uv_a_long = uv_a_long[1].type(dtype_long)*640+uv_a_long[0].type(dtype_long)
