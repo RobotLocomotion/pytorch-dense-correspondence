@@ -80,9 +80,13 @@ class LabelFusionDataset(data.Dataset):
         # image b
         image_b_rgb, image_b_depth, image_b_pose = self.get_different_rgbd_with_pose(scene_directory, image_a_pose)
 
+        # find correspondences
         uv_a, uv_b = correspondence_finder.batch_find_pixel_correspondences(image_a_depth, image_a_pose, 
                                                                             image_b_depth, image_b_pose, 
-                                                                            num_attempts=50)
+                                                                            num_attempts=5000)
+
+        # find non_correspondences
+        uv_b_non_matches = correspondence_finder.create_non_correspondences(uv_a, uv_b, num_non_matches_per_match=100)
         
         if self.debug:
 
@@ -92,7 +96,14 @@ class LabelFusionDataset(data.Dataset):
             
             # Show correspondences
             if uv_a is not None:
-                correspondence_plotter.plot_correspondences_direct(image_a_rgb, image_a_depth, image_b_rgb, image_b_depth, uv_a, uv_b)
+                fig, axes = correspondence_plotter.plot_correspondences_direct(image_a_rgb, image_a_depth, image_b_rgb, image_b_depth, uv_a, uv_b, show=False)
+
+                uv_a_long = (torch.t(uv_a[0].repeat(3, 1)).contiguous().view(-1,1), torch.t(uv_a[1].repeat(3, 1)).contiguous().view(-1,1))
+                uv_b_non_matches_long = (uv_b_non_matches[0].view(-1,1), uv_b_non_matches[1].view(-1,1) )
+                correspondence_plotter.plot_correspondences_direct(image_a_rgb, image_a_depth, image_b_rgb, image_b_depth,
+                                                  uv_a_long, uv_b_non_matches_long,
+                                                  use_previous_plot=(fig,axes),
+                                                  circ_color='r')
 
 
         if self.tensor_transform is not None:
