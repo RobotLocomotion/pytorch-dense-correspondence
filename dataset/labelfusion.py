@@ -47,6 +47,9 @@ class LabelFusionDataset(data.Dataset):
         self.scenes = ["2017-06-13-12"] # just drill scene
 
         self.init_length()
+        print "Using LabelFusionDataset with:"
+        print "   - number of scenes:", len(self.scenes)
+        print "   - total images:    ", self.num_images_total
 
         self.both_to_tensor = ComposeJoint(
             [
@@ -68,14 +71,16 @@ class LabelFusionDataset(data.Dataset):
         scene_directory = self.get_random_scene_directory()
 
         # image a
-        # image_a_rgb, image_a_depth, image_a_pose = self.get_random_rgbd_with_pose(scene_directory)
-        img_a_index = "0000000001"
-        img_b_index = "0000001000"
-        image_a_rgb, image_a_depth, image_a_pose = self.get_specific_rgbd_with_pose(self.scenes[0], img_a_index)
-        image_b_rgb, image_b_depth, image_b_pose = self.get_specific_rgbd_with_pose(self.scenes[0], img_b_index)
+        image_a_rgb, image_a_depth, image_a_pose = self.get_random_rgbd_with_pose(scene_directory)
         
         # image b
-        # image_b_rgb, image_b_depth, image_b_pose = self.get_different_rgbd_with_pose(scene_directory, image_a_pose)
+        image_b_rgb, image_b_depth, image_b_pose = self.get_different_rgbd_with_pose(scene_directory, image_a_pose)
+
+        ## Debug option: only give same images
+        # img_a_index = "0000000001"
+        # img_b_index = "0000001000"
+        # image_a_rgb, image_a_depth, image_a_pose = self.get_specific_rgbd_with_pose(self.scenes[0], img_a_index)
+        # image_b_rgb, image_b_depth, image_b_pose = self.get_specific_rgbd_with_pose(self.scenes[0], img_b_index)
 
         # find correspondences
         uv_a, uv_b = correspondence_finder.batch_find_pixel_correspondences(image_a_depth, image_a_pose, 
