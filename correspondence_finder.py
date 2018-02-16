@@ -100,13 +100,16 @@ def create_non_correspondences(uv_a, uv_b_matches, num_non_matches_per_match=100
 
     need_to_be_perturbed = torch.zeros_like(diffs_0_flattened)
     ones = torch.zeros_like(diffs_0_flattened)
-    num_pixels_too_close = 20.0
+    num_pixels_too_close = 1.0
     threshold = torch.ones_like(diffs_0_flattened)*num_pixels_too_close
 
     need_to_be_perturbed = where(diffs_0_flattened < threshold, ones, need_to_be_perturbed)
     need_to_be_perturbed = where(diffs_1_flattened < threshold, ones, need_to_be_perturbed)
 
-    perturb_amount = 50.0
+    minimal_perturb        = num_pixels_too_close/2
+    minimal_perturb_vector = (torch.rand(len(need_to_be_perturbed))*2).floor()*(minimal_perturb*2)-minimal_perturb
+    std_dev = 10
+    random_vector = torch.randn(len(need_to_be_perturbed))*std_dev + minimal_perturb_vector
     perturb_vector = need_to_be_perturbed*perturb_amount
 
     uv_b_non_matches_0_flat = uv_b_non_matches[0].view(-1,1).type(dtype_float).squeeze(1)
