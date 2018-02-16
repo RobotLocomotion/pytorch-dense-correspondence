@@ -82,13 +82,21 @@ class LabelFusionDataset(data.Dataset):
         image_a_rgb, image_a_depth, image_a_pose = self.get_specific_rgbd_with_pose(self.scenes[0], img_a_index)
         image_b_rgb, image_b_depth, image_b_pose = self.get_specific_rgbd_with_pose(self.scenes[0], img_b_index)
 
-        # find correspondences
-        uv_a, uv_b = correspondence_finder.batch_find_pixel_correspondences(image_a_depth, image_a_pose, 
-                                                                            image_b_depth, image_b_pose, 
-                                                                            num_attempts=50000)
+        # find correspondences    
+        #uv_a, uv_b = correspondence_finder.batch_find_pixel_correspondences(image_a_depth, image_a_pose, 
+        #                                                                    image_b_depth, image_b_pose, 
+        #                                                                    num_attempts=50000)
+
+        # debug state!!
+        uv_a = (390,390),(171,171)
+        uv_b = (495,495),(322,322)
+        dtype_long = torch.LongTensor
+        dtype_float = torch.FloatTensor
+        uv_a = (torch.LongTensor(uv_a[0]).type(dtype_long), torch.LongTensor(uv_a[1]).type(dtype_long))
+        uv_b = (torch.LongTensor(uv_b[0]).type(dtype_float), torch.LongTensor(uv_b[1]).type(dtype_float))
 
         # find non_correspondences
-        num_non_matches_per_match = 100
+        num_non_matches_per_match = 150
         uv_b_non_matches = correspondence_finder.create_non_correspondences(uv_a, uv_b, num_non_matches_per_match=num_non_matches_per_match)
 
         if self.debug:
@@ -122,7 +130,7 @@ class LabelFusionDataset(data.Dataset):
         uv_b_non_matches_long = (uv_b_non_matches[0].view(-1,1), uv_b_non_matches[1].view(-1,1) )
 
         # flatten correspondences and non_correspondences
-        uv_a = uv_a[1].type(dtype_long)*640+uv_b[0].type(dtype_long)
+        uv_a = uv_a[1].type(dtype_long)*640+uv_a[0].type(dtype_long)
         uv_b = uv_b[1].type(dtype_long)*640+uv_b[0].type(dtype_long)
         uv_a_long = uv_a_long[1].type(dtype_long)*640+uv_a_long[0].type(dtype_long)
         uv_b_non_matches_long = uv_b_non_matches_long[1].type(dtype_long)*640+uv_b_non_matches_long[0].type(dtype_long)

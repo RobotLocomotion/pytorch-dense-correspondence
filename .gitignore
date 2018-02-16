@@ -1,3 +1,4 @@
 *.pyc
 *checkpoints*
 *.pth
+trained_models
