@@ -229,7 +229,7 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
 
     ## do u2-based pruning
     u2_vec_lower_bound = 0.0
-    u2_vec_upper_bound = 640.0
+    u2_vec_upper_bound = 639.999  # careful, needs to be epsilon less!!
     lower_bound_vec = torch.ones_like(u2_vec) * u2_vec_lower_bound
     upper_bound_vec = torch.ones_like(u2_vec) * u2_vec_upper_bound
     zeros_vec       = torch.zeros_like(u2_vec)
@@ -250,7 +250,7 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
 
     ## do v2-based pruning
     v2_vec_lower_bound = 0.0
-    v2_vec_upper_bound = 480.0
+    v2_vec_upper_bound = 479.999
     lower_bound_vec = torch.ones_like(v2_vec) * v2_vec_lower_bound
     upper_bound_vec = torch.ones_like(v2_vec) * v2_vec_upper_bound
     zeros_vec       = torch.zeros_like(v2_vec)    
@@ -278,6 +278,19 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
 
     uv_b_vec_flattened = (v2_vec.type(dtype_long)*640+u2_vec.type(dtype_long))  # simply round to int -- good enough 
                                                                        # occlusion check for smooth surfaces
+
+
+    this_max = torch.max(uv_b_vec_flattened)
+    if this_max >= 307200:
+        print this_max, "is max here"
+        print img_b_depth_torch.shape
+        print ""
+        print ""
+        print "WTF!!"
+        print 
+        print torch.max(v2_vec)
+        print torch.max(u2_vec)
+        print "end WTF"
 
     depth2_vec = torch.index_select(img_b_depth_torch, 0, uv_b_vec_flattened)*1.0/1000
     depth2_vec = depth2_vec.squeeze(1)

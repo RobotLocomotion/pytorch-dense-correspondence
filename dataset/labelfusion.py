@@ -71,29 +71,29 @@ class LabelFusionDataset(data.Dataset):
         scene_directory = self.get_random_scene_directory()
 
         # image a
-        #image_a_rgb, image_a_depth, image_a_pose = self.get_random_rgbd_with_pose(scene_directory)
+        image_a_rgb, image_a_depth, image_a_pose = self.get_random_rgbd_with_pose(scene_directory)
         
         # image b
-        #image_b_rgb, image_b_depth, image_b_pose = self.get_different_rgbd_with_pose(scene_directory, image_a_pose)
+        image_b_rgb, image_b_depth, image_b_pose = self.get_different_rgbd_with_pose(scene_directory, image_a_pose)
 
         ## Debug option: only give same images
-        img_a_index = "0000000001"
-        img_b_index = "0000001000"
-        image_a_rgb, image_a_depth, image_a_pose = self.get_specific_rgbd_with_pose(self.scenes[0], img_a_index)
-        image_b_rgb, image_b_depth, image_b_pose = self.get_specific_rgbd_with_pose(self.scenes[0], img_b_index)
+        # img_a_index = "0000000001"
+        # img_b_index = "0000001000"
+        # image_a_rgb, image_a_depth, image_a_pose = self.get_specific_rgbd_with_pose(self.scenes[0], img_a_index)
+        # image_b_rgb, image_b_depth, image_b_pose = self.get_specific_rgbd_with_pose(self.scenes[0], img_b_index)
 
         # find correspondences    
-        #uv_a, uv_b = correspondence_finder.batch_find_pixel_correspondences(image_a_depth, image_a_pose, 
-        #                                                                    image_b_depth, image_b_pose, 
-        #                                                                    num_attempts=50000)
+        uv_a, uv_b = correspondence_finder.batch_find_pixel_correspondences(image_a_depth, image_a_pose, 
+                                                                           image_b_depth, image_b_pose, 
+                                                                           num_attempts=50000)
 
         # debug state!!
-        uv_a = (390,390),(171,171)
-        uv_b = (495,495),(322,322)
-        dtype_long = torch.LongTensor
-        dtype_float = torch.FloatTensor
-        uv_a = (torch.LongTensor(uv_a[0]).type(dtype_long), torch.LongTensor(uv_a[1]).type(dtype_long))
-        uv_b = (torch.LongTensor(uv_b[0]).type(dtype_float), torch.LongTensor(uv_b[1]).type(dtype_float))
+        # uv_a = (390,390),(171,171)
+        # uv_b = (495,495),(322,322)
+        # dtype_long = torch.LongTensor
+        # dtype_float = torch.FloatTensor
+        # uv_a = (torch.LongTensor(uv_a[0]).type(dtype_long), torch.LongTensor(uv_a[1]).type(dtype_long))
+        # uv_b = (torch.LongTensor(uv_b[0]).type(dtype_float), torch.LongTensor(uv_b[1]).type(dtype_float))
 
         # find non_correspondences
         num_non_matches_per_match = 150
