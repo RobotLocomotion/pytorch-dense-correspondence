@@ -51,7 +51,7 @@ def invert_transform(transform4):
     R = numpy.transpose(R)
     transform4_copy[0:3,0:3] = R
     t = transform4_copy[0:3,3]
-    inv_t = -1.0 * R.dot(t)
+    inv_t = -1.0 * numpy.transpose(R).dot(t)
     transform4_copy[0:3,3] = inv_t
     return transform4_copy
 
@@ -163,8 +163,6 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
         dtype_float = torch.cuda.FloatTensor
         dtype_long = torch.cuda.LongTensor
 
-    img_b_pose_inverted = invert_transform(img_b_pose)
-
     if uv_a is None:
         uv_a = pytorch_rand_select_pixel(width=640,height=480, num_samples=num_attempts)
     else:
@@ -208,7 +206,7 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
     point_camera_frame_rdf_vec = K_inv_torch.mm(full_vec)
 
     point_world_frame_rdf_vec = apply_transform_torch(point_camera_frame_rdf_vec, torch.from_numpy(img_a_pose).type(dtype_float))
-    point_camera_2_frame_rdf_vec = apply_transform_torch(point_world_frame_rdf_vec, torch.from_numpy(img_b_pose_inverted).type(dtype_float))
+    point_camera_2_frame_rdf_vec = apply_transform_torch(point_world_frame_rdf_vec, torch.from_numpy(invert_transform(img_b_pose)).type(dtype_float))
 
     K_torch = torch.from_numpy(K).type(dtype_float)
     vec2_vec = K_torch.mm(point_camera_2_frame_rdf_vec)
