@@ -36,7 +36,7 @@ class LabelFusionDataset(data.Dataset):
         
         self.debug = debug
 
-        self.labelfusion_logs_test_root_path = "/media/peteflo/3TBbackup/local-only/logs_test/"
+        self.labelfusion_logs_test_root_path = "/home/peteflo/spartan/sandbox/fusion"
         
         # later this could just automatically populate all scenes available
         # for now though, need a list since haven't extracted all depths
@@ -44,7 +44,7 @@ class LabelFusionDataset(data.Dataset):
         #                "2017-06-14-63",
         #                "2017-06-13-12"]
 
-        self.scenes = ["2017-06-13-12"] # just drill scene
+        self.scenes = ["fusion1519753973.24"] # just drill scene
 
         self.init_length()
         print "Using LabelFusionDataset with:"
@@ -215,7 +215,7 @@ class LabelFusionDataset(data.Dataset):
 
     def get_time_filename(self, rgb_image):
         prefix = rgb_image.split("rgb")[0]
-        time_filename = prefix+"utime.txt"
+        time_filename = prefix+"millisecs.txt"
         return time_filename
 
     # will happily do a more efficient way of grabbing pose
@@ -231,7 +231,7 @@ class LabelFusionDataset(data.Dataset):
     def get_time(self, time_filename):
         with open (time_filename) as f:
             content = f.readlines()
-        return int(content[0])/1e6
+        return float(content[0])
 
     def get_pose_list(self, scene_directory):
         posegraph_filename = os.path.join(scene_directory, "posegraph.posegraph")
