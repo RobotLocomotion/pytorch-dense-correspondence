@@ -109,7 +109,7 @@ def find_pixel_correspondence(log_dir, img_a, img_b, uv_a=None):
         R = numpy.transpose(R)
         transform4_copy[0:3,0:3] = R
         t = transform4_copy[0:3,3]
-        inv_t = -1.0 * R.dot(t)
+        inv_t = -1.0 * numpy.transpose(R).dot(t)
         transform4_copy[0:3,3] = inv_t
         return transform4_copy
 
