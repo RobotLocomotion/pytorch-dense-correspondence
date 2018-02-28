@@ -17,13 +17,13 @@ def find_pixel_correspondence(log_dir, img_a, img_b, uv_a=None):
     img2_filename = log_dir+"/images/"+img_b+"_rgb.png"
     img1_depth_filename = log_dir+"/images/"+img_a+"_depth.png"
     img2_depth_filename = log_dir+"/images/"+img_b+"_depth.png"
-    img1_time_filename = log_dir+"/images/"+img_a+"_utime.txt"
-    img2_time_filename = log_dir+"/images/"+img_b+"_utime.txt"
+    img1_time_filename = log_dir+"/images/"+img_a+"_millisecs.txt"
+    img2_time_filename = log_dir+"/images/"+img_b+"_millisecs.txt"
 
     def get_time(time_filename):
         with open (time_filename) as f:
             content = f.readlines()
-        return int(content[0])/1e6
+        return float(content[0])
 
     img1_time = get_time(img1_time_filename)
     img2_time = get_time(img2_time_filename)
@@ -84,10 +84,10 @@ def find_pixel_correspondence(log_dir, img_a, img_b, uv_a=None):
     rdf_to_body = inv(body_to_rdf)
 
     K = numpy.zeros((3,3))
-    K[0,0] = 528.0 # focal x
-    K[1,1] = 528.0 # focal y
-    K[0,2] = 320.0 # principal point x
-    K[1,2] = 240.0 # principal point y
+    K[0,0] = 539.0756 # focal x
+    K[1,1] = 539.782595 # focal y
+    K[0,2] = 316.229489 # principal point x
+    K[1,2] = 236.154597 # principal point y
     K[2,2] = 1.0
     K_inv = inv(K)
 
@@ -109,7 +109,7 @@ def find_pixel_correspondence(log_dir, img_a, img_b, uv_a=None):
         R = numpy.transpose(R)
         transform4_copy[0:3,0:3] = R
         t = transform4_copy[0:3,3]
-        inv_t = -1.0 * R.dot(t)
+        inv_t = -1.0 * numpy.transpose(R).dot(t)
         transform4_copy[0:3,3] = inv_t
         return transform4_copy
 
