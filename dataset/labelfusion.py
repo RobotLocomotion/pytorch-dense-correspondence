@@ -40,11 +40,11 @@ class LabelFusionDataset(data.Dataset):
         
         # later this could just automatically populate all scenes available
         # for now though, need a list since haven't extracted all depths
-        # self.scenes = ["2017-06-16-21",
-        #                "2017-06-14-63",
-        #                "2017-06-13-12"]
+        self.scenes = ["2017-06-16-21",
+                        "2017-06-14-63",
+                        "2017-06-13-12"]
 
-        self.scenes = ["2017-06-13-12"] # just drill scene
+        #self.scenes = ["2017-06-13-12"] # just drill scene
 
         self.init_length()
         print "Using LabelFusionDataset with:"
