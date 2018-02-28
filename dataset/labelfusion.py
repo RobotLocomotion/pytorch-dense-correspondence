@@ -36,7 +36,7 @@ class LabelFusionDataset(data.Dataset):
         
         self.debug = debug
 
-        self.labelfusion_logs_test_root_path = "/home/peteflo/spartan/sandbox/fusion"
+        self.labelfusion_logs_test_root_path = "/media/peteflo/3TBbackup/tablefusion/good_tablefusion_5_scenes"
         
         # later this could just automatically populate all scenes available
         # for now though, need a list since haven't extracted all depths
