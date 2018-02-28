@@ -44,7 +44,13 @@ class LabelFusionDataset(data.Dataset):
         #                "2017-06-14-63",
         #                "2017-06-13-12"]
 
-        self.scenes = ["fusion1519753973.24"] # just drill scene
+        #self.scenes = ["fusion1519753973.24"]
+
+        self.scenes = ["fusion1519825352.8",
+                       "fusion1519825690.92",
+                       "fusion1519825975.16",
+                       "fusion1519826617.62",
+                       "fusion1519826914.17"]
 
         self.init_length()
         print "Using LabelFusionDataset with:"
