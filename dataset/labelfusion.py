@@ -130,7 +130,7 @@ class LabelFusionDataset(data.Dataset):
         dtype_long = torch.LongTensor
         if uv_a is None:
             print "No matches this time"
-            return image_a_rgb, image_b_rgb, torch.zeros(1,1).type(dtype_long), torch.zeros(1,1).type(dtype_long), torch.zeros(1,1).type(dtype_long), torch.zeros(1,1).type(dtype_long)
+            return image_a_rgb, image_b_rgb, torch.zeros(1).type(dtype_long), torch.zeros(1).type(dtype_long), torch.zeros(1).type(dtype_long), torch.zeros(1).type(dtype_long)
 
         uv_a_long = (torch.t(uv_a[0].repeat(num_non_matches_per_match, 1)).contiguous().view(-1,1), 
                      torch.t(uv_a[1].repeat(num_non_matches_per_match, 1)).contiguous().view(-1,1))
