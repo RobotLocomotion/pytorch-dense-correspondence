@@ -74,6 +74,28 @@ class LabelFusionDataset(data.Dataset):
     
     def __getitem__(self, index):
 
+        if (index % 2 == 0): 
+            scene_directory_a = self.get_random_scene_directory()
+            scene_directory_b = self.get_random_scene_directory()
+            image_a_rgb, image_a_mask = self.get_random_rgb_with_mask(scene_directory_a)
+            image_b_rgb, image_b_mask = self.get_random_rgb_with_mask(scene_directory_b)
+            
+            if self.debug:
+                fig, axes = plt.subplots(nrows=1, ncols=2)
+                fig.set_figheight(5)
+                fig.set_figwidth(15)
+                axes[0].imshow(image_a_rgb)
+                axes[0].imshow(image_a_mask, alpha=0.5)
+                axes[1].imshow(image_b_rgb)
+                axes[1].imshow(image_b_mask, alpha=0.5)
+                plt.show()
+    
+            image_a_rgb, image_b_rgb = self.both_to_tensor([image_a_rgb, image_b_rgb])
+            image_a_mask = torch.from_numpy(image_a_mask).type(torch.FloatTensor)
+            image_b_mask = torch.from_numpy(image_b_mask).type(torch.FloatTensor)
+
+            return "masks", image_a_rgb, image_b_rgb, image_a_mask, image_b_mask, None, None
+
         # pick a scene
         scene_directory = self.get_random_scene_directory()
 
@@ -92,7 +114,7 @@ class LabelFusionDataset(data.Dataset):
         # find correspondences    
         uv_a, uv_b = correspondence_finder.batch_find_pixel_correspondences(image_a_depth, image_a_pose, 
                                                                            image_b_depth, image_b_pose, 
-                                                                           num_attempts=50000)
+                                                                           num_attempts=10)
 
         # debug state!!
         # uv_a = (390,390),(171,171)
@@ -103,7 +125,7 @@ class LabelFusionDataset(data.Dataset):
         # uv_b = (torch.LongTensor(uv_b[0]).type(dtype_float), torch.LongTensor(uv_b[1]).type(dtype_float))
 
         # find non_correspondences
-        num_non_matches_per_match = 150
+        num_non_matches_per_match = 10
         uv_b_non_matches = correspondence_finder.create_non_correspondences(uv_a, uv_b, num_non_matches_per_match=num_non_matches_per_match)
 
         if self.debug:
@@ -145,7 +167,7 @@ class LabelFusionDataset(data.Dataset):
         uv_b_non_matches_long = uv_b_non_matches_long.squeeze(1)
 
 
-        return image_a_rgb, image_b_rgb, uv_a, uv_b, uv_a_long, uv_b_non_matches_long
+        return "matches", image_a_rgb, image_b_rgb, uv_a, uv_b, uv_a_long, uv_b_non_matches_long
 
     def get_random_rgbd_with_pose(self, scene_directory):
         rgb_filename   = self.get_random_rgb_image_filename(scene_directory)
@@ -157,6 +179,15 @@ class LabelFusionDataset(data.Dataset):
         pose  = self.get_pose(time_filename)
 
         return rgb, depth, pose
+
+    def get_random_rgb_with_mask(self, scene_directory):
+        rgb_filename   = self.get_random_rgb_image_filename(scene_directory)
+        mask_filename  = self.get_mask_filename(rgb_filename)
+
+        rgb   = self.get_rgb_image(rgb_filename)
+        mask  = self.get_mask_image(mask_filename)
+
+        return rgb, mask
 
     def get_different_rgbd_with_pose(self, scene_directory, image_a_pose):
         # try to get a far-enough-away pose
@@ -180,6 +211,9 @@ class LabelFusionDataset(data.Dataset):
 
     def get_depth_image(self, depth_filename):
         return np.asarray(Image.open(depth_filename))
+
+    def get_mask_image(self, mask_filename):
+        return np.asarray(Image.open(mask_filename))
 
     def different_enough(self, pose_1, pose_2):
         translation_1 = np.asarray(pose_1[0,3], pose_1[1,3], pose_1[2,3])
@@ -219,6 +253,11 @@ class LabelFusionDataset(data.Dataset):
         prefix = rgb_image.split("rgb")[0]
         depth_filename = prefix+"depth.png"
         return depth_filename
+
+    def get_mask_filename(self, rgb_image):
+        prefix = rgb_image.split("rgb")[0]
+        mask_filename = prefix+"labels.png"
+        return mask_filename
 
     def get_time_filename(self, rgb_image):
         prefix = rgb_image.split("rgb")[0]
