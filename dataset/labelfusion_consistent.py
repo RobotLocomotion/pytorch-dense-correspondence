@@ -73,8 +73,9 @@ class LabelFusionDataset(data.Dataset):
         return self.num_images_total
     
     def __getitem__(self, index):
+        dtype_long = torch.LongTensor
 
-        if (index % 2 == 0): 
+        if (index % 2 == 1): 
             scene_directory_a = self.get_random_scene_directory()
             scene_directory_b = self.get_random_scene_directory()
             image_a_rgb, image_a_mask = self.get_random_rgb_with_mask(scene_directory_a)
@@ -94,7 +95,7 @@ class LabelFusionDataset(data.Dataset):
             image_a_mask = torch.from_numpy(image_a_mask).type(torch.FloatTensor)
             image_b_mask = torch.from_numpy(image_b_mask).type(torch.FloatTensor)
 
-            return "masks", image_a_rgb, image_b_rgb, image_a_mask, image_b_mask, None, None
+            return "masks", image_a_rgb, image_b_rgb, image_a_mask, image_b_mask, torch.zeros(1).type(dtype_long), torch.zeros(1).type(dtype_long)
 
         # pick a scene
         scene_directory = self.get_random_scene_directory()
@@ -105,27 +106,14 @@ class LabelFusionDataset(data.Dataset):
         # image b
         image_b_rgb, image_b_depth, image_b_pose = self.get_different_rgbd_with_pose(scene_directory, image_a_pose)
 
-        ## Debug option: only give same images
-        # img_a_index = "0000000001"
-        # img_b_index = "0000001000"
-        # image_a_rgb, image_a_depth, image_a_pose = self.get_specific_rgbd_with_pose(self.scenes[0], img_a_index)
-        # image_b_rgb, image_b_depth, image_b_pose = self.get_specific_rgbd_with_pose(self.scenes[0], img_b_index)
-
         # find correspondences    
         uv_a, uv_b = correspondence_finder.batch_find_pixel_correspondences(image_a_depth, image_a_pose, 
                                                                            image_b_depth, image_b_pose, 
-                                                                           num_attempts=10)
+                                                                           num_attempts=50000)
 
-        # debug state!!
-        # uv_a = (390,390),(171,171)
-        # uv_b = (495,495),(322,322)
-        # dtype_long = torch.LongTensor
-        # dtype_float = torch.FloatTensor
-        # uv_a = (torch.LongTensor(uv_a[0]).type(dtype_long), torch.LongTensor(uv_a[1]).type(dtype_long))
-        # uv_b = (torch.LongTensor(uv_b[0]).type(dtype_float), torch.LongTensor(uv_b[1]).type(dtype_float))
 
         # find non_correspondences
-        num_non_matches_per_match = 10
+        num_non_matches_per_match = 150
         uv_b_non_matches = correspondence_finder.create_non_correspondences(uv_a, uv_b, num_non_matches_per_match=num_non_matches_per_match)
 
         if self.debug:
@@ -149,10 +137,10 @@ class LabelFusionDataset(data.Dataset):
         if self.tensor_transform is not None:
             image_a_rgb, image_b_rgb = self.both_to_tensor([image_a_rgb, image_b_rgb])
 
-        dtype_long = torch.LongTensor
+
         if uv_a is None:
             print "No matches this time"
-            return image_a_rgb, image_b_rgb, torch.zeros(1,1).type(dtype_long), torch.zeros(1,1).type(dtype_long), torch.zeros(1,1).type(dtype_long), torch.zeros(1,1).type(dtype_long)
+            return "matches", image_a_rgb, image_b_rgb, torch.zeros(1).type(dtype_long), torch.zeros(1).type(dtype_long), torch.zeros(1).type(dtype_long), torch.zeros(1).type(dtype_long)
 
         uv_a_long = (torch.t(uv_a[0].repeat(num_non_matches_per_match, 1)).contiguous().view(-1,1), 
                      torch.t(uv_a[1].repeat(num_non_matches_per_match, 1)).contiguous().view(-1,1))
