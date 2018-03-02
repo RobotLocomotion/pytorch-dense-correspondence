@@ -153,7 +153,7 @@ def create_non_correspondences(uv_a, uv_b_matches, num_non_matches_per_match=100
 
 # Optionally, uv_a specifies the pixels in img_a for which to find matches
 # If uv_a is not set, then random correspondences are attempted to be found
-def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b_pose, uv_a=None, num_attempts=20, device='CPU'):
+def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b_pose, uv_a=None, num_attempts=20, device='CPU', img_a_mask=None):
     global dtype_float
     global dtype_long
     if device == 'CPU':
@@ -169,6 +169,29 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
         uv_a = (torch.LongTensor([uv_a[0]]).type(dtype_long), torch.LongTensor([uv_a[1]]).type(dtype_long))
         num_attempts = 1
 
+    if img_a_mask is None:
+        uv_a_vec = (torch.ones(num_attempts).type(dtype_long)*uv_a[0],torch.ones(num_attempts).type(dtype_long)*uv_a[1])
+        print uv_a_vec[0].shape
+        print "unmasked shape"
+        uv_a_vec_flattened = uv_a_vec[1]*640+uv_a_vec[0]
+    else:
+        img_a_mask = torch.from_numpy(img_a_mask).type(dtype_float)
+        mask_a = img_a_mask.squeeze(0)
+        mask_a = mask_a/torch.max(mask_a)
+        nonzero = (torch.nonzero(mask_a)).type(dtype_long)
+        uv_a_vec = (nonzero[:,1], nonzero[:,0])
+        uv_a_vec_flattened = uv_a_vec[1]*640+uv_a_vec[0]
+
+        # mask_a = mask_a.view(640*480,1).squeeze(1)
+        # mask_a_indices_flat = torch.nonzero(mask_a)
+        # if len(mask_a_indices_flat) == 0:
+        #     return (None, None)
+        # num_samples = 10000
+        # rand_numbers_a = torch.rand(num_samples)*len(mask_a_indices_flat)
+        # rand_indices_a = torch.floor(rand_numbers_a).type(dtype_long)
+        # uv_a_vec_flattened = torch.index_select(mask_a_indices_flat, 0, rand_indices_a).squeeze(1)
+        # uv_a_vec = (uv_a_vec_flattened/640, uv_a_vec_flattened%640)
+
     K = get_K_matrix()
     K_inv = inv(K)
     body_to_rdf = get_body_to_rdf()
@@ -178,8 +201,7 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
     img_a_depth_torch = torch.squeeze(img_a_depth_torch, 0)
     img_a_depth_torch = img_a_depth_torch.view(-1,1)
 
-    uv_a_vec = (torch.ones(num_attempts).type(dtype_long)*uv_a[0],torch.ones(num_attempts).type(dtype_long)*uv_a[1])
-    uv_a_vec_flattened = uv_a_vec[1]*640+uv_a_vec[0]
+    
     depth_vec = torch.index_select(img_a_depth_torch, 0, uv_a_vec_flattened)*1.0/1000
     depth_vec = depth_vec.squeeze(1)
     
