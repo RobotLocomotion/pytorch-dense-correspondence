@@ -4,3 +4,5 @@
 trained_models
 *.bash_history
 *.local/
+*.cache/
+*.ipython

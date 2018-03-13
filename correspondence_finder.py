@@ -1,19 +1,19 @@
-# io
-from PIL import Image
-
-# WARNING repo must be
-# same level as pytorch-segmentation-detection
-import sys
-sys.path.insert(0, '../pytorch-segmentation-detection/vision/')
-from torchvision import transforms
+# torch
+import torch
 
 # math
 import numpy as numpy
 import math
 from numpy.linalg import inv
 
-# torch
-import torch
+# io
+from PIL import Image
+
+# torchvision
+import sys
+sys.path.insert(0, './pytorch-segmentation-detection/vision/') # from subrepo
+from torchvision import transforms
+
 
 # turns out to be faster to do this match generation on the CPU
 # for the general size of params we expect
