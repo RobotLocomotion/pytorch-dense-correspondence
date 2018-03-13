@@ -36,7 +36,7 @@ class LabelFusionDataset(data.Dataset):
         
         self.debug = debug
 
-        self.labelfusion_logs_test_root_path = "/media/peteflo/3TBbackup/local-only/logs_test/"
+        self.labelfusion_logs_test_root_path = self.load_from_yaml()
         
         # later this could just automatically populate all scenes available
         # for now though, need a list since haven't extracted all depths
@@ -342,6 +342,19 @@ class LabelFusionDataset(data.Dataset):
             all_rgb_images_in_scene = glob.glob(rgb_images_regex)
             num_images_this_scene = len(all_rgb_images_in_scene)
             self.num_images_total += num_images_this_scene
+
+    def load_from_yaml(self):
+
+        this_file_path = os.path.dirname(__file__)
+        yaml_path = os.path.join(this_file_path, "config.yaml")
+
+        with open(yaml_path, 'r') as stream:
+            try:
+                config_dict = yaml.load(stream)
+            except yaml.YAMLError as exc:
+                print(exc)
+
+        return config_dict["labelfusion_path_to_logs_test"]
 
     """
     Debug

@@ -7,6 +7,7 @@ import numpy as np
 import random
 import glob
 from PIL import Image
+import yaml
 
 # For debuggig only
 from matplotlib import pyplot as plt
@@ -16,7 +17,7 @@ sys.path.insert(0, '../../pytorch-segmentation-detection/vision/')
 from torchvision import transforms
 sys.path.append('../../pytorch-segmentation-detection/')
 from pytorch_segmentation_detection.transforms import ComposeJoint
-sys.path.append('../')
+sys.path.append('../correspondence_tools')
 import correspondence_finder
 import correspondence_plotter
 
@@ -36,7 +37,7 @@ class LabelFusionDataset(data.Dataset):
         
         self.debug = debug
 
-        self.labelfusion_logs_test_root_path = "/media/peteflo/3TBbackup/local-only/logs_test/"
+        self.labelfusion_logs_test_root_path = self.load_from_yaml()
         
         # later this could just automatically populate all scenes available
         # for now though, need a list since haven't extracted all depths
@@ -300,6 +301,20 @@ class LabelFusionDataset(data.Dataset):
             all_rgb_images_in_scene = glob.glob(rgb_images_regex)
             num_images_this_scene = len(all_rgb_images_in_scene)
             self.num_images_total += num_images_this_scene
+
+    def load_from_yaml(self):
+
+        this_file_path = os.path.dirname(__file__)
+        yaml_path = os.path.join(this_file_path, "config.yaml")
+
+        with open(yaml_path, 'r') as stream:
+            try:
+                config_dict = yaml.load(stream)
+            except yaml.YAMLError as exc:
+                print(exc)
+
+        return config_dict["labelfusion_path_to_logs_test"]
+
 
     """
     Debug
