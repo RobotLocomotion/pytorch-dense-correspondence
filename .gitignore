@@ -2,3 +2,5 @@
 *checkpoints*
 *.pth
 trained_models
+*.bash_history
+*.local/
