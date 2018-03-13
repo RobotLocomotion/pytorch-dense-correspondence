@@ -313,7 +313,7 @@ class LabelFusionDataset(data.Dataset):
             except yaml.YAMLError as exc:
                 print(exc)
 
-        return config_dict["labelfusion_path_to_logs_test"]
+        return config_dict["relative_path_to_labelfusion_path_to_logs_test"]
 
 
     """

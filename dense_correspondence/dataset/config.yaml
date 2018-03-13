@@ -1,1 +1,1 @@
-labelfusion_path_to_logs_test: /media/peteflo/3TBbackup/mini-labelfusion-drill/logs_test/ 
+relative_path_to_labelfusion_path_to_logs_test: mini-labelfusion-drill/logs_test/ 
