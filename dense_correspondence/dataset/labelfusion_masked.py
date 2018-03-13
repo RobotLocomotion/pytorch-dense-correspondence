@@ -354,7 +354,9 @@ class LabelFusionDataset(data.Dataset):
             except yaml.YAMLError as exc:
                 print(exc)
 
-        return config_dict["relative_path_to_labelfusion_path_to_logs_test"]
+        relative_path = config_dict["relative_path_to_labelfusion_path_to_logs_test"]
+        full_path = os.path.join(os.environ['HOME'], relative_path)
+        return full_path
 
     """
     Debug
