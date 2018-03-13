@@ -33,3 +33,7 @@ Visualization and interaction is meant to be through Jupyter notebooks, via:
 ```
 
 Then run some notebooks for training, testing, debugging.
+
+### Git management
+
+To prevent the repo from growing in size, recommend always "restart and clear outputs" before committing any Jupyter notebooks.  If you'd like to save what your notebook looks like, you can always "download as .html", which is a great way to snapshot the state of that notebook and share.
