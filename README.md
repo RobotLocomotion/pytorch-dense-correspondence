@@ -17,23 +17,6 @@ cd pytorch-dense-correspondence
 git submodule update --init --recursive
 ```
 
-Recommend using provided Docker scripts to run (install `nvidia-docker` if you haven't):
-
-```
-cd docker
-./docker_build.py
-./docker_run.py
-```
-
-Visualization and interaction is meant to be through Jupyter notebooks, via:
-
-```
-./start_notebook.py
-## navigate your browser to the URL provided by the Jupyter output in the terminal
-```
-
-Then run some notebooks for training, testing, debugging.
-
 ### Data Setup
 
 For the LabelFusion Dataset loader, do this to use an example 5 scenes (this is only ~3 GB):
@@ -51,6 +34,25 @@ labelfusion_path_to_logs_test: /full/path/to/mini-labelfusion-drill/logs_test/
 ```
 
 You can also use the full LabelFusion dataset (~500 GB) as long as you go and extract depth images from any scenes you'd like to use.
+
+### Recommended Workflow
+
+Recommend using provided Docker scripts to run (install `nvidia-docker` if you haven't):
+
+```
+cd docker
+./docker_build.py
+./docker_run.py
+```
+
+Visualization and interaction is meant to be through Jupyter notebooks, via:
+
+```
+./start_notebook.py
+## navigate your browser to the URL provided by the Jupyter output in the terminal
+```
+
+Then run some notebooks for training, testing, debugging.
 
 ### Git management
 
