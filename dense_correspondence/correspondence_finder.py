@@ -11,7 +11,7 @@ from PIL import Image
 
 # torchvision
 import sys
-sys.path.insert(0, './pytorch-segmentation-detection/vision/') # from subrepo
+sys.path.insert(0, '../pytorch-segmentation-detection/vision/') # from subrepo
 from torchvision import transforms
 
 

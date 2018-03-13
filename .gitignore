@@ -6,3 +6,4 @@ trained_models
 *.local/
 *.cache/
 *.ipython
+*.jupyter
