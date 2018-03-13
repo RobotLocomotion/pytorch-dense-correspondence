@@ -12,11 +12,11 @@ from PIL import Image
 from matplotlib import pyplot as plt
 
 import sys
-sys.path.insert(0, '../pytorch-segmentation-detection/vision/')
+sys.path.insert(0, '../../pytorch-segmentation-detection/vision/')
 from torchvision import transforms
-sys.path.append('../pytorch-segmentation-detection/')
+sys.path.append('../../pytorch-segmentation-detection/')
 from pytorch_segmentation_detection.transforms import ComposeJoint
-sys.path.append('../')
+sys.path.append('../correspondence_tools/')
 import correspondence_finder
 import correspondence_plotter
 
