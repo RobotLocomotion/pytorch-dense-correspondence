@@ -9,3 +9,4 @@ trained_models
 *.jupyter
 *.nv
 *.ssh/
+data

@@ -1,1 +1,2 @@
-relative_path_to_labelfusion_path_to_logs_test: mini-labelfusion-drill/logs_test/ 
+relative_path_to_labelfusion_path_to_logs_test: data/mini-labelfusion-drill/logs_test/ 
+  
