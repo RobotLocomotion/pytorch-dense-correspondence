@@ -28,7 +28,7 @@ cd docker
 Visualization and interaction is meant to be through Jupyter notebooks, via:
 
 ```
-.//start_notebook.py
+./start_notebook.py
 ## navigate your browser to the URL provided by the Jupyter output in the terminal
 ```
 
