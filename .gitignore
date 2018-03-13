@@ -8,3 +8,4 @@ trained_models
 *.ipython
 *.jupyter
 *.nv
+*.ssh/
