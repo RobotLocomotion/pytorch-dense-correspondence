@@ -7,7 +7,7 @@ The aim of this repo is to provide tools for dense correspondence learning in Py
 - Integration with open-source RGBD fusion (ElasticFusion)
   
   
-### Setup
+### Code Setup
 
 First get the repo and all submodules:
 
@@ -33,6 +33,24 @@ Visualization and interaction is meant to be through Jupyter notebooks, via:
 ```
 
 Then run some notebooks for training, testing, debugging.
+
+### Data Setup
+
+For the LabelFusion Dataset loader, do this to use an example 5 scenes (this is only ~3 GB):
+
+```
+# cd into wherever you'd like the downloaded dataset to live
+wget https://data.csail.mit.edu/labelfusion/LabelFusionExampleData/mini-labelfusion-drill.tar.gz
+tar -xvzf mini-labelfusion-drill.tar.gz
+````
+
+Then go edit the `config.yaml` file in `dense_correspondence/dataset`:
+
+```yaml
+labelfusion_path_to_logs_test: /full/path/to/mini-labelfusion-drill/logs_test/
+```
+
+You can also use the full LabelFusion dataset (~500 GB) as long as you go and extract depth images from any scenes you'd like to use.
 
 ### Git management
 
