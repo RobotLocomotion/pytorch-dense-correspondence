@@ -9,15 +9,27 @@ The aim of this repo is to provide tools for dense correspondence learning in Py
   
 ### Setup
 
-Need to document this carefully later but the overview is:
+First get the repo and all submodules:
 
-- git submodule update --init --recursive
+```
+git clone https://github.com/peteflorence/pytorch-dense-correspondence.git
+cd pytorch-dense-correspondence
+git submodule update --init --recursive
+```
 
+Recommend using provided Docker scripts to run (install `nvidia-docker` if you haven't):
 
+```
+cd docker
+./docker_build.py
+./docker_run.py
+```
 
-All development has actually happened inside Docker, and this workflow is also available:
+Visualization and interaction is meant to be through Jupyter notebooks, via:
 
-- Get PyTorchDocker
-- Clone in above repos
-- Run docker
+```
+.//start_notebook.py
+## navigate your browser to the URL provided by the Jupyter output in the terminal
+```
 
+Then run some notebooks for training, testing, debugging.
