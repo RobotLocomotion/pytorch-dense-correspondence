@@ -11,8 +11,8 @@ The aim of this repo is to provide tools for dense correspondence learning in Py
 
 Need to document this carefully later but the overview is:
 
-- Clone in `warmspringwinds/pytorch-segmentation-detection` (will probably point to my fork)
-- Clone in this repo
+- git submodule update --init --recursive
+
 
 
 All development has actually happened inside Docker, and this workflow is also available:
