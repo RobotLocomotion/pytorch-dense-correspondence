@@ -34,7 +34,7 @@ if __name__=="__main__":
 		cmd += " --name %(container_name)s " % {'container_name': args.container}
 
 	cmd += " -e DISPLAY -e QT_X11_NO_MITSHM=1 -v /tmp/.X11-unix:/tmp/.X11-unix:rw "     # enable graphics 
-	cmd += " -v %(source_dir)s:%(home_directory)s "  \
+	cmd += " -v %(source_dir)s:%(home_directory)s/code "  \
 		% {'source_dir': source_dir, 'home_directory': home_directory}	            # mount source
 	cmd += " -v ~/.ssh:%(home_directory)s/.ssh " % {'home_directory': home_directory}   # mount ssh keys
 	cmd += " -v /media:/media " #mount media
