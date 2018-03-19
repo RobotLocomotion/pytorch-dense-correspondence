@@ -19,9 +19,7 @@ apt install --no-install-recommends \
   libx11-dev \
   libxext-dev \
   libxt-dev \
-  libglu1-mesa \
-  libxi-dev \
-  libxmu-dev \
+  mesa-utils \
   libglu1-mesa-dev \
   python-dev \
   python-lxml \
@@ -31,7 +29,7 @@ apt install --no-install-recommends \
 
 build_director()
 {
-  director_version=0.1.0-266-g74cea84
+  director_version=0.1.0-266-g071a233
   director_binary=ubuntu-16.04
   wget https://dl.bintray.com/patmarion/director/director-$director_version-$director_binary.tar.gz
 
