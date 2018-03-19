@@ -11,13 +11,15 @@ import numpy as np
 
 import cv2
 
+    
+
 def vtk_image_to_numpy_array(vtk_image):
       w, h, _ = vtk_image.GetDimensions()
       scalars = vnp.getNumpyFromVtk(vtk_image, vtk_image.GetPointData().GetScalars().GetName())
       img = scalars.reshape(h, w, -1)
       img = np.flipud(img) # you might need to flip the image rows, vtk has a difference row ordering convention that numpy/opencv
-
-      return img, scalars
+      return img
+      
 
 
 def computeDepthImageAndPointCloud(depthBuffer, colorBuffer, camera):
@@ -36,7 +38,7 @@ def computeDepthImageAndPointCloud(depthBuffer, colorBuffer, camera):
     ptColors.SetName('rgb')
     polyData.GetPointData().AddArray(ptColors)
 
-    return depthImage, polyData
+    return depthImage, polyData, pts
 
 
 class DepthScanner(object):
@@ -132,7 +134,7 @@ class DepthScanner(object):
         self.updateBufferImages()
         self._block = False
 
-        depthImage, polyData = computeDepthImageAndPointCloud(self.getDepthBufferImage(), self.getColorBufferImage(), self.view.camera())
+        depthImage, polyData, _ = computeDepthImageAndPointCloud(self.getDepthBufferImage(), self.getColorBufferImage(), self.view.camera())
 
         self.depthScaleFilter.SetInputData(depthImage)
         self.depthScaleFilter.Update()
@@ -148,9 +150,8 @@ class DepthScanner(object):
             self.pointCloudObj.setPolyData(polyData)
         self.pointCloudView.render()
 
-    def test(self):
-        img, scalars = self.getDepthImageAsNumpyArray()
-
+    def getDepthImageAndPointCloud(self):
+        return computeDepthImageAndPointCloud(self.getDepthBufferImage(), self.getColorBufferImage(), self.view.camera())
 
 def main(globalsDict=None):
 
