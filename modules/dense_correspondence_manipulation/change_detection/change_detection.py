@@ -13,8 +13,8 @@ from director import mainwindowapp
 from PythonQt import QtCore, QtGui
 
 import cv2
-from depthscanner import DepthScanner
-import director_utils
+from dense_correspondence_manipulation.change_detection.depthscanner import DepthScanner
+import dense_correspondence_manipulation.utils.director_utils as director_utils
 
 cameraPoseTest = ([ 7.53674834e-01, -8.55423154e-19,  6.92103873e-01], [-0.34869616,  0.6090305 ,  0.62659914, -0.33891938])
 
