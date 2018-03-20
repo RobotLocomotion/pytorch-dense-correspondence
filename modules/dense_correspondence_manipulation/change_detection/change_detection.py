@@ -32,7 +32,7 @@ DEPTH_IM_RESCALE = 4000.0
 
 CROP_BOX_DATA = dict()
 CROP_BOX_DATA['dimensions'] = [0.5, 0.7, 0.4]
-CROP_BOX_DATA['transform'] = transformUtils.transformFromPose([0.66757267, 0, 0.18108], [1., 0., 0., 0.])
+CROP_BOX_DATA['transform'] = transformUtils.transformFromPose([0.66757267, 0, 0.195], [1., 0., 0., 0.])
 
 class DepthImageVisualizer(object):
     def __init__(self, window_title='Depth Image', scale=1):
@@ -365,6 +365,43 @@ class ChangeDetection(object):
         returnData['depth_img_background'] = depth_img_b
         returnData['depth_img_change'] = depth_img_change
 
+
+        if visualize:
+            # make sure to remap the mask to [0,255], otherwise it will be all black
+            ChangeDetection.drawNumpyImage('Change Detection Mask', mask*255)
+
+        return returnData
+
+    def computeForegroundMaskUsingCropStrategy(self, visualize=True):
+        """
+        Computes the foreground mask. The camera location of the foreground view should
+        already be set correctly. Steps of the pipeline are
+
+        1. Render depth image from cropped foreground
+        2. Everything in the "crop" should be foreground for now
+        """
+
+        # assume that foreground view is already in the correct place
+        view_f = self.views['foreground']
+        view_b = self.views['background']
+
+        view_f.forceRender()
+        cameraToWorld = director_utils.getCameraTransform(view_f.camera())
+
+        # get the depth images
+        # make sure to convert them to int32 since we want to avoid wrap-around issues when using
+        # uint16 types
+        depth_img_f = np.array(self.depthScanners['foreground'].getDepthImageAsNumpyArray(), dtype=np.int32)
+
+
+        idx = depth_img_f > 0
+        mask = np.zeros(np.shape(depth_img_f))
+        mask[idx] = 1
+
+        returnData = dict()
+        returnData['idx'] = idx
+        returnData['mask'] = mask
+        returnData['depth_img_foreground'] = depth_img_f
 
         if visualize:
             # make sure to remap the mask to [0,255], otherwise it will be all black
