@@ -1,5 +1,6 @@
 import numpy as np
 import os
+import time
 
 
 from director import imageview
@@ -22,6 +23,9 @@ from PythonQt import QtCore, QtGui
 import cv2
 from dense_correspondence_manipulation.change_detection.depthscanner import DepthScanner
 import dense_correspondence_manipulation.utils.director_utils as director_utils
+from dense_correspondence_manipulation.fusion.fusion_reconstruction import FusionReconstruction
+from dense_correspondence_manipulation.utils.constants import *
+
 import dense_correspondence_manipulation.utils.utils as utils
 import dense_correspondence_manipulation.utils.segmentation as segmentation
 
@@ -30,9 +34,6 @@ cameraPoseTest = ([ 7.53674834e-01, -8.55423154e-19,  6.92103873e-01], [-0.34869
 CAMERA_TO_WORLD = transformUtils.transformFromPose(cameraPoseTest[0], cameraPoseTest[1])
 DEPTH_IM_RESCALE = 4000.0
 
-CROP_BOX_DATA = dict()
-CROP_BOX_DATA['dimensions'] = [0.5, 0.7, 0.4]
-CROP_BOX_DATA['transform'] = transformUtils.transformFromPose([0.66757267, 0, 0.195], [1., 0., 0., 0.])
 
 class DepthImageVisualizer(object):
     def __init__(self, window_title='Depth Image', scale=1):
@@ -74,106 +75,6 @@ class DepthImageVisualizer(object):
         self.setImage(vtkImg)
 
 
-class FusionReconstruction(object):
-    """
-    A utility class for storing information about a 3D reconstruction
-
-    e.g. reconstruction produced by ElasticFusion
-    """
-
-    def __init__(self):
-        self._crop_box_data = None
-        pass
-
-
-    def setup(self):
-        self.load_poly_data()
-
-    @property
-    def data_dir(self):
-        return self._data_dir
-
-    @data_dir.setter
-    def data_dir(self, value):
-        self._data_dir = value
-
-    @property
-    def pose_data(self):
-        return self._pose_data
-
-    @pose_data.setter
-    def pose_data(self, value):
-        self._pose_data = value
-
-    @property
-    def pose_data(self):
-        return self._pose_data
-
-    @pose_data.setter
-    def pose_data(self, value):
-        self._pose_data = value
-
-    @property
-    def camera_info(self):
-        return self._camera_info
-
-    @camera_info.setter
-    def camera_info(self, value):
-        self._camera_info = value
-
-    @property
-    def reconstruction_filename(self):
-        return self._reconstruction_filename
-
-    @reconstruction_filename.setter
-    def reconstruction_filename(self, value):
-        self._reconstruction_filename = value
-
-    @staticmethod
-    def from_data_folder(data_folder):
-        fr = FusionReconstruction()
-        fr.data_dir = data_folder
-
-        pose_data_filename = os.path.join(data_folder, 'images', 'pose_data.yaml')
-        camera_info_filename = os.path.join(data_folder, 'images', 'camera_info.yaml')
-
-        fr.pose_data = utils.getDictFromYamlFilename(pose_data_filename)
-        fr.camera_info = utils.getDictFromYamlFilename(camera_info_filename)
-
-        fr.reconstruction_filename = os.path.join(fr.data_dir, 'reconstruction.vtp')
-        fr._crop_box_data = CROP_BOX_DATA
-        fr.setup()
-        return fr
-
-        # fr.mesh_filename =
-
-    def get_camera_pose(self, idx):
-        camera_pose_dict = self.pose_data[idx]['camera_to_world']
-        return director_utils.transformFromPose(camera_pose_dict)
-
-    def load_poly_data(self):
-        cameraToWorld = self.get_camera_pose(0)
-        self.poly_data_raw = ioUtils.readPolyData(self.reconstruction_filename)
-        self.poly_data = filterUtils.transformPolyData(self.poly_data_raw, cameraToWorld)
-        self.crop_poly_data()
-
-    def crop_poly_data(self):
-        if self._crop_box_data is None:
-            print "_crop_box_data is empty, skipping"
-            return
-
-        dimensions = self._crop_box_data['dimensions']
-        transform = self._crop_box_data['transform']
-
-        # store the old poly data
-        self.poly_data_uncropped = self.poly_data
-
-        self.poly_data = segmentation.cropToBox(self.poly_data, transform, dimensions)
-
-    def visualize_reconstruction(self, view, point_size=3):
-        self.reconstruction_vis_obj = vis.showPolyData(self.poly_data, 'Fusion Reconstruction',
-                                                       view=view, colorByName='RGB')
-        self.reconstruction_vis_obj.setProperty('Point Size', point_size)
 
 
 class ChangeDetection(object):
@@ -201,8 +102,8 @@ class ChangeDetection(object):
             director_utils.setCameraIntrinsics(view, self.cameraIntrinsics, lockViewSize=True)
 
         self.depthScanners = dict()
-        self.depthScanners['foreground'] = initDepthScanner(self.views['foreground'], widgetArea=QtCore.Qt.RightDockWidgetArea)
-        self.depthScanners['background'] = initDepthScanner(self.views['background'], widgetArea=QtCore.Qt.LeftDockWidgetArea)
+        self.depthScanners['foreground'] = initDepthScanner(self.app, self.views['foreground'], widgetArea=QtCore.Qt.RightDockWidgetArea)
+        self.depthScanners['background'] = initDepthScanner(self.app, self.views['background'], widgetArea=QtCore.Qt.LeftDockWidgetArea)
 
         
         # self.changeDetectionPointCloudView = PythonQt.dd.ddQVTKWidgetView()
@@ -273,7 +174,7 @@ class ChangeDetection(object):
         view.orientationMarkerWidget().Off()
 
         if self.vis:
-            dock = app.app.addWidgetToDock(view, QtCore.Qt.LeftDockWidgetArea)
+            dock = self.app.app.addWidgetToDock(view, QtCore.Qt.LeftDockWidgetArea)
             dock.setMinimumWidth(300)
             dock.setMinimumHeight(300)
 
@@ -317,6 +218,8 @@ class ChangeDetection(object):
         for _, view in self.views.iteritems():
             director_utils.setCameraTransform(view.camera(), cameraToWorld)
             view.forceRender()
+
+        self.updateDepthScanners()
 
         
     def computeForegroundMask(self, visualize=True):
@@ -387,6 +290,7 @@ class ChangeDetection(object):
 
         view_f.forceRender()
         cameraToWorld = director_utils.getCameraTransform(view_f.camera())
+        self.updateDepthScanners()
 
         # get the depth images
         # make sure to convert them to int32 since we want to avoid wrap-around issues when using
@@ -429,6 +333,57 @@ class ChangeDetection(object):
     def showCameraTransform(self):
         t = director_utils.getCameraTransform(self.views['foreground'].camera())
         vis.updateFrame(t, 'camera transform', scale=0.15)
+
+
+    def run(self, output_dir=None):
+        """
+        Run the mask generation algorithm
+        :return:
+        """
+
+        if output_dir is None:
+            output_dir = os.path.join(self.foreground_reconstruction.data_dir, 'image_masks')
+
+        if not os.path.isdir(output_dir):
+            os.makedirs(output_dir)
+
+        start_time = time.time()
+
+        # read in each image in the log
+        image_dir = self.foreground_reconstruction.image_dir
+        camera_pose_data = self.foreground_reconstruction.kinematics_pose_data
+        img_file_extension = 'png'
+
+        num_poses = self.foreground_reconstruction.kinematics_pose_data.num_poses()
+        num_poses = 5
+
+        logging_rate = 100
+
+        for idx in xrange(num_poses):
+            if (idx % logging_rate) == 0:
+                print "Rendering mask for pose %d" %(idx)
+
+            data = camera_pose_data.get_data(idx)
+            mask_image_filename = 'mask_' + utils.getPaddedString(idx) + "." + img_file_extension
+            mask_image_full_filename = os.path.join(output_dir, mask_image_filename)
+
+            camera_to_world = self.foreground_reconstruction.fusion_pose_data.get_camera_to_world_pose(idx)
+            self.setCameraTransform(camera_to_world)
+            d = self.computeForegroundMaskUsingCropStrategy(visualize=False)
+
+            mask = d['mask']
+            visible_mask = mask*255
+
+            visible_mask_filename = os.path.join(output_dir, 'visible_mask_' + utils.getPaddedString(idx)
+                                                 + "." + img_file_extension)
+
+            # save the images
+            cv2.imwrite(mask_image_full_filename, mask)
+            cv2.imwrite(visible_mask_filename, visible_mask)
+
+        end_time = time.time()
+
+        print "rendering masks took %d seconds" %(end_time - start_time)
 
 
     ##################### DEBUGGING FUNCTIONS #################
@@ -534,6 +489,12 @@ class ChangeDetection(object):
         view = self.views['foreground']
         self.background_reconstruction.visualize_reconstruction(view)
 
+    def testRenderMask(self, idx=10):
+        camera_to_world = self.foreground_reconstruction.fusion_pose_data.get_camera_to_world_pose(idx)
+        self.setCameraTransform(camera_to_world)
+        d = self.computeForegroundMaskUsingCropStrategy(visualize=True)
+
+
 
 
 # create app
@@ -566,7 +527,7 @@ def createChangeDetectionApp(globalsDict=None):
     globalsDict['view'] = view
     globalsDict['app'] = app
 
-def initDepthScanner(view, widgetArea=QtCore.Qt.RightDockWidgetArea):
+def initDepthScanner(app, view, widgetArea=QtCore.Qt.RightDockWidgetArea):
     depthScanner = DepthScanner(view)
     depthScanner.update()
 
@@ -592,22 +553,39 @@ def makeDefaultCameraIntrinsics():
     return director_utils.CameraIntrinsics(cx, cy, fx, fy, width, height)\
 
 def loadDefaultBackground():
-    data_folder = '/home/manuelli/code/data_volume/sandbox/kuka_scene_background'
+    data_folder = '/home/manuelli/code/data_volume/sandbox/drill_scenes/00_background'
     reconstruction = FusionReconstruction.from_data_folder(data_folder)
     return reconstruction
 
 def loadDefaultForeground():
-    data_folder = '/home/manuelli/code/data_volume/sandbox/kuka_scene_foreground'
+    data_folder = '/home/manuelli/code/data_volume/sandbox/drill_scenes/01_drill'
     reconstruction = FusionReconstruction.from_data_folder(data_folder)
     return reconstruction
 
+
+def setupChangeDetection(data_folder, globalsDict=None):
+    foreground_reconstruction = FusionReconstruction.from_data_folder(data_folder)
+    background_reconstruction_placeholder = FusionReconstruction.from_data_folder(data_folder)
+
+    if globalsDict is None:
+        globalsDict = dict()
+
+    createChangeDetectionApp(globalsDict)
+    view = globalsDict['view']
+    app = globalsDict['app']
+
+    changeDetection = ChangeDetection(app, view, cameraIntrinsics=makeDefaultCameraIntrinsics())
+    changeDetection.foreground_reconstruction = foreground_reconstruction
+    changeDetection.background_reconstruction = background_reconstruction_placeholder
+
+    globalsDict['changeDetection'] = changeDetection
+    return globalsDict
 
 def main(globalsDict):
     createChangeDetectionApp(globalsDict)
     view = globalsDict['view']
     app = globalsDict['app']
     changeDetection = ChangeDetection(app, view, cameraIntrinsics=makeDefaultCameraIntrinsics())
-
 
     DEBUG = False
     if DEBUG:
@@ -620,6 +598,7 @@ def main(globalsDict):
 
     globalsDict['changeDetection'] = changeDetection
     globalsDict['cd'] = changeDetection
+
     app.app.start(restoreWindow=False)
 
 

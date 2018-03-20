@@ -20,16 +20,15 @@ from PythonQt import QtCore, QtGui
 import cv2
 
 import dense_correspondence_manipulation.change_detection.change_detection as change_detection
+from dense_correspondence_manipulation.utils.constants import *
 
-
-CROP_BOX_POSE = (np.array([0.66757267, 0, 0.20047586]), np.array([1., 0., 0., 0.]))
 
 class ReconstructionProcessing(object):
 
     def __init__(self):
         pass
 
-    def spawnCropBox(self, dims=change_detection.CROP_BOX_DATA['dimensions']):
+    def spawnCropBox(self, dims=CROP_BOX_DATA['dimensions']):
         d = DebugData()
         d.addCube(dims, [0,0,0], color=[0,1,0])
 

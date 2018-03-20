@@ -53,3 +53,6 @@ def getQuaternionFromDict(d):
         raise ValueError("Error when trying to extract quaternion from dict, your dict doesn't contain a key in ['orientation', 'rotation', 'quaternion']")
 
     return quat
+
+def getPaddedString(idx, width=6):
+    return str(idx).zfill(width)
