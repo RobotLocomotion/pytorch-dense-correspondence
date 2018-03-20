@@ -355,9 +355,8 @@ class ChangeDetection(object):
         img_file_extension = 'png'
 
         num_poses = self.foreground_reconstruction.kinematics_pose_data.num_poses()
-        num_poses = 5
 
-        logging_rate = 100
+        logging_rate = 50
 
         for idx in xrange(num_poses):
             if (idx % logging_rate) == 0:
