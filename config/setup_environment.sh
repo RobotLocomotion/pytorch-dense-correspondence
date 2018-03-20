@@ -1,7 +1,7 @@
 export DC_SOURCE_DIR=~/code
 
 export PYTHONPATH=$PYTHONPATH:$DC_SOURCE_DIR/modules
-
+export PATH=$PATH:$DC_SOURCE_DIR/bin
 use_director(){
     export PATH=$PATH:~/director/bin
 }
