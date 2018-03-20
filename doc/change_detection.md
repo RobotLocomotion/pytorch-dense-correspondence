@@ -12,3 +12,10 @@ use_director
 ```
 directorPython run_change_detection.py --data_dir <path_to_elastic_fusion_reconstruction_folder>
 ```
+
+Another way to do the same is to navigate to the appropriate data folder and then just run the executable bash script `bin/run_change_detection`. Namely
+
+```
+cd <path_to_elastic_fusion_reconstruction_folder>
+run_change_detection
+```
