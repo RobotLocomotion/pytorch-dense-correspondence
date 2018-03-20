@@ -27,6 +27,7 @@ if __name__=="__main__":
 
 	image_name = args.image
 	home_directory = '/home/' + user_name
+	dense_correspondence_source_dir = os.path.join(home_directory, 'code')
 
 	cmd = "xhost +local:root \n"
 	cmd += "nvidia-docker run "
@@ -41,6 +42,12 @@ if __name__=="__main__":
 
 	cmd += " --user %s " % user_name                                                    # login as current user
 
+	# uncomment below to mount your data volume
+	if True:
+		data_directory_host_machine = '/home/manuelli/data/dense_correspondence'
+
+        cmd += " -v %s:%s/data_volume " %(data_directory_host_machine, dense_correspondence_source_dir)
+
 	# expose UDP ports
 	cmd += " -p 8888:8888 "
         cmd += " --ipc=host "
@@ -50,6 +57,7 @@ if __name__=="__main__":
 	cmd += " --privileged -v /dev/bus/usb:/dev/bus/usb " # allow usb access
 
 	cmd += " --rm " # remove the image when you exit
+
 
 	if args.entrypoint and args.entrypoint != "":
 		cmd += "--entrypoint=\"%(entrypoint)s\" " % {"entrypoint": args.entrypoint}

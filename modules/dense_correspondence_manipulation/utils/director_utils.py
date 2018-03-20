@@ -12,6 +12,8 @@ from director import screengrabberpanel as sgp
 from director import transformUtils
 from director import visualization as vis
 from director import objectmodel as om
+import dense_correspondence_manipulation.utils.utils as utils
+
 
 class CameraIntrinsics(object):
     def __init__(self, cx, cy, fx, fy, width, height):
@@ -22,6 +24,26 @@ class CameraIntrinsics(object):
         self.width = width
         self.height = height
 
+
+def transformFromPose(d):
+    """
+    Returns a transform from a standard encoding in dict format
+    :param d:
+    :return:
+    """
+    pos = [0]*3
+    pos[0] = d['translation']['x']
+    pos[1] = d['translation']['y']
+    pos[2] = d['translation']['z']
+
+    quatDict = utils.getQuaternionFromDict(d)
+    quat = [0]*4
+    quat[0] = quatDict['w']
+    quat[1] = quatDict['x']
+    quat[2] = quatDict['y']
+    quat[3] = quatDict['z']
+
+    return transformUtils.transformFromPose(pos, quat)
     
 def getCameraTransform(camera):
     """
