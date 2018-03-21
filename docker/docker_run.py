@@ -46,12 +46,12 @@ if __name__=="__main__":
     cmd += " --user %s " % user_name                                                    # login as current user
 
     # uncomment below to mount your data volume
-	config_yaml = yaml.load(file(config_file))
+    config_yaml = yaml.load(file(config_file))
     cmd += " -v %s:%s/data_volume " %(config_yaml['path_to_data_directory'], dense_correspondence_source_dir)
 
     # expose UDP ports
     cmd += " -p 8888:8888 "
-        cmd += " --ipc=host "
+    cmd += " --ipc=host "
 
     cmd += " " + args.passthrough + " "
 
