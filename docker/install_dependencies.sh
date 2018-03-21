@@ -17,9 +17,12 @@ apt install --no-install-recommends \
   usbutils \
   dialog \
   python-pip \
-  python-dev
+  python-dev 
+
 
 pip install -U pip setuptools
 
 apt-get -y install ipython ipython-notebook
-pip install jupyter
+pip install \
+  jupyter \
+  opencv-python

@@ -1,3 +1,6 @@
 [submodule "pytorch-segmentation-detection"]
 	path = pytorch-segmentation-detection
 	url = https://github.com/warmspringwinds/pytorch-segmentation-detection.git
+[submodule "src/ply"]
+	path = src/ply
+	url = git@github.com:peteflorence/ply.git

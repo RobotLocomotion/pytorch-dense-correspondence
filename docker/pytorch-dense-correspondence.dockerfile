@@ -28,14 +28,21 @@ RUN yes "Y" | /tmp/install_pytorch.sh
 COPY ./install_more.sh /tmp/install_more.sh
 RUN yes "Y" | /tmp/install_more.sh
 
+# install director
+COPY ./install_director.sh /tmp/install_director.sh
+RUN yes "Y" | /tmp/install_director.sh
+
 # set the terminator inside the docker container to be a different color
 RUN mkdir -p .config/terminator
 COPY ./terminator_config .config/terminator/config
 RUN chown $USER_NAME:$USER_NAME -R .config
 
+
 # change ownership of everything to our user
 RUN cd $WORKDIR && chown $USER_NAME:$USER_NAME -R .
 
-ENTRYPOINT bash -c "source ./docker/entrypoint.sh && /bin/bash"
+
+
+ENTRYPOINT bash -c "source ~/code/docker/entrypoint.sh && /bin/bash"
 
 
