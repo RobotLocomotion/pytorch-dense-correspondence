@@ -353,7 +353,7 @@ class ChangeDetection(object):
             if (counter % logging_rate) == 0:
                 print "Rendering mask for pose %d of %d" %(counter, num_poses)
 
-            mask_image_filename = 'mask_' + utils.getPaddedString(idx) + "." + img_file_extension
+            mask_image_filename = utils.getPaddedString(idx) + "_mask" + "." + img_file_extension
             mask_image_full_filename = os.path.join(output_dir, mask_image_filename)
 
             camera_to_world = self.foreground_reconstruction.fusion_pose_data.get_camera_to_world_pose(idx)
@@ -363,7 +363,7 @@ class ChangeDetection(object):
             mask = d['mask']
             visible_mask = mask*255
 
-            visible_mask_filename = os.path.join(output_dir, 'visible_mask_' + utils.getPaddedString(idx)
+            visible_mask_filename = os.path.join(output_dir, utils.getPaddedString(idx) + '_visible_mask'
                                                  + "." + img_file_extension)
 
             # save the images
@@ -583,8 +583,9 @@ def loadDefaultForeground():
     return reconstruction
 
 
-def main(globalsDict):
-    data_folder = '/home/manuelli/code/data_volume/sandbox/drill_scenes/04_drill_long_downsampled'
+def main(globalsDict, data_folder=None):
+    if data_folder is None:
+        data_folder = '/home/manuelli/code/data_volume/sandbox/drill_scenes/04_drill_long_downsampled'
     changeDetection, globalsDict = ChangeDetection.from_data_folder(data_folder, globalsDict=globalsDict)
 
     globalsDict['cd'] = changeDetection
