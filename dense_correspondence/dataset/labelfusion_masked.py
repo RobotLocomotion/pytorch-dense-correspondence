@@ -22,13 +22,19 @@ class LabelFusionDataset(DenseCorrespondenceDataset):
 
         DenseCorrespondenceDataset.__init__(self, debug=debug)
 
-    def get_pose(self, time_filename):
+    def get_pose(self, rgb_filename):
+    	time_filename = self.get_time_filename(rgb_filename)
         time = self.get_time(time_filename)
         scene_directory = time_filename.split("images")[0]
         pose_list = self.get_pose_list(scene_directory)
         pose_labelfusion = self.get_pose_from_list(time, pose_list)
         pose_matrix4 = self.labelfusion_pose_to_homogeneous_transform(pose_labelfusion)
         return pose_matrix4
+
+    def get_time_filename(self, rgb_image):
+        prefix = rgb_image.split("rgb")[0]
+        time_filename = prefix+"utime.txt"
+        return time_filename
 
     def get_time(self, time_filename):
         with open (time_filename) as f:

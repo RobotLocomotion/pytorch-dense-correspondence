@@ -122,24 +122,22 @@ class DenseCorrespondenceDataset(data.Dataset):
 
     def get_random_rgbd_with_pose(self, scene_directory):
         rgb_filename   = self.get_random_rgb_image_filename(scene_directory)
-        depth_filename = self.get_depth_filename(rgb_filename)
-        time_filename  = self.get_time_filename(rgb_filename) 
+        depth_filename = self.get_depth_filename(rgb_filename) 
 
         rgb   = self.get_rgb_image(rgb_filename)
         depth = self.get_depth_image(depth_filename)
-        pose  = self.get_pose(time_filename)
+        pose  = self.get_pose(rgb_filename)
 
         return rgb, depth, pose
 
     def get_random_rgbd_with_pose_and_mask(self, scene_directory):
         rgb_filename   = self.get_random_rgb_image_filename(scene_directory)
         depth_filename = self.get_depth_filename(rgb_filename)
-        time_filename  = self.get_time_filename(rgb_filename) 
         mask_filename  = self.get_mask_filename(rgb_filename)
 
         rgb   = self.get_rgb_image(rgb_filename)
         depth = self.get_depth_image(depth_filename)
-        pose  = self.get_pose(time_filename)
+        pose  = self.get_pose(rgb_filename)
         mask  = self.get_mask_image(mask_filename)
 
         return rgb, depth, pose, mask
@@ -160,8 +158,7 @@ class DenseCorrespondenceDataset(data.Dataset):
         while num_attempts < 10:
             rgb_filename   = self.get_random_rgb_image_filename(scene_directory)
             depth_filename = self.get_depth_filename(rgb_filename)
-            time_filename  = self.get_time_filename(rgb_filename)
-            pose           = self.get_pose(time_filename) 
+            pose           = self.get_pose(rgb_filename) 
             if self.different_enough(image_a_pose, pose):
                 break
             num_attempts += 1
@@ -198,12 +195,11 @@ class DenseCorrespondenceDataset(data.Dataset):
 
     def get_specific_rgbd_with_pose(self, scene_name, img_index):
         rgb_filename   = self.get_specific_rgb_image_filname(scene_name, img_index)
-        depth_filename = self.get_depth_filename(rgb_filename)
-        time_filename  = self.get_time_filename(rgb_filename) 
+        depth_filename = self.get_depth_filename(rgb_filename) 
 
         rgb   = self.get_rgb_image(rgb_filename)
         depth = self.get_depth_image(depth_filename)
-        pose  = self.get_pose(time_filename)
+        pose  = self.get_pose(rgb_filename)
 
         return rgb, depth, pose
 
@@ -222,11 +218,6 @@ class DenseCorrespondenceDataset(data.Dataset):
         prefix = rgb_image.split("rgb")[0]
         mask_filename = prefix+"labels.png"
         return mask_filename
-
-    def get_time_filename(self, rgb_image):
-        prefix = rgb_image.split("rgb")[0]
-        time_filename = prefix+"utime.txt"
-        return time_filename
 
     # this function cowbody copied from:
     # https://www.lfd.uci.edu/~gohlke/code/transformations.py.html
