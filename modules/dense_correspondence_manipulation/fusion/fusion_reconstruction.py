@@ -110,7 +110,6 @@ class FusionReconstruction(object):
     """
 
     def __init__(self):
-        self._crop_box_data = None
         pass
 
 
@@ -180,43 +179,65 @@ class FusionReconstruction(object):
         self._fusion_posegraph_filename = value
         self.fusion_pose_data = ElasticFusionCameraPoses(self._fusion_posegraph_filename)
 
+    @property
+    def config(self):
+        return self._config
+
+    @config.setter
+    def config(self, value):
+        self._config = value
+
     def load_poly_data(self):
         self.poly_data_raw = ioUtils.readPolyData(self.reconstruction_filename)
         self.poly_data = filterUtils.transformPolyData(self.poly_data_raw, self._reconstruction_to_world)
         self.crop_poly_data()
 
     def crop_poly_data(self):
-        if self._crop_box_data is None:
-            print "_crop_box_data is empty, skipping"
-            return
 
-        dimensions = self._crop_box_data['dimensions']
-        transform = self._crop_box_data['transform']
+        dim_x = self.config['crop_box']['dimensions']['x']
+        dim_y = self.config['crop_box']['dimensions']['y']
+        dim_z = self.config['crop_box']['dimensions']['z']
+        dimensions = [dim_x, dim_y, dim_z]
+
+        transform = director_utils.transformFromPose(self.config['crop_box']['transform'])
 
         # store the old poly data
         self.poly_data_uncropped = self.poly_data
 
         self.poly_data = segmentation.cropToBox(self.poly_data, transform, dimensions)
 
-    def visualize_reconstruction(self, view, point_size=3):
+    def visualize_reconstruction(self, view, point_size=None):
+        if point_size is None:
+            point_size = self.config['point_size']
+
         self.reconstruction_vis_obj = vis.showPolyData(self.poly_data, 'Fusion Reconstruction',
                                                        view=view, colorByName='RGB')
         self.reconstruction_vis_obj.setProperty('Point Size', point_size)
 
     @staticmethod
-    def from_data_folder(data_folder):
+    def from_data_folder(data_folder, config=None):
         fr = FusionReconstruction()
         fr.data_dir = data_folder
+
+        if config is None:
+            config = FusionReconstruction.load_default_config()
 
         pose_data_filename = os.path.join(data_folder, 'images', 'pose_data.yaml')
         camera_info_filename = os.path.join(data_folder, 'images', 'camera_info.yaml')
 
+        fr.config = config
         fr.kinematics_pose_data = utils.getDictFromYamlFilename(pose_data_filename)
         fr.camera_info = utils.getDictFromYamlFilename(camera_info_filename)
         fr.fusion_posegraph_filename = os.path.join(data_folder, 'images.posegraph')
         fr.fusion_pose_data.first_frame_to_world = transformUtils.copyFrame(fr._reconstruction_to_world)
 
         fr.reconstruction_filename = os.path.join(fr.data_dir, 'images.vtp')
-        fr._crop_box_data = CROP_BOX_DATA
         fr.setup()
         return fr
+
+    @staticmethod
+    def load_default_config():
+        default_config_file = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'stations', 'RLG_iiwa_1',
+                                           'change_detection.yaml')
+        config = utils.getDictFromYamlFilename(default_config_file)
+        return config
