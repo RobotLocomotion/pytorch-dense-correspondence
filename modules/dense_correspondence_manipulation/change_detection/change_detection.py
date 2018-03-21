@@ -29,11 +29,6 @@ from dense_correspondence_manipulation.utils.constants import *
 import dense_correspondence_manipulation.utils.utils as utils
 import dense_correspondence_manipulation.utils.segmentation as segmentation
 
-cameraPoseTest = ([ 7.53674834e-01, -8.55423154e-19,  6.92103873e-01], [-0.34869616,  0.6090305 ,  0.62659914, -0.33891938])
-
-CAMERA_TO_WORLD = transformUtils.transformFromPose(cameraPoseTest[0], cameraPoseTest[1])
-DEPTH_IM_RESCALE = 4000.0
-
 
 class DepthImageVisualizer(object):
     def __init__(self, window_title='Depth Image', scale=1):
@@ -90,7 +85,6 @@ class ChangeDetection(object):
         self.views['background'] = self.createBackgroundView()
 
         self.threshold = 10
-        self.loadConfig()
 
         if cameraIntrinsics is None:
             self.cameraIntrinsics = makeDefaultCameraIntrinsics()
@@ -124,10 +118,6 @@ class ChangeDetection(object):
             self.data_dir = data_directory
             self.loadData()
 
-    def loadConfig(self):
-        self.config = dict()
-        self.config['point_size'] = 3
-
     def loadData(self):
         """
         Load the relevant data from the folder.
@@ -151,7 +141,7 @@ class ChangeDetection(object):
 
         view = self.views['background']
         self._background_reconstruction = value
-        self._background_reconstruction.visualize_reconstruction(view, point_size=self.config['point_size'])
+        self._background_reconstruction.visualize_reconstruction(view)
 
     @property
     def foreground_reconstruction(self):
@@ -163,7 +153,7 @@ class ChangeDetection(object):
         self._foreground_reconstruction = value
 
         view = self.views['foreground']
-        self._foreground_reconstruction.visualize_reconstruction(view, point_size=self.config['point_size'])
+        self._foreground_reconstruction.visualize_reconstruction(view)
         
 
     def createBackgroundView(self):
@@ -362,7 +352,6 @@ class ChangeDetection(object):
             if (idx % logging_rate) == 0:
                 print "Rendering mask for pose %d" %(idx)
 
-            data = camera_pose_data.get_data(idx)
             mask_image_filename = 'mask_' + utils.getPaddedString(idx) + "." + img_file_extension
             mask_image_full_filename = os.path.join(output_dir, mask_image_filename)
 
@@ -383,6 +372,69 @@ class ChangeDetection(object):
         end_time = time.time()
 
         print "rendering masks took %d seconds" %(end_time - start_time)
+
+    @staticmethod
+    def create_change_detection_app(globalsDict=None):
+        from director import mainwindowapp
+        from PythonQt import QtCore, QtGui
+
+        app = mainwindowapp.construct()
+        app.gridObj.setProperty('Visible', True)
+        app.viewOptions.setProperty('Orientation widget', False)
+        app.viewOptions.setProperty('View angle', 30)
+        app.sceneBrowserDock.setVisible(False)
+        app.propertiesDock.setVisible(False)
+        app.mainWindow.setWindowTitle('Depth Scanner')
+        app.mainWindow.show()
+        app.mainWindow.resize(920, 600)
+        app.mainWindow.move(0, 0)
+
+        view = app.view
+        view.setParent(None)
+        mdiArea = QtGui.QMdiArea()
+        app.mainWindow.setCentralWidget(mdiArea)
+        subWindow = mdiArea.addSubWindow(view)
+        subWindow.setMinimumSize(300, 300)
+        subWindow.setWindowTitle('Camera image')
+        subWindow.resize(640, 480)
+        mdiArea.tileSubWindows()
+
+        globalsDict['view'] = view
+        globalsDict['app'] = app
+
+    @staticmethod
+    def from_data_folder(data_folder, config=None, globalsDict=None):
+        """
+        Creates a ChangeDetection object from a data_folder which contains the
+        3D reconstruction and the image files
+
+        :param data_folder:
+        :param config:
+        :param globalsDict:
+        :return:
+        """
+        foreground_reconstruction = FusionReconstruction.from_data_folder(data_folder, config=config)
+        background_reconstruction_placeholder = FusionReconstruction.from_data_folder(data_folder, config=config)
+
+        if globalsDict is None:
+            globalsDict = dict()
+
+        ChangeDetection.create_change_detection_app(globalsDict)
+        view = globalsDict['view']
+        app = globalsDict['app']
+
+
+        camera_info_file = os.path.join(data_folder, 'images', 'camera_info.yaml')
+        camera_intrinsics = director_utils.CameraIntrinsics.from_yaml_file(camera_info_file)
+        changeDetection = ChangeDetection(app, view, cameraIntrinsics=camera_intrinsics)
+        changeDetection.foreground_reconstruction = foreground_reconstruction
+        changeDetection.background_reconstruction = background_reconstruction_placeholder
+
+        globalsDict['changeDetection'] = changeDetection
+        return changeDetection, globalsDict
+
+
+
 
 
     ##################### DEBUGGING FUNCTIONS #################
@@ -494,38 +546,6 @@ class ChangeDetection(object):
         d = self.computeForegroundMaskUsingCropStrategy(visualize=True)
 
 
-
-
-# create app
-def createChangeDetectionApp(globalsDict=None):
-
-    from director import mainwindowapp
-    from PythonQt import QtCore, QtGui
-
-    app = mainwindowapp.construct()
-    app.gridObj.setProperty('Visible', True)
-    app.viewOptions.setProperty('Orientation widget', False)
-    app.viewOptions.setProperty('View angle', 30)
-    app.sceneBrowserDock.setVisible(False)
-    app.propertiesDock.setVisible(False)
-    app.mainWindow.setWindowTitle('Depth Scanner')
-    app.mainWindow.show()
-    app.mainWindow.resize(920,600)
-    app.mainWindow.move(0,0)
-
-    view = app.view
-    view.setParent(None)
-    mdiArea = QtGui.QMdiArea()
-    app.mainWindow.setCentralWidget(mdiArea)
-    subWindow = mdiArea.addSubWindow(view)
-    subWindow.setMinimumSize(300,300)
-    subWindow.setWindowTitle('Camera image')
-    subWindow.resize(640, 480)
-    mdiArea.tileSubWindows()
-
-    globalsDict['view'] = view
-    globalsDict['app'] = app
-
 def initDepthScanner(app, view, widgetArea=QtCore.Qt.RightDockWidgetArea):
     depthScanner = DepthScanner(view)
     depthScanner.update()
@@ -562,41 +582,12 @@ def loadDefaultForeground():
     return reconstruction
 
 
-def setupChangeDetection(data_folder, globalsDict=None):
-    foreground_reconstruction = FusionReconstruction.from_data_folder(data_folder)
-    background_reconstruction_placeholder = FusionReconstruction.from_data_folder(data_folder)
-
-    if globalsDict is None:
-        globalsDict = dict()
-
-    createChangeDetectionApp(globalsDict)
-    view = globalsDict['view']
-    app = globalsDict['app']
-
-    changeDetection = ChangeDetection(app, view, cameraIntrinsics=makeDefaultCameraIntrinsics())
-    changeDetection.foreground_reconstruction = foreground_reconstruction
-    changeDetection.background_reconstruction = background_reconstruction_placeholder
-
-    globalsDict['changeDetection'] = changeDetection
-    return globalsDict
-
 def main(globalsDict):
-    createChangeDetectionApp(globalsDict)
-    view = globalsDict['view']
-    app = globalsDict['app']
-    changeDetection = ChangeDetection(app, view, cameraIntrinsics=makeDefaultCameraIntrinsics())
+    data_folder = '/home/manuelli/code/data_volume/sandbox/drill_scenes/01_drill'
+    changeDetection, globalsDict = ChangeDetection.from_data_folder(data_folder, globalsDict=globalsDict)
 
-    DEBUG = False
-    if DEBUG:
-        changeDetection.test()
-    else:
-        changeDetection.background_reconstruction = loadDefaultBackground()
-        changeDetection.foreground_reconstruction = loadDefaultForeground()
-        changeDetection.testShowBackground()
-
-
-    globalsDict['changeDetection'] = changeDetection
     globalsDict['cd'] = changeDetection
+    app = globalsDict['app']
 
     app.app.start(restoreWindow=False)
 
