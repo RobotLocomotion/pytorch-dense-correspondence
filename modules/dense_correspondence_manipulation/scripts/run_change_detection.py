@@ -31,6 +31,5 @@ if __name__ == "__main__":
 
     config = utils.getDictFromYamlFilename(args.config_file)
 
-    obj_dict = change_detection.setupChangeDetection(data_folder, config=config)
-    changeDetection = obj_dict['changeDetection']
+    changeDetection, obj_dict = change_detection.ChangeDetection.from_data_folder(data_folder, config=config)
     changeDetection.run()
