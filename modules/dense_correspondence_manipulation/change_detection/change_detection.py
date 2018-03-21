@@ -348,7 +348,7 @@ class ChangeDetection(object):
 
         logging_rate = 50
 
-        for idx in xrange(num_poses):
+        for idx, value in camera_pose_data.pose_dict.iteritems():
             if (idx % logging_rate) == 0:
                 print "Rendering mask for pose %d" %(idx)
 
