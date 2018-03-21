@@ -38,6 +38,11 @@ Recommend using provided Docker scripts to run (install `nvidia-docker` if you h
 ```
 cd docker
 ./docker_build.py
+```
+
+Edit `config/docker_run_config.yaml` to set the path to your data volume. This will be mounted inside the docker at the location `~/code/data_volume`. Launch the docker with
+
+```
 ./docker_run.py
 ```
 
