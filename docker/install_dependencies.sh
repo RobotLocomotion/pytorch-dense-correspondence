@@ -17,7 +17,7 @@ apt install --no-install-recommends \
   usbutils \
   dialog \
   python-pip \
-  python-dev \
+  python-dev 
 
 
 pip install -U pip setuptools
