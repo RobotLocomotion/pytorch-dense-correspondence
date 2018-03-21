@@ -6,6 +6,7 @@ import dense_correspondence_manipulation.utils.utils as utils
 def run(data_folder, ply_binary_filename='images.ply'):
 
     # install ply if do not already have it
+    os.chdir(data_folder)
     vtp_filename = os.path.join(data_folder, 'images.vtp')
     dc_source_dir = utils.getDenseCorrespondenceSourceDir()
 
