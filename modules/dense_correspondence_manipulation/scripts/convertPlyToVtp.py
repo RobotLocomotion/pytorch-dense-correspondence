@@ -1,3 +1,5 @@
+#!/usr/bin/env directorPython
+
 '''
 Usage:
 
@@ -13,6 +15,7 @@ ply files.  You can use meshlab to open a binary ply
 file and re-save it as an ascii ply file.
 '''
 
+
 import os
 from director import ioUtils
 from director import vtkNumpy as vnp
@@ -23,7 +26,10 @@ if __name__ == '__main__':
     filename = sys.argv[1]
     outputFilename = os.path.splitext(filename)[0] + '.vtp'
 
+
+    print "reading poly data"
     polyData = ioUtils.readPolyData(filename)
+    print "finished reading poly data"
 
     # TODO:
     # This should just be fixed in ioUtils.readPolyData, but for now

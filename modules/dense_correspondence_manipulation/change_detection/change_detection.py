@@ -347,10 +347,11 @@ class ChangeDetection(object):
         num_poses = self.foreground_reconstruction.kinematics_pose_data.num_poses()
 
         logging_rate = 50
+        counter = 0
 
         for idx, value in camera_pose_data.pose_dict.iteritems():
-            if (idx % logging_rate) == 0:
-                print "Rendering mask for pose %d" %(idx)
+            if (counter % logging_rate) == 0:
+                print "Rendering mask for pose %d of %d" %(counter, num_poses)
 
             mask_image_filename = 'mask_' + utils.getPaddedString(idx) + "." + img_file_extension
             mask_image_full_filename = os.path.join(output_dir, mask_image_filename)
@@ -368,6 +369,8 @@ class ChangeDetection(object):
             # save the images
             cv2.imwrite(mask_image_full_filename, mask)
             cv2.imwrite(visible_mask_filename, visible_mask)
+
+            counter += 1
 
         end_time = time.time()
 
@@ -583,7 +586,7 @@ def loadDefaultForeground():
 
 
 def main(globalsDict):
-    data_folder = '/home/manuelli/code/data_volume/sandbox/drill_scenes/01_drill'
+    data_folder = '/home/manuelli/code/data_volume/sandbox/drill_scenes/04_drill_long_downsampled'
     changeDetection, globalsDict = ChangeDetection.from_data_folder(data_folder, globalsDict=globalsDict)
 
     globalsDict['cd'] = changeDetection
