@@ -17,6 +17,9 @@ def saveToYaml(data, filename):
     with open(filename, 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
 
+def getDenseCorrespondenceSourceDir():
+    return os.getenv("DC_SOURCE_DIR")
+
 
 def dictFromPosQuat(pos, quat):
     """
