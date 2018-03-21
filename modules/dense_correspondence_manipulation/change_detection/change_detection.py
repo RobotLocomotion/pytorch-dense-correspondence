@@ -438,8 +438,6 @@ class ChangeDetection(object):
 
 
 
-
-
     ##################### DEBUGGING FUNCTIONS #################
     def testCreateBackground(self):
         d = DebugData()

@@ -5,23 +5,24 @@ import argparse
 
 import dense_correspondence_manipulation.change_detection.change_detection as change_detection
 import dense_correspondence_manipulation.utils.utils as utils
+import dense_correspondence_manipulation.scripts.convert_ply_to_vtp as convert_ply_to_vtp
+import dense_correspondence_manipulation.scripts.run_change_detection as run_change_detection
 
 """
 Runs change detection to compute masks for each image
 """
 
-DEFAULT_CONFIG_FILE = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'stations', 'RLG_iiwa_1', 'change_detection.yaml')
 
-def run(data_folder, config_file=DEFAULT_CONFIG_FILE):
-    """
-    Runs the change detection pipeline
-    :param data_dir:
-    :param config_file:
-    :return:
-    """
-    config = utils.getDictFromYamlFilename(config_file)
-    changeDetection, obj_dict = change_detection.ChangeDetection.from_data_folder(data_folder, config=config)
-    changeDetection.run()
+def run(data_folder, config_file):
+
+    if not os.path.isfile(os.path.join(data_folder, 'images.vtp')):
+        print "converting ply to vtp . . . . "
+        convert_ply_to_vtp.run(data_folder)
+        print "finished converting ply to vtp\n\n"
+
+    print "running change detection . . . "
+    run_change_detection.run(data_folder, config_file=config_file)
+    print "finished running change detection"
 
 
 if __name__ == "__main__":
@@ -32,8 +33,6 @@ if __name__ == "__main__":
     parser.add_argument("--config_file", type=str, default=default_config_file)
 
     parser.add_argument('--current_dir', action='store_true', default=False, help="run the script with --data_dir set to the current directory")
-
-
 
     args = parser.parse_args()
     data_folder = args.data_dir
