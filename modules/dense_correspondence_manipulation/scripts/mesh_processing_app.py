@@ -2,6 +2,8 @@
 
 import os
 import argparse
+import dense_correspondence_manipulation.change_detection.mesh_processing as mesh_processing
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -17,4 +19,4 @@ if __name__ == "__main__":
         data_folder = os.getcwd()
 
 
-    run(data_folder, config_file=args.config_file)
+    mesh_processing.main(globals(), data_folder)
