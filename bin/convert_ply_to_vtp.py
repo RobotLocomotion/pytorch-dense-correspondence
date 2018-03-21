@@ -3,16 +3,14 @@ import os
 import dense_correspondence_manipulation.utils.utils as utils
 
 if __name__ == "__main__":
-        # install ply if do not already have it
+    
+    # install ply if do not already have it
     dc_source_dir = utils.getDenseCorrespondenceSourceDir()
 
     ply_to_ascii_executable = os.path.join(dc_source_dir, 'src', 'ply', 'ply2ascii')
-    # path_to_ply = path_to_labelfusion + "/src/ply"
-    # if not (os.path.isdir(path_to_ply)):
-    #     os.system("cd " + path_to_labelfusion + " && mkdir src && cd src && git clone https://github.com/peteflorence/ply.git") 
-    #     os.system("cd " + path_to_ply + " && make") 
-
-    # ply_binary_filename = lcmlog_filename + ".ply"
+    path_to_ply = os.path.join(dc_source_dir,"src","ply")
+    if not (os.path.isfile(ply_to_ascii_executable)):
+        os.system("cd " + path_to_ply + " && make") 
 
     ply_binary_filename = 'images.ply'
     correct_ply_header_file = os.path.join(dc_source_dir, 'config', 'correct_ply_header.txt')
@@ -48,6 +46,7 @@ if __name__ == "__main__":
                     continue
                 outfile.write(line)
 
+    
     # convert to vtp
     convert_ply_to_vtp_script = os.path.join(dc_source_dir, 'modules',
         'dense_correspondence_manipulation', 'scripts', 'convertPlyToVtp.py')
