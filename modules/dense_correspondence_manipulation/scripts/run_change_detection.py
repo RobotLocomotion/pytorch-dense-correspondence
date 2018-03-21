@@ -5,23 +5,28 @@ import argparse
 
 import dense_correspondence_manipulation.change_detection.change_detection as change_detection
 import dense_correspondence_manipulation.utils.utils as utils
+from dense_correspondence_manipulation.utils.constants import *
 
 """
 Runs change detection to compute masks for each image
 """
 
-DEFAULT_CONFIG_FILE = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'stations', 'RLG_iiwa_1', 'change_detection.yaml')
 
-def run(data_folder, config_file=DEFAULT_CONFIG_FILE):
+
+def run(data_folder, config_file=CHANGE_DETECTION_CONFIG_FILE):
     """
     Runs the change detection pipeline
     :param data_dir:
     :param config_file:
     :return:
     """
+
     config = utils.getDictFromYamlFilename(config_file)
     changeDetection, obj_dict = change_detection.ChangeDetection.from_data_folder(data_folder, config=config)
     changeDetection.run()
+
+    app = obj_dict['app']
+    app.app.quit()
 
 
 if __name__ == "__main__":
