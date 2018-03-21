@@ -1,9 +1,0 @@
-#!/bin/bash
-
-# Call this script from within /train directory
-
-echo "Running change detection ..."
-
-directorPython $DC_SOURCE_DIR/modules/dense_correspondence_manipulation/scripts/run_change_detection.py --data_dir $(pwd)
-
-echo "Done."

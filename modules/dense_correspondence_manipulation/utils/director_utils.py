@@ -24,6 +24,22 @@ class CameraIntrinsics(object):
         self.width = width
         self.height = height
 
+    @staticmethod
+    def from_yaml_file(filename):
+        config = utils.getDictFromYamlFilename(filename)
+
+        fx = config['camera_matrix']['data'][0]
+        cx = config['camera_matrix']['data'][2]
+
+        fy = config['camera_matrix']['data'][4]
+        cy = config['camera_matrix']['data'][5]
+
+        width = config['image_width']
+        height = config['image_height']
+
+        return CameraIntrinsics(cx, cy, fx, fy, width, height)
+
+
 
 def transformFromPose(d):
     """
