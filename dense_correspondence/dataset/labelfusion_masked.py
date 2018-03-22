@@ -31,12 +31,12 @@ class LabelFusionDataset(DenseCorrespondenceDataset):
         pose_matrix4 = self.elasticfusion_pose_to_homogeneous_transform(pose_elasticfusion)
         return pose_matrix4
 
-    def get_time_filename(self, rgb_image):
+    def get_time_filename(self, rgb_filename):
         prefix = rgb_image.split("rgb")[0]
         time_filename = prefix+"utime.txt"
         return time_filename
 
-    def get_mask_filename(self, rgb_image):
+    def get_mask_filename(self, rgb_filename):
         prefix = rgb_image.split("rgb")[0]
         mask_filename = prefix+"labels.png"
         return mask_filename

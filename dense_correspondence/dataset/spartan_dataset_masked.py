@@ -8,9 +8,11 @@ class SpartanDataset(DenseCorrespondenceDataset):
     	self.logs_root_path = self.load_from_config_yaml("relative_path_to_spartan_logs")
 
         # use all scenes
-        self.scenes = glob.glob(self.logs_root_path)
-
-        self.scenes = ["processed_04_drill_long_downsampled"] # just this one scene
+        self.scenes = [os.path.basename(x) for x in glob.glob(self.logs_root_path+"*")]
+        
+        blacklist = ["14_background"]
+        for blacklisted_scene in blacklist:
+            self.scenes.remove(blacklisted_scene)
 
         self.init_length()
         print "Using SpartanDataset with:"
@@ -24,7 +26,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         index = self.get_index(rgb_filename)
         pose_list = self.get_pose_list(scene_directory, "images.posegraph")
         pose_elasticfusion = self.get_pose_from_list(int(index), pose_list)
-        pose_matrix4 = self.elasticfusion_pose_to_homogeneous_transform(pose_labelfusion)
+        pose_matrix4 = self.elasticfusion_pose_to_homogeneous_transform(pose_elasticfusion)
         return pose_matrix4
 
     def get_pose_from_list(self, index, pose_list):
@@ -37,6 +39,6 @@ class SpartanDataset(DenseCorrespondenceDataset):
     def get_mask_filename(self, rgb_filename):
         images_masks_dir = os.path.join(os.path.dirname(os.path.dirname(rgb_filename)), "image_masks")
         index = self.get_index(rgb_filename)
-        mask_filename = images_masks_dir+"/"index+"_mask.png"
+        mask_filename = images_masks_dir+"/"+index+"_mask.png"
         print mask_filename
         return mask_filename
