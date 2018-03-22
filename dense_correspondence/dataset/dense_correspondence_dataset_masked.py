@@ -9,9 +9,6 @@ import random
 import glob
 from PIL import Image
 
-# For debuggig only
-from matplotlib import pyplot as plt
-
 import sys
 sys.path.insert(0, '../../pytorch-segmentation-detection/vision/')
 from torchvision import transforms
@@ -19,7 +16,6 @@ sys.path.append('../../pytorch-segmentation-detection/')
 from pytorch_segmentation_detection.transforms import ComposeJoint
 sys.path.append('../correspondence_tools/')
 import correspondence_finder
-import correspondence_plotter
 
 # This implements an abstract Dataset class in PyTorch
 # to load in LabelFusion data (labelfusion.csail.mit.edu)
@@ -93,6 +89,8 @@ class DenseCorrespondenceDataset(data.Dataset):
         uv_b_non_matches = correspondence_finder.create_non_correspondences(uv_a, uv_b, num_non_matches_per_match=num_non_matches_per_match)
 
         if self.debug:
+            # only want to bring in plotting code if in debug mode
+            import correspondence_plotter
 
             # Just show all images 
             # self.debug_show_data(image_a_rgb, image_a_depth, image_b_pose,
