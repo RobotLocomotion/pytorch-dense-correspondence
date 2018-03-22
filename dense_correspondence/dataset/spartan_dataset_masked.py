@@ -4,7 +4,7 @@ import os
 import glob
 
 class SpartanDataset(DenseCorrespondenceDataset):
-    def __init__(self, debug):
+    def __init__(self, debug=False):
     	self.logs_root_path = self.load_from_config_yaml("relative_path_to_spartan_logs")
 
         # use all scenes
