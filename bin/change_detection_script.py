@@ -23,7 +23,8 @@ def main():
         data_folder = os.path.join(parent_folder, dir)
 
         image_masks_folder = os.path.join(data_folder, 'image_masks')
-        shutil.rmtree(image_masks_folder)
+        if os.path.isdir(image_masks_folder):
+            shutil.rmtree(image_masks_folder)
 
         print "Processing scene %d of %d" %(idx, num_dirs)
         print "Running change detection for %s" %(dir)

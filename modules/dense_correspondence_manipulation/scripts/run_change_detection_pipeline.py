@@ -20,6 +20,7 @@ def run(data_folder, config_file):
         convert_ply_to_vtp.run(data_folder)
         print "finished converting ply to vtp\n\n"
 
+
     print "running change detection . . . "
     run_change_detection.run(data_folder, config_file=config_file)
     print "finished running change detection"

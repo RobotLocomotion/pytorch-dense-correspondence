@@ -370,6 +370,9 @@ class ChangeDetection(object):
             cv2.imwrite(mask_image_full_filename, mask)
             cv2.imwrite(visible_mask_filename, visible_mask)
 
+            if (counter % logging_rate) == 0:
+                print "np.shape(mask): ", np.shape(mask)
+
             counter += 1
 
         end_time = time.time()
@@ -541,10 +544,16 @@ class ChangeDetection(object):
         view = self.views['foreground']
         self.background_reconstruction.visualize_reconstruction(view)
 
-    def testRenderMask(self, idx=10):
+    def testRenderMask(self, idx=0, save_mask=True):
         camera_to_world = self.foreground_reconstruction.fusion_pose_data.get_camera_to_world_pose(idx)
         self.setCameraTransform(camera_to_world)
         d = self.computeForegroundMaskUsingCropStrategy(visualize=True)
+        mask = d['mask']
+        print "np.shape(mask): ", np.shape(mask)
+
+        mask_filename = "mask.png"
+        cv2.imwrite(mask_filename, mask)
+
 
 
 def initDepthScanner(app, view, widgetArea=QtCore.Qt.RightDockWidgetArea):
@@ -585,7 +594,7 @@ def loadDefaultForeground():
 
 def main(globalsDict, data_folder=None):
     if data_folder is None:
-        data_folder = '/home/manuelli/code/data_volume/sandbox/drill_scenes/04_drill_long_downsampled'
+        data_folder = '/home/manuelli/code/data_volume/sandbox/04_drill_long_downsampled'
     changeDetection, globalsDict = ChangeDetection.from_data_folder(data_folder, globalsDict=globalsDict)
 
     globalsDict['cd'] = changeDetection
