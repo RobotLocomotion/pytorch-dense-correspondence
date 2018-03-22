@@ -76,6 +76,17 @@ class DenseCorrespondenceDataset(data.Dataset):
                                                                            num_attempts=num_attempts, img_a_mask=image_a_mask)
 
 
+        if uv_a is None:
+            print "No matches this time"
+            return "matches", image_a_rgb, image_b_rgb, torch.zeros(1).type(dtype_long), torch.zeros(1).type(dtype_long), torch.zeros(1).type(dtype_long), torch.zeros(1).type(dtype_long)
+
+        if self.debug:
+            # downsample so can plot
+            num_matches_to_plot = 10
+            indexes_to_keep = (torch.rand(num_matches_to_plot)*len(uv_a)).floor().type(torch.LongTensor)
+            uv_a = (torch.index_select(uv_a[0], 0, indexes_to_keep), torch.index_select(uv_a[1], 0, indexes_to_keep))
+            uv_b = (torch.index_select(uv_b[0], 0, indexes_to_keep), torch.index_select(uv_b[1], 0, indexes_to_keep))
+
         # find non_correspondences
         uv_b_non_matches = correspondence_finder.create_non_correspondences(uv_a, uv_b, num_non_matches_per_match=num_non_matches_per_match)
 
@@ -101,9 +112,6 @@ class DenseCorrespondenceDataset(data.Dataset):
             image_a_rgb, image_b_rgb = self.both_to_tensor([image_a_rgb, image_b_rgb])
 
 
-        if uv_a is None:
-            print "No matches this time"
-            return "matches", image_a_rgb, image_b_rgb, torch.zeros(1).type(dtype_long), torch.zeros(1).type(dtype_long), torch.zeros(1).type(dtype_long), torch.zeros(1).type(dtype_long)
 
         uv_a_long = (torch.t(uv_a[0].repeat(num_non_matches_per_match, 1)).contiguous().view(-1,1), 
                      torch.t(uv_a[1].repeat(num_non_matches_per_match, 1)).contiguous().view(-1,1))

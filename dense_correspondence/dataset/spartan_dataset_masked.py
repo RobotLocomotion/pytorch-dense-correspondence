@@ -40,5 +40,4 @@ class SpartanDataset(DenseCorrespondenceDataset):
         images_masks_dir = os.path.join(os.path.dirname(os.path.dirname(rgb_filename)), "image_masks")
         index = self.get_index(rgb_filename)
         mask_filename = images_masks_dir+"/"+index+"_mask.png"
-        print mask_filename
         return mask_filename

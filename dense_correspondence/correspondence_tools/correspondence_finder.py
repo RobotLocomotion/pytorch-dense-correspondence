@@ -311,6 +311,10 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
         print torch.max(v2_vec)
         print torch.max(u2_vec)
         print "end WTF"
+    this_min = torch.min(uv_b_vec_flattened)
+    if this_min < 0:
+        print "less than 0?"
+        exit(0)
 
     depth2_vec = torch.index_select(img_b_depth_torch, 0, uv_b_vec_flattened)*1.0/1000
     depth2_vec = depth2_vec.squeeze(1)
