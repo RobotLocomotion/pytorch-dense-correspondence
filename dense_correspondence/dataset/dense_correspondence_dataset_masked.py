@@ -83,7 +83,7 @@ class DenseCorrespondenceDataset(data.Dataset):
         if self.debug:
             # downsample so can plot
             num_matches_to_plot = 10
-            indexes_to_keep = (torch.rand(num_matches_to_plot)*len(uv_a)).floor().type(torch.LongTensor)
+            indexes_to_keep = (torch.rand(num_matches_to_plot)*len(uv_a[0])).floor().type(torch.LongTensor)
             uv_a = (torch.index_select(uv_a[0], 0, indexes_to_keep), torch.index_select(uv_a[1], 0, indexes_to_keep))
             uv_b = (torch.index_select(uv_b[0], 0, indexes_to_keep), torch.index_select(uv_b[1], 0, indexes_to_keep))
 
