@@ -36,6 +36,8 @@ class DenseCorrespondenceDataset(data.Dataset):
     def __init__(self, debug=False):
         
         self.debug = debug
+
+        self.mode = "train"
         
         self.both_to_tensor = ComposeJoint(
             [
@@ -285,6 +287,28 @@ class DenseCorrespondenceDataset(data.Dataset):
         relative_path = config_dict[key]
         full_path = os.path.join(os.environ['HOME'], relative_path)
         return full_path
+
+    def use_all_available_scenes(self):
+        self.scenes = [os.path.basename(x) for x in glob.glob(self.logs_root_path+"*")]
+
+    def set_train_test_split_from_yaml(self, yaml_config_file_full_path):
+        with open(yaml_config_file_full_path, 'r') as stream:
+            try:
+                config_dict = yaml.load(stream)
+            except yaml.YAMLError as exc:
+                print(exc)
+
+        self.train = config_dict["train"]
+        self.test  = config_dict["test"]
+        self.set_train_mode()
+
+    def set_train_mode(self):
+        self.scenes = self.train
+        self.mode = "train"
+
+    def set_test_mode(self):
+        self.scenes = self.test
+        self.mode = "test"
 
     """
     Debug
