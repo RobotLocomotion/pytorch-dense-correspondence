@@ -31,10 +31,10 @@ def pytorch_rand_select_pixel(width,height,num_samples=1):
 
 def get_K_matrix():
     K = numpy.zeros((3,3))
-    K[0,0] = 528.0 # focal x
-    K[1,1] = 528.0 # focal y
-    K[0,2] = 320.0 # principal point x
-    K[1,2] = 240.0 # principal point y
+    K[0,0] = 539.0756 # focal x
+    K[1,1] = 539.782595 # focal y
+    K[0,2] = 316.229489 # principal point x
+    K[1,2] = 236.154597 # principal point y
     K[2,2] = 1.0
     return K
 

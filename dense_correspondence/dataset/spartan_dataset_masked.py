@@ -30,7 +30,9 @@ class SpartanDataset(DenseCorrespondenceDataset):
         return pose_matrix4
 
     def get_pose_from_list(self, index, pose_list):
-        return pose_list[index]
+        pose = pose_list[index]
+        pose = [float(x) for x in pose[1:]]
+        return pose
 
     def get_index(self, rgb_filename):
         prefix = rgb_filename.split("_rgb")[0]
