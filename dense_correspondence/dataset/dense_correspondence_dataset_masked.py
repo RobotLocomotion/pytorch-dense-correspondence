@@ -214,11 +214,6 @@ class DenseCorrespondenceDataset(data.Dataset):
         depth_filename = prefix+"depth.png"
         return depth_filename
 
-    def get_mask_filename(self, rgb_image):
-        prefix = rgb_image.split("rgb")[0]
-        mask_filename = prefix+"labels.png"
-        return mask_filename
-
     # this function cowbody copied from:
     # https://www.lfd.uci.edu/~gohlke/code/transformations.py.html
     def quaternion_matrix(self, quaternion):
@@ -234,6 +229,20 @@ class DenseCorrespondenceDataset(data.Dataset):
             [    q[1, 2]+q[3, 0], 1.0-q[1, 1]-q[3, 3],     q[2, 3]-q[1, 0], 0.0],
             [    q[1, 3]-q[2, 0],     q[2, 3]+q[1, 0], 1.0-q[1, 1]-q[2, 2], 0.0],
             [                0.0,                 0.0,                 0.0, 1.0]])
+
+    def elasticfusion_pose_to_homogeneous_transform(self, lf_pose):
+        homogeneous_transform = self.quaternion_matrix([lf_pose[6], lf_pose[3], lf_pose[4], lf_pose[5]])
+        homogeneous_transform[0,3] = lf_pose[0]
+        homogeneous_transform[1,3] = lf_pose[1]
+        homogeneous_transform[2,3] = lf_pose[2]
+        return homogeneous_transform
+
+    def get_pose_list(self, scene_directory, pose_list_filename):
+        posegraph_filename = os.path.join(scene_directory, pose_list_filename)
+        with open(posegraph_filename) as f:
+            content = f.readlines()
+        pose_list = [x.strip().split() for x in content]
+        return pose_list
 
     def get_full_path_for_scene(self, scene_name):
         full_path = os.path.join(self.logs_root_path, scene_name)

@@ -19,42 +19,24 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
         DenseCorrespondenceDataset.__init__(self, debug=debug)
 
-
     def get_pose(self, rgb_filename):
         scene_directory = rgb_filename.split("images")[0]
-
-        prefix = rgb_filename.split("_rgb")[0]
-        index = prefix.split("images/")[1]
-        
-        pose_list = self.get_pose_list(scene_directory)
-        pose_labelfusion = self.get_pose_from_list(int(index), pose_list)
-        pose_matrix4 = self.labelfusion_pose_to_homogeneous_transform(pose_labelfusion)
+        index = self.get_index(rgb_filename)
+        pose_list = self.get_pose_list(scene_directory, "images.posegraph")
+        pose_elasticfusion = self.get_pose_from_list(int(index), pose_list)
+        pose_matrix4 = self.elasticfusion_pose_to_homogeneous_transform(pose_labelfusion)
         return pose_matrix4
-
-    def get_time(self, index):
-        return index
-
-    def get_pose_list(self, scene_directory):
-        posegraph_filename = os.path.join(scene_directory, "images.posegraph")
-        with open(posegraph_filename) as f:
-            content = f.readlines()
-        pose_list = [x.strip().split() for x in content]
-        return pose_list
 
     def get_pose_from_list(self, index, pose_list):
         return pose_list[index]
 
-    def labelfusion_pose_to_homogeneous_transform(self, lf_pose):
-        homogeneous_transform = self.quaternion_matrix([lf_pose[6], lf_pose[3], lf_pose[4], lf_pose[5]])
-        homogeneous_transform[0,3] = lf_pose[0]
-        homogeneous_transform[1,3] = lf_pose[1]
-        homogeneous_transform[2,3] = lf_pose[2]
-        return homogeneous_transform
+    def get_index(self, rgb_filename):
+        prefix = rgb_filename.split("_rgb")[0]
+        return prefix.split("images/")[1]
 
     def get_mask_filename(self, rgb_filename):
-        prefix = rgb_filename.split("_rgb")[0]
-        index = prefix.split("images/")[1]
         images_masks_dir = os.path.join(os.path.dirname(os.path.dirname(rgb_filename)), "image_masks")
-        mask_filename = images_masks_dir+"/mask_"+index+".png"
+        index = self.get_index(rgb_filename)
+        mask_filename = images_masks_dir+"/"index+"_mask.png"
         print mask_filename
         return mask_filename
