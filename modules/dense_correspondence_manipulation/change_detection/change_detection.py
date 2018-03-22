@@ -351,7 +351,7 @@ class ChangeDetection(object):
 
         for idx, value in camera_pose_data.pose_dict.iteritems():
             if (counter % logging_rate) == 0:
-                print "Rendering mask for pose %d of %d" %(counter, num_poses)
+                print "Rendering mask for pose %d of %d" %(counter + 1, num_poses)
 
             mask_image_filename = utils.getPaddedString(idx) + "_mask" + "." + img_file_extension
             mask_image_full_filename = os.path.join(output_dir, mask_image_filename)
