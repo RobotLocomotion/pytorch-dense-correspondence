@@ -59,3 +59,33 @@ def getQuaternionFromDict(d):
 
 def getPaddedString(idx, width=6):
     return str(idx).zfill(width)
+
+
+
+class CameraIntrinsics(object):
+    """
+    Useful class for wrapping camera intrinsics and loading them from a
+    camera_info.yaml file
+    """
+    def __init__(self, cx, cy, fx, fy, width, height):
+        self.cx = cx
+        self.cy = cy
+        self.fx = fx
+        self.fy = fy
+        self.width = width
+        self.height = height
+
+    @staticmethod
+    def from_yaml_file(filename):
+        config = utils.getDictFromYamlFilename(filename)
+
+        fx = config['camera_matrix']['data'][0]
+        cx = config['camera_matrix']['data'][2]
+
+        fy = config['camera_matrix']['data'][4]
+        cy = config['camera_matrix']['data'][5]
+
+        width = config['image_width']
+        height = config['image_height']
+
+        return CameraIntrinsics(cx, cy, fx, fy, width, height)

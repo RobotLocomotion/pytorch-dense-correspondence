@@ -431,7 +431,7 @@ class ChangeDetection(object):
 
 
         camera_info_file = os.path.join(data_folder, 'images', 'camera_info.yaml')
-        camera_intrinsics = director_utils.CameraIntrinsics.from_yaml_file(camera_info_file)
+        camera_intrinsics = utils.CameraIntrinsics.from_yaml_file(camera_info_file)
         changeDetection = ChangeDetection(app, view, cameraIntrinsics=camera_intrinsics)
         changeDetection.foreground_reconstruction = foreground_reconstruction
         changeDetection.background_reconstruction = background_reconstruction_placeholder
@@ -579,7 +579,7 @@ def makeDefaultCameraIntrinsics():
     width = 640
     height = 480
 
-    return director_utils.CameraIntrinsics(cx, cy, fx, fy, width, height)\
+    return utils.CameraIntrinsics(cx, cy, fx, fy, width, height)\
 
 def loadDefaultBackground():
     data_folder = '/home/manuelli/code/data_volume/sandbox/drill_scenes/00_background'
