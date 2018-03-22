@@ -9,9 +9,6 @@ import random
 import glob
 from PIL import Image
 
-# For debuggig only
-from matplotlib import pyplot as plt
-
 import sys
 sys.path.insert(0, '../../pytorch-segmentation-detection/vision/')
 from torchvision import transforms
@@ -19,7 +16,6 @@ sys.path.append('../../pytorch-segmentation-detection/')
 from pytorch_segmentation_detection.transforms import ComposeJoint
 sys.path.append('../correspondence_tools/')
 import correspondence_finder
-import correspondence_plotter
 
 # This implements an abstract Dataset class in PyTorch
 # to load in LabelFusion data (labelfusion.csail.mit.edu)
@@ -36,6 +32,8 @@ class DenseCorrespondenceDataset(data.Dataset):
     def __init__(self, debug=False):
         
         self.debug = debug
+
+        self.mode = "train"
         
         self.both_to_tensor = ComposeJoint(
             [
@@ -91,6 +89,8 @@ class DenseCorrespondenceDataset(data.Dataset):
         uv_b_non_matches = correspondence_finder.create_non_correspondences(uv_a, uv_b, num_non_matches_per_match=num_non_matches_per_match)
 
         if self.debug:
+            # only want to bring in plotting code if in debug mode
+            import correspondence_plotter
 
             # Just show all images 
             # self.debug_show_data(image_a_rgb, image_a_depth, image_b_pose,
@@ -285,6 +285,28 @@ class DenseCorrespondenceDataset(data.Dataset):
         relative_path = config_dict[key]
         full_path = os.path.join(os.environ['HOME'], relative_path)
         return full_path
+
+    def use_all_available_scenes(self):
+        self.scenes = [os.path.basename(x) for x in glob.glob(self.logs_root_path+"*")]
+
+    def set_train_test_split_from_yaml(self, yaml_config_file_full_path):
+        with open(yaml_config_file_full_path, 'r') as stream:
+            try:
+                config_dict = yaml.load(stream)
+            except yaml.YAMLError as exc:
+                print(exc)
+
+        self.train = config_dict["train"]
+        self.test  = config_dict["test"]
+        self.set_train_mode()
+
+    def set_train_mode(self):
+        self.scenes = self.train
+        self.mode = "train"
+
+    def set_test_mode(self):
+        self.scenes = self.test
+        self.mode = "test"
 
     """
     Debug

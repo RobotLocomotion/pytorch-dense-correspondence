@@ -4,19 +4,18 @@ import os
 import glob
 
 class SpartanDataset(DenseCorrespondenceDataset):
-    def __init__(self, debug=False):
+    def __init__(self, debug=False, mode="train"):
     	self.logs_root_path = self.load_from_config_yaml("relative_path_to_spartan_logs")
 
-
-        # use all scenes
-        self.scenes = os.listdir(self.logs_root_path)
+        train_test_config = os.path.join(os.path.dirname(__file__), "train_test_config", "0001_drill_test.yaml")
+        self.set_train_test_split_from_yaml(train_test_config)
         
-        blacklist = ["14_background"]
-        for blacklisted_scene in blacklist:
-            self.scenes.remove(blacklisted_scene)
+        if mode == "test":
+            self.set_test_mode()
 
         self.init_length()
-        print "Using SpartanDataset with:"
+        print "Using SpartanDataset:"
+        print "   - in", self.mode, "mode"
         print "   - number of scenes:", len(self.scenes)
         print "   - total images:    ", self.num_images_total
 
