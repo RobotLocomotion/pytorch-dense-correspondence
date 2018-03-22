@@ -549,7 +549,6 @@ class ChangeDetection(object):
         self.setCameraTransform(camera_to_world)
         d = self.computeForegroundMaskUsingCropStrategy(visualize=True)
         mask = d['mask']
-        print "np.shape(mask): ", np.shape(mask)
 
         mask_filename = "mask.png"
         cv2.imwrite(mask_filename, mask)
