@@ -21,27 +21,37 @@ import cv2
 
 import dense_correspondence_manipulation.change_detection.change_detection as change_detection
 from dense_correspondence_manipulation.utils.constants import *
+import dense_correspondence_manipulation.utils.utils as utils
+import dense_correspondence_manipulation.utils.director_utils as director_utils
+from dense_correspondence_manipulation.fusion.fusion_reconstruction import FusionReconstruction
 
+
+CONFIG = utils.getDictFromYamlFilename(CHANGE_DETECTION_CONFIG_FILE)
 
 class ReconstructionProcessing(object):
 
     def __init__(self):
         pass
 
-    def spawnCropBox(self, dims=CROP_BOX_DATA['dimensions']):
+    def spawnCropBox(self, dims=None):
+        if dims is None:
+            dim_x = CONFIG['crop_box']['dimensions']['x']
+            dim_y = CONFIG['crop_box']['dimensions']['y']
+            dim_z = CONFIG['crop_box']['dimensions']['z']
+            dims = [dim_x, dim_y, dim_z]
+
+        transform = director_utils.transformFromPose(CONFIG['crop_box']['transform'])
         d = DebugData()
         d.addCube(dims, [0,0,0], color=[0,1,0])
-
         self.cube_vis = vis.updatePolyData(d.getPolyData(), 'Crop Cube', colorByName='RGB255')
         vis.addChildFrame(self.cube_vis)
-        self.cube_vis.getChildFrame().copyFrame(change_detection.CROP_BOX_DATA['transform'])
+        self.cube_vis.getChildFrame().copyFrame(transform)
         self.cube_vis.setProperty('Alpha', 0.3)
 
     def getCropBoxFrame(self):
         transform = self.cube_vis.getChildFrame().transform
         pos, quat = transformUtils.poseFromTransform(transform)
         print (pos,quat)
-
 
 
 def createApp(globalsDict=None):
@@ -68,26 +78,20 @@ def createApp(globalsDict=None):
 
 
 
-def main(globalsDict):
+def main(globalsDict, data_folder):
     createApp(globalsDict)
     view = globalsDict['view']
     app = globalsDict['app']
 
-    reconstruction = change_detection.loadDefaultBackground()
-    reconstruction.visualize_reconstruction(view)
-
-    rf = change_detection.loadDefaultForeground()
-    rf.visualize_reconstruction(view)
+    reconstruction = FusionReconstruction.from_data_folder(data_folder, config=CONFIG)
+    reconstruction.visualize_reconstruction(view, vis_uncropped=True)
 
     rp = ReconstructionProcessing()
     globalsDict['r'] = reconstruction
     globalsDict['rp'] = rp
-    globalsDict['rf'] = rf
 
 
-    # rp.spawnCropBox()
-    # vis.updatePolyData(reconstruction.poly_data_uncropped, 'Reconstruction Uncropped', colorByName='RGB')
-
+    rp.spawnCropBox()
     app.app.start(restoreWindow=True)
 
     

@@ -353,7 +353,7 @@ class ChangeDetection(object):
             if (counter % logging_rate) == 0:
                 print "Rendering mask for pose %d of %d" %(counter, num_poses)
 
-            mask_image_filename = 'mask_' + utils.getPaddedString(idx) + "." + img_file_extension
+            mask_image_filename = utils.getPaddedString(idx) + "_mask" + "." + img_file_extension
             mask_image_full_filename = os.path.join(output_dir, mask_image_filename)
 
             camera_to_world = self.foreground_reconstruction.fusion_pose_data.get_camera_to_world_pose(idx)
@@ -363,12 +363,15 @@ class ChangeDetection(object):
             mask = d['mask']
             visible_mask = mask*255
 
-            visible_mask_filename = os.path.join(output_dir, 'visible_mask_' + utils.getPaddedString(idx)
+            visible_mask_filename = os.path.join(output_dir, utils.getPaddedString(idx) + '_visible_mask'
                                                  + "." + img_file_extension)
 
             # save the images
             cv2.imwrite(mask_image_full_filename, mask)
             cv2.imwrite(visible_mask_filename, visible_mask)
+
+            if (counter % logging_rate) == 0:
+                print "np.shape(mask): ", np.shape(mask)
 
             counter += 1
 
@@ -428,15 +431,13 @@ class ChangeDetection(object):
 
 
         camera_info_file = os.path.join(data_folder, 'images', 'camera_info.yaml')
-        camera_intrinsics = director_utils.CameraIntrinsics.from_yaml_file(camera_info_file)
+        camera_intrinsics = utils.CameraIntrinsics.from_yaml_file(camera_info_file)
         changeDetection = ChangeDetection(app, view, cameraIntrinsics=camera_intrinsics)
         changeDetection.foreground_reconstruction = foreground_reconstruction
         changeDetection.background_reconstruction = background_reconstruction_placeholder
 
         globalsDict['changeDetection'] = changeDetection
         return changeDetection, globalsDict
-
-
 
 
 
@@ -543,10 +544,15 @@ class ChangeDetection(object):
         view = self.views['foreground']
         self.background_reconstruction.visualize_reconstruction(view)
 
-    def testRenderMask(self, idx=10):
+    def testRenderMask(self, idx=0, save_mask=True):
         camera_to_world = self.foreground_reconstruction.fusion_pose_data.get_camera_to_world_pose(idx)
         self.setCameraTransform(camera_to_world)
         d = self.computeForegroundMaskUsingCropStrategy(visualize=True)
+        mask = d['mask']
+
+        mask_filename = "mask.png"
+        cv2.imwrite(mask_filename, mask)
+
 
 
 def initDepthScanner(app, view, widgetArea=QtCore.Qt.RightDockWidgetArea):
@@ -572,7 +578,7 @@ def makeDefaultCameraIntrinsics():
     width = 640
     height = 480
 
-    return director_utils.CameraIntrinsics(cx, cy, fx, fy, width, height)\
+    return utils.CameraIntrinsics(cx, cy, fx, fy, width, height)\
 
 def loadDefaultBackground():
     data_folder = '/home/manuelli/code/data_volume/sandbox/drill_scenes/00_background'
@@ -585,8 +591,9 @@ def loadDefaultForeground():
     return reconstruction
 
 
-def main(globalsDict):
-    data_folder = '/home/manuelli/code/data_volume/sandbox/drill_scenes/04_drill_long_downsampled'
+def main(globalsDict, data_folder=None):
+    if data_folder is None:
+        data_folder = '/home/manuelli/code/data_volume/sandbox/04_drill_long_downsampled'
     changeDetection, globalsDict = ChangeDetection.from_data_folder(data_folder, globalsDict=globalsDict)
 
     globalsDict['cd'] = changeDetection

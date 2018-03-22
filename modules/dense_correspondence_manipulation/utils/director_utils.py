@@ -15,32 +15,6 @@ from director import objectmodel as om
 import dense_correspondence_manipulation.utils.utils as utils
 
 
-class CameraIntrinsics(object):
-    def __init__(self, cx, cy, fx, fy, width, height):
-        self.cx = cx
-        self.cy = cy
-        self.fx = fx
-        self.fy = fy
-        self.width = width
-        self.height = height
-
-    @staticmethod
-    def from_yaml_file(filename):
-        config = utils.getDictFromYamlFilename(filename)
-
-        fx = config['camera_matrix']['data'][0]
-        cx = config['camera_matrix']['data'][2]
-
-        fy = config['camera_matrix']['data'][4]
-        cy = config['camera_matrix']['data'][5]
-
-        width = config['image_width']
-        height = config['image_height']
-
-        return CameraIntrinsics(cx, cy, fx, fy, width, height)
-
-
-
 def transformFromPose(d):
     """
     Returns a transform from a standard encoding in dict format

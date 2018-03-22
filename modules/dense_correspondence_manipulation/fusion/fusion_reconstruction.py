@@ -206,13 +206,19 @@ class FusionReconstruction(object):
 
         self.poly_data = segmentation.cropToBox(self.poly_data, transform, dimensions)
 
-    def visualize_reconstruction(self, view, point_size=None):
+    def visualize_reconstruction(self, view, point_size=None, vis_uncropped=False):
         if point_size is None:
             point_size = self.config['point_size']
 
-        self.reconstruction_vis_obj = vis.showPolyData(self.poly_data, 'Fusion Reconstruction',
+        self.reconstruction_vis_obj = vis.updatePolyData(self.poly_data, 'Fusion Reconstruction',
                                                        view=view, colorByName='RGB')
         self.reconstruction_vis_obj.setProperty('Point Size', point_size)
+
+        if vis_uncropped:
+            vis_obj = vis.updatePolyData(self.poly_data_uncropped, 'Uncropped Fusion Reconstruction',
+                               view=view, colorByName='RGB')
+            vis_obj.setProperty('Point Size', point_size)
+
 
     @staticmethod
     def from_data_folder(data_folder, config=None):
