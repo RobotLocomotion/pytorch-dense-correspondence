@@ -7,8 +7,9 @@ class SpartanDataset(DenseCorrespondenceDataset):
     def __init__(self, debug=False):
     	self.logs_root_path = self.load_from_config_yaml("relative_path_to_spartan_logs")
 
+
         # use all scenes
-        self.scenes = [os.path.basename(x) for x in glob.glob(self.logs_root_path+"*")]
+        self.scenes = os.listdir(self.logs_root_path)
         
         blacklist = ["14_background"]
         for blacklisted_scene in blacklist:
