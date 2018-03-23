@@ -2,6 +2,7 @@
 import yaml
 import numpy as np
 import os
+import sys
 
 def getDictFromYamlFilename(filename):
     """
@@ -84,6 +85,10 @@ def get_defaults_config():
 
     return getDictFromYamlFilename(default_config_file)
 
+
+def add_dense_correspondence_to_python_path():
+    dc_source_dir = getDenseCorrespondenceSourceDir()
+    sys.path.append(dc_source_dir)
 
 class CameraIntrinsics(object):
     """
