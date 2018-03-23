@@ -16,6 +16,7 @@ sys.path.append('../../pytorch-segmentation-detection/')
 from pytorch_segmentation_detection.transforms import ComposeJoint
 sys.path.append('../correspondence_tools/')
 import correspondence_finder
+import dense_correspondence_manipulation.utils.utils as utils
 
 # This implements an abstract Dataset class in PyTorch
 # to load in LabelFusion data (labelfusion.csail.mit.edu)
@@ -26,6 +27,11 @@ import correspondence_finder
 #
 # For more info see:
 # http://pytorch.org/docs/master/data.html#torch.utils.data.Dataset
+
+class ImageType:
+    RGB = 0
+    DEPTH = 1
+    MASK = 2
 
 class DenseCorrespondenceDataset(data.Dataset):
 
@@ -178,11 +184,43 @@ class DenseCorrespondenceDataset(data.Dataset):
     def get_rgb_image(self, rgb_filename):
         return Image.open(rgb_filename).convert('RGB')
 
+    def get_rgb_image_from_scene_name_and_idx(self, scene_name, img_idx):
+        """
+        Returns an rgb image given a scene_name and image index
+        :param scene_name:
+        :param img_idx: str or int
+        :return: PIL.Image.Image
+        """
+        img_filename = self.get_image_filename(scene_name, img_idx, ImageType.RGB)
+        return self.get_rgb_image(img_filename)
+
     def get_depth_image(self, depth_filename):
         return np.asarray(Image.open(depth_filename))
 
+    def get_depth_image_from_scene_name_and_idx(self, scene_name, img_idx):
+        """
+        Returns a depth image given a scene_name and image index
+        :param scene_name:
+        :param img_idx: str or int
+        :return: PIL.Image.Image
+        """
+
+        img_filename = self.get_image_filename(scene_name, img_idx, ImageType.DEPTH)
+        return self.get_depth_image(img_filename)
+
     def get_mask_image(self, mask_filename):
         return np.asarray(Image.open(mask_filename))
+
+    def get_mask_image_from_scene_name_and_idx(self, scene_name, img_idx):
+        """
+        Returns a depth image given a scene_name and image index
+        :param scene_name:
+        :param img_idx: str or int
+        :return: PIL.Image.Image
+        """
+        img_filename = self.get_image_filename(scene_name, img_idx, ImageType.MASK)
+        return self.get_mask_image(img_filename)
+
 
     def different_enough(self, pose_1, pose_2):
         translation_1 = np.asarray(pose_1[0,3], pose_1[1,3], pose_1[2,3])
@@ -202,7 +240,14 @@ class DenseCorrespondenceDataset(data.Dataset):
         return random_rgb_image
 
     def get_specific_rgbd_with_pose(self, scene_name, img_index):
-        rgb_filename   = self.get_specific_rgb_image_filname(scene_name, img_index)
+        """
+        Returns a rgbd image along with the camera pose for a specific image
+        in a specific scene
+        :param scene_name:
+        :param img_index:
+        :return:
+        """
+        rgb_filename   = self.get_specific_rgb_image_filename(scene_name, img_index)
         depth_filename = self.get_depth_filename(rgb_filename) 
 
         rgb   = self.get_rgb_image(rgb_filename)
@@ -212,10 +257,26 @@ class DenseCorrespondenceDataset(data.Dataset):
         return rgb, depth, pose
 
     def get_specific_rgb_image_filname(self, scene_name, img_index):
+        DeprecationWarning("use get_specific_rgb_image_filename instead")
+        return self.get_specific_rgb_image_filename(scene_name, img_index)
+
+    def get_specific_rgb_image_filename(self, scene_name, img_index):
+        """
+        Returns the filename for the specific RGB image
+        :param scene_name:
+        :param img_index: int or str
+        :return:
+        """
+        if isinstance(img_index, str):
+            img_index = utils.getPaddedString(img_index)
+
         scene_directory = self.get_full_path_for_scene(scene_name)
         images_dir = os.path.join(scene_directory, "images")
-        rgb_image_filename = os.path.join(images_dir, img_index+"_rgb.png")
+        rgb_image_filename = os.path.join(images_dir, img_index + "_rgb.png")
         return rgb_image_filename
+
+    def get_image_filename(self, scene_name, img_index, image_type):
+        raise NotImplementedError("Implement in superclass")
 
     def get_depth_filename(self, rgb_image):
         prefix = rgb_image.split("rgb")[0]
@@ -290,6 +351,11 @@ class DenseCorrespondenceDataset(data.Dataset):
         self.scenes = [os.path.basename(x) for x in glob.glob(self.logs_root_path+"*")]
 
     def set_train_test_split_from_yaml(self, yaml_config_file_full_path):
+        """
+        Sets self.train and self.test attributes from config file
+        :param yaml_config_file_full_path:
+        :return:
+        """
         with open(yaml_config_file_full_path, 'r') as stream:
             try:
                 config_dict = yaml.load(stream)
@@ -308,6 +374,21 @@ class DenseCorrespondenceDataset(data.Dataset):
         self.scenes = self.test
         self.mode = "test"
 
+    @property
+    def test_scene_directories(self):
+        """
+        Get the list of testing scene directories
+        :return: list of strings
+        """
+        return self.test
+
+    @property
+    def train_scene_directories(self):
+        """
+        Get the list of training scene directories
+        :return: list of strings
+        """
+        return self.train
     """
     Debug
     """
