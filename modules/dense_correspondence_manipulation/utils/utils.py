@@ -90,6 +90,22 @@ def add_dense_correspondence_to_python_path():
     dc_source_dir = getDenseCorrespondenceSourceDir()
     sys.path.append(dc_source_dir)
 
+def convert_to_absolute_path(path):
+    """
+    Converts a potentially relative path to an absolute path by pre-pending the home directory
+    :param path: absolute or relative path
+    :type path: str
+    :return: absolute path
+    :rtype: str
+    """
+
+    if os.path.isdir(path):
+        return path
+
+
+    home_dir = os.path.expanduser("~")
+    return os.path.join(home_dir, path)
+
 class CameraIntrinsics(object):
     """
     Useful class for wrapping camera intrinsics and loading them from a

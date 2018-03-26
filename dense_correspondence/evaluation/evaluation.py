@@ -108,7 +108,8 @@ class DenseCorrespondenceNetwork(object):
         """
 
         fcn = resnet_dilated.Resnet34_8s(num_classes=config['descriptor_dimension'])
-        fcn.load_state_dict(torch.load(config['path_to_network_params']))
+        path_to_network_params = utils.convert_to_absolute_path(config['path_to_network_params'])
+        fcn.load_state_dict(torch.load(path_to_network_params))
         fcn.cuda()
         fcn.eval()
 
