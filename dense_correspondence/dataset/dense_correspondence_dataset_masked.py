@@ -267,7 +267,7 @@ class DenseCorrespondenceDataset(data.Dataset):
         :param img_index: int or str
         :return:
         """
-        if isinstance(img_index, str):
+        if isinstance(img_index, int):
             img_index = utils.getPaddedString(img_index)
 
         scene_directory = self.get_full_path_for_scene(scene_name)
