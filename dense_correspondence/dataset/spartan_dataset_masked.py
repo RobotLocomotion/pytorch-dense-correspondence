@@ -6,7 +6,11 @@ import glob
 import dense_correspondence_manipulation.utils.utils as utils
 
 class SpartanDataset(DenseCorrespondenceDataset):
+
+    PADDED_STRING_WIDTH = 6
+
     def __init__(self, debug=False, mode="train"):
+
     	self.logs_root_path = self.load_from_config_yaml("relative_path_to_spartan_logs")
 
         train_test_config = os.path.join(os.path.dirname(__file__), "train_test_config", "0001_drill_test.yaml")
@@ -88,8 +92,8 @@ class SpartanDataset(DenseCorrespondenceDataset):
         else:
             raise ValueError("unsupported image type")
 
-        if isinstance(img_index, str):
-            img_index = utils.getPaddedString(img_index)
+        if isinstance(img_index, int):
+            img_index = utils.getPaddedString(img_index, width=SpartanDataset.PADDED_STRING_WIDTH)
 
         scene_directory = self.get_full_path_for_scene(scene_name)
         if not os.path.isdir(scene_directory):
