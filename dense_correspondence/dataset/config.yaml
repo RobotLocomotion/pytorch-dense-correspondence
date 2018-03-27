@@ -1,2 +1,9 @@
-relative_path_to_labelfusion_logs_test: code/data/mini-labelfusion-drill/logs_test/ 
-relative_path_to_spartan_logs: code/data_volume/
+# uncomment to set paths for appropriate user
+
+# manuelli
+relative_path_to_labelfusion_logs_test: code/data/mini-labelfusion-drill/logs_test/
+relative_path_to_spartan_logs: code/data_volume/10_scenes_drill_long
+
+# peteflo
+relative_path_to_labelfusion_logs_test: code/data/mini-labelfusion-drill/logs_test/
+relative_path_to_spartan_logs: code/data_volume/10_scenes_drill_long

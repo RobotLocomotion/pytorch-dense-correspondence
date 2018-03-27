@@ -1,0 +1,1 @@
+cuda_visible_devices: [0] # set this to which cuda devices you want to use

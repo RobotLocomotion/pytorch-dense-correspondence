@@ -5,6 +5,7 @@ import torch
 import numpy as numpy
 import math
 from numpy.linalg import inv
+import random
 
 # io
 from PIL import Image
@@ -60,6 +61,27 @@ def apply_transform_torch(vec3, transform4):
     vec4 = torch.cat((vec3,ones_row),0)
     vec4 = transform4.mm(vec4)
     return vec4[0:3]
+
+def random_sample_from_masked_image(img_mask, num_samples):
+    """
+    Samples num_samples pixel locations from the masked image
+    :param img_mask: numpy.ndarray
+        - masked image, we will select from the non-zero entries
+        - shape is H x W
+    :param num_samples: int
+        - number of random indices to return
+    :return: List of np.array
+    """
+    idx_tuple = img_mask.nonzero()
+    num_nonzero = len(idx_tuple[0])
+    rand_inds = random.sample(range(0,num_nonzero), num_samples)
+
+    sampled_idx_list = []
+    for i, idx in enumerate(idx_tuple):
+        sampled_idx_list.append(idx[rand_inds])
+
+    return sampled_idx_list
+
 
 # in torch 0.3 we don't yet have torch.where(), although this
 # is there in 0.4 (not yet stable release)

@@ -2,6 +2,7 @@
 import yaml
 import numpy as np
 import os
+import sys
 
 def getDictFromYamlFilename(filename):
     """
@@ -60,7 +61,50 @@ def getQuaternionFromDict(d):
 def getPaddedString(idx, width=6):
     return str(idx).zfill(width)
 
+def set_cuda_visible_devices(gpu_list):
+    """
+    Sets CUDA_VISIBLE_DEVICES environment variable to only show certain gpus
+    If gpu_list is empty does nothing
+    :param gpu_list: list of gpus to set as visible
+    :return: None
+    """
 
+    if len(gpu_list) == 0:
+        return
+
+    cuda_visible_devices = ""
+    for gpu in gpu_list:
+        cuda_visible_devices += str(gpu) + ","
+
+    print "setting CUDA_VISIBLE_DEVICES = ", cuda_visible_devices
+    os.environ["CUDA_VISIBLE_DEVICES"] = cuda_visible_devices
+
+def get_defaults_config():
+    dc_source_dir = getDenseCorrespondenceSourceDir()
+    default_config_file = os.path.join(dc_source_dir, 'config', 'defaults.yaml')
+
+    return getDictFromYamlFilename(default_config_file)
+
+
+def add_dense_correspondence_to_python_path():
+    dc_source_dir = getDenseCorrespondenceSourceDir()
+    sys.path.append(dc_source_dir)
+
+def convert_to_absolute_path(path):
+    """
+    Converts a potentially relative path to an absolute path by pre-pending the home directory
+    :param path: absolute or relative path
+    :type path: str
+    :return: absolute path
+    :rtype: str
+    """
+
+    if os.path.isdir(path):
+        return path
+
+
+    home_dir = os.path.expanduser("~")
+    return os.path.join(home_dir, path)
 
 class CameraIntrinsics(object):
     """
@@ -89,3 +133,4 @@ class CameraIntrinsics(object):
         height = config['image_height']
 
         return CameraIntrinsics(cx, cy, fx, fy, width, height)
+

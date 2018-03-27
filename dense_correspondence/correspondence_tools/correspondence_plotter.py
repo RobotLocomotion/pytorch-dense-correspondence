@@ -42,6 +42,20 @@ def plot_correspondences_from_dir(log_dir, img_a, img_b, uv_a, uv_b, use_previou
     return plot_correspondences(images, uv_a, uv_b, use_previous_plot=use_previous_plot, circ_color=circ_color, show=show)
 
 def plot_correspondences_direct(img_a_rgb, img_a_depth, img_b_rgb, img_b_depth, uv_a, uv_b, use_previous_plot=None, circ_color='g', show=True):
+    """
+
+    Plots rgb and depth image pair along with circles at pixel locations
+    :param img_a_rgb: PIL.Image.Image
+    :param img_a_depth: PIL.Image.Image
+    :param img_b_rgb: PIL.Image.Image
+    :param img_b_depth: PIL.Image.Image
+    :param uv_a: (u,v) pixel location, or list of pixel locations
+    :param uv_b: (u,v) pixel location, or list of pixel locations
+    :param use_previous_plot:
+    :param circ_color: str
+    :param show:
+    :return:
+    """
     images = [img_a_rgb, img_b_rgb, img_a_depth, img_b_depth]
     return plot_correspondences(images, uv_a, uv_b, use_previous_plot=use_previous_plot, circ_color=circ_color, show=show)
     
