@@ -53,11 +53,16 @@ if __name__=="__main__":
     cmd += " -p 8888:8888 "
     cmd += " --ipc=host "
 
+    # share host machine network
+    cmd += " --network=host "
+
     cmd += " " + args.passthrough + " "
 
     cmd += " --privileged -v /dev/bus/usb:/dev/bus/usb " # allow usb access
 
     cmd += " --rm " # remove the image when you exit
+
+
 
 
     if args.entrypoint and args.entrypoint != "":
