@@ -10,11 +10,27 @@ from dense_correspondence_manipulation.utils.constants import *
 
 """
 Script that runs the change detection pipeline on all subfolders in a directory
+
+Usage:
+
+    change_detection_script.py 
+
+# Make sure to use appropriate calls to setup environment, and call this script from a directory with many subdirectories of scenes
+# For example:
+
+    cd pytorch-dense-correspondence/data_volume
+    use_pytorch_dense_correspondence
+    use_director
+    change_detection_script.py
+
 """
 
 def main():
-    parent_folder = "/home/manuelli/code/data_volume/10_scenes_drill_long"
+
+    parent_folder = os.getcwd()
     list_of_dirs = os.listdir(parent_folder)
+    print "list_of_dirs", list_of_dirs
+
     num_dirs = len(list_of_dirs)
     # list_of_dirs = ["04_drill_long_downsampled", "05_drill_long_downsampled"]
 
