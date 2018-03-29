@@ -3,6 +3,7 @@ import yaml
 import numpy as np
 import os
 import sys
+import time
 
 def getDictFromYamlFilename(filename):
     """
@@ -110,6 +111,16 @@ def convert_to_absolute_path(path):
 
     home_dir = os.path.expanduser("~")
     return os.path.join(home_dir, path)
+
+def get_unique_name():
+    """
+    Converts current date to a unique name
+    :return:
+    :rtype: str
+    """
+
+    unique_name = time.strftime("%Y%m%d-%H%M%S")
+    return unique_name
 
 class CameraIntrinsics(object):
     """
