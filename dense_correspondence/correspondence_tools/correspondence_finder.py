@@ -176,6 +176,28 @@ def create_non_correspondences(uv_a, uv_b_matches, num_non_matches_per_match=100
 # Optionally, uv_a specifies the pixels in img_a for which to find matches
 # If uv_a is not set, then random correspondences are attempted to be found
 def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b_pose, uv_a=None, num_attempts=20, device='CPU', img_a_mask=None):
+    """
+    Computes pixel correspondences in batch
+
+    :param img_a_depth:
+    :type img_a_depth:
+    :param img_a_pose:
+    :type img_a_pose:
+    :param img_b_depth:
+    :type img_b_depth:
+    :param img_b_pose:
+    :type img_b_pose:
+    :param uv_a:
+    :type uv_a:
+    :param num_attempts:
+    :type num_attempts:
+    :param device:
+    :type device:
+    :param img_a_mask:
+    :type img_a_mask:
+    :return: Tuple (uv_a, uv_b). Each of uv_a is a tuple of torch.FloatTensors
+    :rtype:
+    """
     global dtype_float
     global dtype_long
     if device == 'CPU':
