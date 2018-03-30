@@ -13,8 +13,8 @@ Script that runs the change detection pipeline on all subfolders in a directory
 """
 
 def main():
-    parent_folder = "/home/manuelli/code/data_volume/10_scenes_drill_long"
-    list_of_dirs = os.listdir(parent_folder)
+    parent_folder = os.getcwd()
+    list_of_dirs = sorted(os.listdir(parent_folder))
     num_dirs = len(list_of_dirs)
     # list_of_dirs = ["04_drill_long_downsampled", "05_drill_long_downsampled"]
 
