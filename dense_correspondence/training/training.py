@@ -234,7 +234,7 @@ class DenseCorrespondenceTraining(object):
         if 'logging_dir_name' in self._config['training']:
             dir_name =  self._config['training']['logging_dir_name']
         else:
-            dir_name = utils.get_unique_name() +"_" + str(self._config['dense_correspondence_network']['descriptor_dimension']) + "d"
+            dir_name = utils.get_current_time_unique_name() +"_" + str(self._config['dense_correspondence_network']['descriptor_dimension']) + "d"
 
         self._logging_dir_name = dir_name
 
