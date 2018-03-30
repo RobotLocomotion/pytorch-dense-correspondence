@@ -186,15 +186,12 @@ class DenseCorrespondenceEvaluation(object):
         fig.set_figheight(10)
         fig.set_figwidth(15)
         axes.imshow(img3)
-        plt.show()
-
-
 
         # show colormap if possible (i.e. if descriptor dimension is 1 or 3)
         if dcn.descriptor_dimension in [1,3]:
             DenseCorrespondenceEvaluation.plot_descriptor_colormaps(res_a, res_b)
 
-
+        plt.show()
 
 
     @staticmethod

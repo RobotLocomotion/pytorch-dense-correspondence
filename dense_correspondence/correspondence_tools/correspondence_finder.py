@@ -94,16 +94,32 @@ def where(cond, x_1, x_2):
 # nothing about the underlying data.
 # It may be worthile in future to use the depth
 # To check that we have depth information
-def create_non_correspondences(uv_a, uv_b_matches, num_non_matches_per_match=100):
+def create_non_correspondences(uv_a, uv_b_matches, num_non_matches_per_match=100, img_b_mask=None):
     if uv_a == None:
         return None
+
     num_matches = len(uv_a[0])
+
+    if img_b_mask is not None:
+        img_b_mask_flat = img_b_mask.view(-1,1).squeeze(1)
+        mask_b_indices_flat = torch.nonzero(img_b_mask_flat)
+        if len(mask_b_indices_flat) == 0:
+            print "warning, empty mask b"
+            exit(0)
+        num_samples = num_matches*num_non_matches_per_match
+        rand_numbers_b = torch.rand(num_samples)*len(mask_b_indices_flat)
+        rand_indices_b = torch.floor(rand_numbers_b).long()
+        randomized_mask_b_indices_flat = torch.index_select(mask_b_indices_flat, 0, rand_indices_b).squeeze(1)
+        uv_b_non_matches = (randomized_mask_b_indices_flat%640, randomized_mask_b_indices_flat/640)
+    else:
+        uv_b_non_matches = pytorch_rand_select_pixel(width=640,height=480,num_samples=num_matches*num_non_matches_per_match)
+    
     # for each in uv_a, we want non-matches
     # shape of uv_a : just a vector, of length corresponding to how many samples
     
     # first just randomly sample "non_matches"
     # we will later move random samples that were too close to being matches
-    uv_b_non_matches = pytorch_rand_select_pixel(width=640,height=480,num_samples=num_matches*num_non_matches_per_match)
+    
     uv_b_non_matches = (uv_b_non_matches[0].view(num_matches,num_non_matches_per_match), uv_b_non_matches[1].view(num_matches,num_non_matches_per_match))
 
     # uv_b_matches can now be used to make sure no "non_matches" are too close
@@ -194,7 +210,7 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
     :param device:
     :type device:
     :param img_a_mask:
-    :type img_a_mask:
+    :type img_a_mask: ndarray, of shape (H, W)
     :return: Tuple (uv_a, uv_b). Each of uv_a is a tuple of torch.FloatTensors
     :rtype:
     """
@@ -219,7 +235,7 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
         print "unmasked shape"
         uv_a_vec_flattened = uv_a_vec[1]*640+uv_a_vec[0]
     else:
-        img_a_mask = torch.from_numpy(img_a_mask).type(dtype_float)
+        img_a_mask = torch.from_numpy(img_a_mask).type(dtype_float)  
         mask_a = img_a_mask.squeeze(0)
         mask_a = mask_a/torch.max(mask_a)
         nonzero = (torch.nonzero(mask_a)).type(dtype_long)

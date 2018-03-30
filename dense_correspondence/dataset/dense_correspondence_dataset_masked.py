@@ -65,7 +65,7 @@ class DenseCorrespondenceDataset(data.Dataset):
         image_a_rgb, image_a_depth, image_a_pose, image_a_mask = self.get_random_rgbd_with_pose_and_mask(scene_directory)
         
         # image b
-        image_b_rgb, image_b_depth, image_b_pose = self.get_different_rgbd_with_pose(scene_directory, image_a_pose)
+        image_b_rgb, image_b_depth, image_b_pose, image_b_mask = self.get_different_rgbd_with_pose_and_mask(scene_directory, image_a_pose)
 
 
         num_attempts = 50000
@@ -74,7 +74,7 @@ class DenseCorrespondenceDataset(data.Dataset):
             num_attempts = 20
             num_non_matches_per_match = 1
 
-        # find correspondences    
+        # find correspondences
         uv_a, uv_b = correspondence_finder.batch_find_pixel_correspondences(image_a_depth, image_a_pose, 
                                                                            image_b_depth, image_b_pose, 
                                                                            num_attempts=num_attempts, img_a_mask=image_a_mask)
@@ -92,7 +92,14 @@ class DenseCorrespondenceDataset(data.Dataset):
             uv_b = (torch.index_select(uv_b[0], 0, indexes_to_keep), torch.index_select(uv_b[1], 0, indexes_to_keep))
 
         # find non_correspondences
-        uv_b_non_matches = correspondence_finder.create_non_correspondences(uv_a, uv_b, num_non_matches_per_match=num_non_matches_per_match)
+        if index%2:
+            print "masking non-matches"
+            image_b_mask = torch.from_numpy(image_b_mask).type(torch.FloatTensor)
+        else:
+            print "not masking non-matches"
+            image_b_mask = None
+            
+        uv_b_non_matches = correspondence_finder.create_non_correspondences(uv_a, uv_b, num_non_matches_per_match=num_non_matches_per_match, img_b_mask=image_b_mask)
 
         if self.debug:
             # only want to bring in plotting code if in debug mode
@@ -180,6 +187,24 @@ class DenseCorrespondenceDataset(data.Dataset):
         rgb   = self.get_rgb_image(rgb_filename)
         depth = self.get_depth_image(depth_filename)
         return rgb, depth, pose
+
+    def get_different_rgbd_with_pose_and_mask(self, scene_directory, image_a_pose):
+        # try to get a far-enough-away pose
+        # if can't, then just return last sampled pose
+        num_attempts = 0
+        while num_attempts < 10:
+            rgb_filename   = self.get_random_rgb_image_filename(scene_directory)
+            depth_filename = self.get_depth_filename(rgb_filename)
+            pose           = self.get_pose(rgb_filename) 
+            mask_filename  = self.get_mask_filename(rgb_filename)
+            if self.different_enough(image_a_pose, pose):
+                break
+            num_attempts += 1
+
+        rgb   = self.get_rgb_image(rgb_filename)
+        depth = self.get_depth_image(depth_filename)
+        mask  = self.get_mask_image(mask_filename) 
+        return rgb, depth, pose, mask
 
     def get_rgb_image(self, rgb_filename):
         return Image.open(rgb_filename).convert('RGB')
