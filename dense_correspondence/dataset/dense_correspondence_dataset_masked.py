@@ -92,7 +92,13 @@ class DenseCorrespondenceDataset(data.Dataset):
             uv_b = (torch.index_select(uv_b[0], 0, indexes_to_keep), torch.index_select(uv_b[1], 0, indexes_to_keep))
 
         # find non_correspondences
-        image_b_mask = torch.from_numpy(image_b_mask).type(torch.FloatTensor)
+        if index%2:
+            print "masking non-matches"
+            image_b_mask = torch.from_numpy(image_b_mask).type(torch.FloatTensor)
+        else:
+            print "not masking non-matches"
+            image_b_mask = None
+            
         uv_b_non_matches = correspondence_finder.create_non_correspondences(uv_a, uv_b, num_non_matches_per_match=num_non_matches_per_match, img_b_mask=image_b_mask)
 
         if self.debug:
