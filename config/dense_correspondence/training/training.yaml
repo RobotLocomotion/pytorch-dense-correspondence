@@ -4,7 +4,6 @@ training:
   steps_between_learning_rate_decay: 500 # decay the learning rate after this many steps
   weight_decay: 1.0e-4
   num_iterations: 3500 # number of iterations to train for
-  num_iterations: 100 # number of iterations to train for
   logging_rate: 10 # how often to print out
   save_rate: 50 # how often to save the network
   num_workers: 10 # num threads/workers for dataset loading
