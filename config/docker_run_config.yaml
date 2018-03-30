@@ -1,5 +1,5 @@
-# peteflo
-#path_to_data_directory: '/media/peteflo/3TBbackup/10_scenes_drill_long'
+peteflo:
+  path_to_data_directory: '/media/peteflo/3TBbackup/10_scenes_drill_long'
 
-# manuelli
-path_to_data_directory: '/home/manuelli/data/dense_correspondence'
+manuelli:
+  path_to_data_directory: '/home/manuelli/data/dense_correspondence'
