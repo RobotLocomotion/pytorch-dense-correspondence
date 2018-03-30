@@ -104,8 +104,8 @@ def create_non_correspondences(uv_a, uv_b_matches, num_non_matches_per_match=100
         img_b_mask_flat = img_b_mask.view(-1,1).squeeze(1)
         mask_b_indices_flat = torch.nonzero(img_b_mask_flat)
         if len(mask_b_indices_flat) == 0:
-            return Variable(torch.cuda.LongTensor([0]), requires_grad=True)
-
+            print "warning, empty mask b"
+            exit(0)
         num_samples = num_matches*num_non_matches_per_match
         rand_numbers_b = torch.rand(num_samples)*len(mask_b_indices_flat)
         rand_indices_b = torch.floor(rand_numbers_b).long()
