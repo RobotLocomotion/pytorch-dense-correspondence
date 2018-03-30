@@ -15,7 +15,7 @@ import pytorch_segmentation_detection.models.resnet_dilated as resnet_dilated
 import numpy as np
 
 
-class DenseCorrespondenceNetwork(torch.nn.Module):
+class DenseCorrespondenceNetwork(object):
 
     IMAGE_TO_TENSOR = valid_transform = transforms.Compose([transforms.ToTensor(), ])
 
