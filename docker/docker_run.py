@@ -47,17 +47,22 @@ if __name__=="__main__":
 
     # uncomment below to mount your data volume
     config_yaml = yaml.load(file(config_file))
-    cmd += " -v %s:%s/data_volume " %(config_yaml['path_to_data_directory'], dense_correspondence_source_dir)
+    cmd += " -v %s:%s/data_volume " %(config_yaml[user_name]['path_to_data_directory'], dense_correspondence_source_dir)
 
     # expose UDP ports
     cmd += " -p 8888:8888 "
     cmd += " --ipc=host "
+
+    # share host machine network
+    cmd += " --network=host "
 
     cmd += " " + args.passthrough + " "
 
     cmd += " --privileged -v /dev/bus/usb:/dev/bus/usb " # allow usb access
 
     cmd += " --rm " # remove the image when you exit
+
+
 
 
     if args.entrypoint and args.entrypoint != "":

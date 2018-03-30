@@ -3,6 +3,7 @@ import yaml
 import numpy as np
 import os
 import sys
+import time
 
 def getDictFromYamlFilename(filename):
     """
@@ -89,6 +90,11 @@ def get_defaults_config():
 def add_dense_correspondence_to_python_path():
     dc_source_dir = getDenseCorrespondenceSourceDir()
     sys.path.append(dc_source_dir)
+    sys.path.append(os.path.join(dc_source_dir, 'pytorch-segmentation-detection'))
+
+    # for some reason it is critical that this be at the beginning . . .
+    sys.path.insert(0, os.path.join(dc_source_dir, 'pytorch-segmentation-detection', 'vision'))
+
 
 def convert_to_absolute_path(path):
     """
@@ -105,6 +111,16 @@ def convert_to_absolute_path(path):
 
     home_dir = os.path.expanduser("~")
     return os.path.join(home_dir, path)
+
+def get_current_time_unique_name():
+    """
+    Converts current date to a unique name
+    :return:
+    :rtype: str
+    """
+
+    unique_name = time.strftime("%Y%m%d-%H%M%S")
+    return unique_name
 
 class CameraIntrinsics(object):
     """
