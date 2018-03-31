@@ -1,12 +1,26 @@
 import torch
+from PIL import Image
+import numpy as np
+import correspondence_plotter
+import matplotlib.pyplot as plt
 
 class PixelwiseContrastiveLoss():
 
     def __init__(self):
     	self.type = "pixelwise_contrastive"
+        self.debug = True
 
     def get_loss(self, image_a_pred, image_b_pred, matches_a, matches_b, non_matches_a, non_matches_b):
     	loss = 0
+
+        if self.debug:
+            img_a_pred_numpy = self.convert_to_plottable_numpy(image_a_pred)
+            img_b_pred_numpy = self.convert_to_plottable_numpy(image_b_pred)
+            plt.imshow(img_a_pred_numpy)
+            plt.show()
+            plt.imshow(img_b_pred_numpy)
+            plt.show()
+            exit(0)
 
     	# add loss via matches
         matches_a_descriptors = torch.index_select(image_a_pred, 1, matches_a)
@@ -25,3 +39,7 @@ class PixelwiseContrastiveLoss():
         non_match_loss = loss.data[0] - match_loss
 
         return loss, match_loss, non_match_loss
+
+
+    def convert_to_plottable_numpy(self, img_torch_variable):
+        return img_torch_variable.data.squeeze(0).contiguous().view(480,640,3).cpu().numpy()
