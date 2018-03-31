@@ -30,9 +30,11 @@ class PixelwiseContrastiveLoss():
             img_a_pred_numpy = self.convert_to_plottable_numpy(image_a_pred)
             img_b_pred_numpy = self.convert_to_plottable_numpy(image_b_pred)
             fig, axes = DenseCorrespondenceEvaluation.plot_descriptor_colormaps(img_a_pred_numpy, img_b_pred_numpy)
-            circ = Circle((200,200), radius=10, facecolor='g', edgecolor='white', fill=True ,linewidth = 2.0, linestyle='solid')
+            first_match_a = self.flattened_pixel_location_to_plottable_pixel_location(matches_a[0])
+            circ = Circle(first_match_a, radius=10, facecolor='g', edgecolor='white', fill=True ,linewidth = 2.0, linestyle='solid')
             axes[0].add_patch(circ)
-            circ = Circle((200,200), radius=10, facecolor='g', edgecolor='white', fill=True ,linewidth = 2.0, linestyle='solid', alpha=0.8)
+            first_match_b = self.flattened_pixel_location_to_plottable_pixel_location(matches_b[0])
+            circ = Circle(first_match_b, radius=10, facecolor='g', edgecolor='white', fill=True ,linewidth = 2.0, linestyle='solid', alpha=0.8)
             axes[1].add_patch(circ)
             plt.show()
 
@@ -57,3 +59,6 @@ class PixelwiseContrastiveLoss():
 
     def convert_to_plottable_numpy(self, img_torch_variable):
         return img_torch_variable.data.squeeze(0).contiguous().view(480,640,3).cpu().numpy()
+
+    def flattened_pixel_location_to_plottable_pixel_location(self, flat_pixel_location):
+        return (flat_pixel_location%640, flat_pixel_location/640)
