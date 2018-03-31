@@ -169,7 +169,7 @@ class DenseCorrespondenceTraining(object):
                 # get loss
                 if data_type == "matches":
                     loss, match_loss, non_match_loss =\
-                        pixelwise_contrastive_loss.get_loss(image_a_pred,
+                        pixelwise_contrastive_loss.get_adversarial_loss(image_a_pred,
                                                             image_b_pred,
                                                             matches_a,
                                                             matches_b,
