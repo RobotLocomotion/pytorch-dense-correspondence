@@ -46,23 +46,25 @@ class PixelwiseContrastiveLoss():
             self.debug = False
         self.counter += 1
 
-        non_matches_a_descriptors = torch.index_select(image_a_pred, 1, non_matches_a)
-        print non_matches_a_descriptors.shape, "is non_matches_a_descriptors.shape"
+        #print non_matches_b.shape, "is non_matches_b.shape"
+        non_matches_a_descriptors_squeezed = torch.index_select(image_a_pred, 1, non_matches_a).squeeze(0)
+        #print non_matches_a_descriptors_squeezed.shape, "is non_matches_a_descriptors_squeezed.shape"
+        image_b_pred_squeezed = image_b_pred.squeeze(0)
+        #print image_b_pred_squeezed.shape, "is image_b_pred_squeezed.shape"
 
-        first_non_match_descriptor = non_matches_a_descriptors.squeeze(0)[0]
-        print first_non_match_descriptor.shape, "is first_non_match_descriptor.shape"
+        
+        num_adversarial_samples = 1000
+        rand_numbers_in_range = torch.rand(num_adversarial_samples)*len(non_matches_a)
+        rand_indices = torch.floor(rand_numbers_in_range).long()
 
-        image_b_pred_only_one = image_b_pred.squeeze(0)
-        print image_b_pred_only_one.shape, "is image_b_pred_only_one.shape"
+        import time; start = time.time()
 
-        norm_diffs = torch.sum((image_b_pred_only_one - first_non_match_descriptor).pow(2), dim=1)
-        print norm_diffs.shape, "is norm_diffs.shape"
-
-        smallest_norm_diff, smallest_norm_diff_idx = torch.min(norm_diffs, dim=0)
-        print "smallest_norm_diff, smallest_norm_diff_idx"
-        print smallest_norm_diff, smallest_norm_diff_idx
-        non_matches_b[0] = smallest_norm_diff_idx
-
+        self.set_adversarial_non_match_by_index(0, non_matches_a_descriptors_squeezed, image_b_pred_squeezed, non_matches_b)
+        for i in rand_indices:
+            self.set_adversarial_non_match_by_index(i, non_matches_a_descriptors_squeezed, image_b_pred_squeezed, non_matches_b)
+        
+        print time.time() - start, " seconds to set", num_adversarial_samples, "adversarial non matches"
+        
 
         if self.debug:
             img_a_pred_numpy = self.convert_to_plottable_numpy(image_a_pred)
@@ -90,6 +92,16 @@ class PixelwiseContrastiveLoss():
 
         return self.get_loss(image_a_pred, image_b_pred, matches_a, matches_b, non_matches_a, non_matches_b)
 
+
+    def set_adversarial_non_match_by_index(self, index_of_match_pair, non_matches_a_descriptors_squeezed, image_b_pred_squeezed, non_matches_b):
+        descriptor_at_pixel = non_matches_a_descriptors_squeezed[index_of_match_pair]
+        #print descriptor_at_pixel.shape, "is descriptor_at_pixel.shape"
+        norm_diffs = torch.sum((image_b_pred_squeezed - descriptor_at_pixel).pow(2), dim=1)
+        #print norm_diffs.shape, "is norm_diffs.shape"
+        smallest_norm_diff, smallest_norm_diff_idx = torch.min(norm_diffs, dim=0)
+        #print "smallest_norm_diff, smallest_norm_diff_idx"
+        #print smallest_norm_diff, smallest_norm_diff_idx
+        non_matches_b[index_of_match_pair] = smallest_norm_diff_idx
 
     def convert_to_plottable_numpy(self, img_torch_variable):
         return img_torch_variable.data.squeeze(0).contiguous().view(480,640,3).cpu().numpy()
