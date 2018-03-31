@@ -50,12 +50,24 @@ class PixelwiseContrastiveLoss():
             img_a_pred_numpy = self.convert_to_plottable_numpy(image_a_pred)
             img_b_pred_numpy = self.convert_to_plottable_numpy(image_b_pred)
             fig, axes = DenseCorrespondenceEvaluation.plot_descriptor_colormaps(img_a_pred_numpy, img_b_pred_numpy)
+            
             first_match_a = self.flattened_pixel_location_to_plottable_pixel_location(matches_a[0])
             circ = Circle(first_match_a, radius=10, facecolor='g', edgecolor='white', fill=True ,linewidth = 2.0, linestyle='solid')
             axes[0].add_patch(circ)
+            
+            # don't need to add non match from a side, it's the same as match
+            #first_non_match_a = self.flattened_pixel_location_to_plottable_pixel_location(non_matches_a[0])
+            #circ = Circle(first_non_match_a, radius=10, facecolor='r', edgecolor='white', fill=True ,linewidth = 2.0, linestyle='solid')
+            #axes[0].add_patch(circ)
+
+
             first_match_b = self.flattened_pixel_location_to_plottable_pixel_location(matches_b[0])
             circ = Circle(first_match_b, radius=10, facecolor='g', edgecolor='white', fill=True ,linewidth = 2.0, linestyle='solid', alpha=0.8)
             axes[1].add_patch(circ)
+            first_non_match_b = self.flattened_pixel_location_to_plottable_pixel_location(non_matches_b[0])
+            circ = Circle(first_non_match_b, radius=10, facecolor='r', edgecolor='white', fill=True ,linewidth = 2.0, linestyle='solid')
+            axes[1].add_patch(circ)
+
             plt.show()
 
         return self.get_loss(image_a_pred, image_b_pred, matches_a, matches_b, non_matches_a, non_matches_b)
