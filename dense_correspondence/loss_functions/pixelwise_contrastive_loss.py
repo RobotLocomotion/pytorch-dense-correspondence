@@ -46,6 +46,24 @@ class PixelwiseContrastiveLoss():
             self.debug = False
         self.counter += 1
 
+        non_matches_a_descriptors = torch.index_select(image_a_pred, 1, non_matches_a)
+        print non_matches_a_descriptors.shape, "is non_matches_a_descriptors.shape"
+
+        first_non_match_descriptor = non_matches_a_descriptors.squeeze(0)[0]
+        print first_non_match_descriptor.shape, "is first_non_match_descriptor.shape"
+
+        image_b_pred_only_one = image_b_pred.squeeze(0)
+        print image_b_pred_only_one.shape, "is image_b_pred_only_one.shape"
+
+        norm_diffs = torch.sum((image_b_pred_only_one - first_non_match_descriptor).pow(2), dim=1)
+        print norm_diffs.shape, "is norm_diffs.shape"
+
+        smallest_norm_diff, smallest_norm_diff_idx = torch.min(norm_diffs, dim=0)
+        print "smallest_norm_diff, smallest_norm_diff_idx"
+        print smallest_norm_diff, smallest_norm_diff_idx
+        non_matches_b[0] = smallest_norm_diff_idx
+
+
         if self.debug:
             img_a_pred_numpy = self.convert_to_plottable_numpy(image_a_pred)
             img_b_pred_numpy = self.convert_to_plottable_numpy(image_b_pred)
