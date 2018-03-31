@@ -104,8 +104,8 @@ class DenseCorrespondenceEvaluation(object):
         :type res_a: numpy.ndarray
         :param res_b:
         :type res_b: numpy.ndarray
-        :return: None
-        :rtype: None
+        :return: matplotlib fig, axes
+        :rtype: matplotlib fig, axes
         """
 
         fig, axes = plt.subplots(nrows=1, ncols=2)
@@ -116,6 +116,7 @@ class DenseCorrespondenceEvaluation(object):
 
         res_b_norm = dc_plotting.normalize_descriptor(res_b)
         axes[1].imshow(res_b_norm)
+        return fig, axes
 
     @staticmethod
     def single_image_pair_qualitative_analysis(dcn, dataset, scene_name,

@@ -1,26 +1,40 @@
 import torch
+
 from PIL import Image
 import numpy as np
 import correspondence_plotter
 import matplotlib.pyplot as plt
+from matplotlib.patches import Circle
+
+import dense_correspondence_manipulation.utils.utils as utils
+utils.add_dense_correspondence_to_python_path()
+from dense_correspondence.evaluation.evaluation import DenseCorrespondenceEvaluation
 
 class PixelwiseContrastiveLoss():
 
     def __init__(self):
     	self.type = "pixelwise_contrastive"
-        self.debug = True
+        self.debug = False
+        self.counter = 0
 
     def get_loss(self, image_a_pred, image_b_pred, matches_a, matches_b, non_matches_a, non_matches_b):
     	loss = 0
 
+        if (self.counter % 20 == 0):
+            self.debug = True
+        else:
+            self.debug = False
+        self.counter += 1
+
         if self.debug:
             img_a_pred_numpy = self.convert_to_plottable_numpy(image_a_pred)
             img_b_pred_numpy = self.convert_to_plottable_numpy(image_b_pred)
-            plt.imshow(img_a_pred_numpy)
+            fig, axes = DenseCorrespondenceEvaluation.plot_descriptor_colormaps(img_a_pred_numpy, img_b_pred_numpy)
+            circ = Circle((200,200), radius=10, facecolor='g', edgecolor='white', fill=True ,linewidth = 2.0, linestyle='solid')
+            axes[0].add_patch(circ)
+            circ = Circle((200,200), radius=10, facecolor='g', edgecolor='white', fill=True ,linewidth = 2.0, linestyle='solid', alpha=0.8)
+            axes[1].add_patch(circ)
             plt.show()
-            plt.imshow(img_b_pred_numpy)
-            plt.show()
-            exit(0)
 
     	# add loss via matches
         matches_a_descriptors = torch.index_select(image_a_pred, 1, matches_a)
