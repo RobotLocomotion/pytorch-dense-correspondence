@@ -240,7 +240,8 @@ class ChangeDetection(object):
         # get the depth images
         # make sure to convert them to int32 since we want to avoid wrap-around issues when using
         # uint16 types
-        depth_img_f = np.array(self.depthScanners['foreground'].getDepthImageAsNumpyArray(), dtype=np.int32)
+        depth_img_foreground_raw = self.depthScanners['foreground'].getDepthImageAsNumpyArray()
+        depth_img_f = np.array(depth_img_foreground_raw, dtype=np.int32)
         depth_img_b = np.array(self.depthScanners['background'].getDepthImageAsNumpyArray(), dtype=np.int32)
 
         # zero values are interpreted as max-range measurements
@@ -256,6 +257,7 @@ class ChangeDetection(object):
         returnData['mask'] = mask
         returnData['depth_img_foreground'] = depth_img_f
         returnData['depth_img_background'] = depth_img_b
+        returnData['depth_img_foreground_raw'] = depth_img_foreground_raw
         returnData['depth_img_change'] = depth_img_change
 
 
@@ -285,7 +287,8 @@ class ChangeDetection(object):
         # get the depth images
         # make sure to convert them to int32 since we want to avoid wrap-around issues when using
         # uint16 types
-        depth_img_f = np.array(self.depthScanners['foreground'].getDepthImageAsNumpyArray(), dtype=np.int32)
+        depth_img_foreground_raw = self.depthScanners['foreground'].getDepthImageAsNumpyArray()
+        depth_img_f = np.array(depth_img_foreground_raw, dtype=np.int32)
 
 
         idx = depth_img_f > 0
@@ -295,6 +298,7 @@ class ChangeDetection(object):
         returnData = dict()
         returnData['idx'] = idx
         returnData['mask'] = mask
+        returnData['depth_img_foreground_raw'] = depth_img_foreground_raw
         returnData['depth_img_foreground'] = depth_img_f
 
         if visualize:
@@ -366,9 +370,13 @@ class ChangeDetection(object):
             visible_mask_filename = os.path.join(output_dir, utils.getPaddedString(idx) + '_visible_mask'
                                                  + "." + img_file_extension)
 
+            depth_img_filename = os.path.join(output_dir, utils.getPaddedString(idx) + '_depth'
+                                                 + "." + img_file_extension)
+
             # save the images
             cv2.imwrite(mask_image_full_filename, mask)
             cv2.imwrite(visible_mask_filename, visible_mask)
+            cv2.imwrite(depth_img_filename, d['depth_img_foreground_raw'])
 
             if (counter % logging_rate) == 0:
                 print "np.shape(mask): ", np.shape(mask)

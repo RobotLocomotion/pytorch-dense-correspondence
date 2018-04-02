@@ -13,7 +13,7 @@ Runs change detection to compute masks for each image
 
 
 
-def run(data_folder, config_file=CHANGE_DETECTION_CONFIG_FILE):
+def run(data_folder, config_file=CHANGE_DETECTION_CONFIG_FILE, debug=False, globalsDict=None):
     """
     Runs the change detection pipeline
     :param data_dir:
@@ -21,8 +21,11 @@ def run(data_folder, config_file=CHANGE_DETECTION_CONFIG_FILE):
     :return:
     """
 
+    if globalsDict is None:
+        globalsDict = globals()
+
     config = utils.getDictFromYamlFilename(config_file)
-    changeDetection, obj_dict = change_detection.ChangeDetection.from_data_folder(data_folder, config=config)
+    changeDetection, obj_dict = change_detection.ChangeDetection.from_data_folder(data_folder, config=config, globalsDict=globalsDict)
 
     app = obj_dict['app']
 
@@ -30,7 +33,9 @@ def run(data_folder, config_file=CHANGE_DETECTION_CONFIG_FILE):
         changeDetection.run()
         app.app.quit()
 
-    TimerCallback(callback=single_shot_function).singleShot(0)
+    if not debug:
+        TimerCallback(callback=single_shot_function).singleShot(0)
+
     app.app.start()
 
 
@@ -43,8 +48,11 @@ if __name__ == "__main__":
 
     parser.add_argument('--current_dir', action='store_true', default=False, help="run the script with --data_dir set to the current directory")
 
+    parser.add_argument('--debug', action='store_true', default=False,
+                        help="launch the app in debug mode")
 
 
+    globalsDict = globals()
     args = parser.parse_args()
     data_folder = args.data_dir
 
@@ -52,4 +60,4 @@ if __name__ == "__main__":
         print "running with data_dir set to current working directory . . . "
         data_folder = os.getcwd()
 
-    run(data_folder, config_file=args.config_file)
+    run(data_folder, config_file=args.config_file, debug=args.debug, globalsDict=globalsDict)
