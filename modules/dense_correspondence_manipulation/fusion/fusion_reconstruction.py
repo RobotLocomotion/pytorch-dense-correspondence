@@ -110,12 +110,29 @@ class FusionReconstruction(object):
     """
 
     def __init__(self):
+        self.poly_data_type = "points"
         pass
 
 
     def setup(self):
         self.load_poly_data()
         self.image_dir = os.path.join(self.data_dir, 'images')
+
+    @property
+    def poly_data_type(self):
+        return self._poly_data_type
+
+    @poly_data_type.setter
+    def poly_data_type(self, value):
+        self._poly_data_type = value
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        self._name = value
 
     @property
     def data_dir(self):
@@ -204,7 +221,7 @@ class FusionReconstruction(object):
         # store the old poly data
         self.poly_data_uncropped = self.poly_data
 
-        self.poly_data = segmentation.cropToBox(self.poly_data, transform, dimensions)
+        self.poly_data = director_utils.cropToBox(self.poly_data, transform, dimensions, data_type=self.poly_data_type)
 
     def visualize_reconstruction(self, view, point_size=None, vis_uncropped=False):
         if point_size is None:
@@ -218,6 +235,9 @@ class FusionReconstruction(object):
             vis_obj = vis.updatePolyData(self.poly_data_uncropped, 'Uncropped Fusion Reconstruction',
                                view=view, colorByName='RGB')
             vis_obj.setProperty('Point Size', point_size)
+
+    def get_camera_to_world(self, idx):
+        return self.fusion_pose_data.get_camera_to_world_pose(idx)
 
 
     @staticmethod
@@ -247,3 +267,74 @@ class FusionReconstruction(object):
                                            'change_detection.yaml')
         config = utils.getDictFromYamlFilename(default_config_file)
         return config
+
+class TSDFReconstruction(FusionReconstruction):
+
+    def __init__(self):
+        FusionReconstruction.__init__(self)
+        self.poly_data_type = "cells"
+
+    def setup(self):
+        self.load_poly_data()
+        self.image_dir = os.path.join(self.data_dir, 'images')
+
+    def load_poly_data(self):
+        self.poly_data_raw = ioUtils.readPolyData(self.reconstruction_filename)
+        self.poly_data = self.poly_data_raw
+        self.crop_poly_data()
+
+    # def crop_poly_data(self):
+    #     dim_x = self.config['crop_box']['dimensions']['x']
+    #     dim_y = self.config['crop_box']['dimensions']['y']
+    #     dim_z = self.config['crop_box']['dimensions']['z']
+    #     dimensions = [dim_x, dim_y, dim_z]
+    #
+    #     transform = director_utils.transformFromPose(self.config['crop_box']['transform'])
+    #
+    #     # store the old poly data
+    #     self.poly_data_uncropped = self.poly_data
+    #
+    #     self.poly_data = segmentation.cropToBox(self.poly_data, transform, dimensions)
+
+    @property
+    def fusion_pose_data(self):
+        raise ValueError("TSDFReconstruction doesn't have fusion_pose_data")
+
+
+    def get_camera_to_world(self, idx):
+        return self.kinematics_pose_data.get_camera_pose(idx)
+
+
+    def visualize_reconstruction(self, view, vis_uncropped=False):
+
+        vis_name = "Fusion Reconstruction " + self.name
+        self.reconstruction_vis_obj = vis.updatePolyData(self.poly_data, vis_name,
+                                                       view=view, colorByName='RGB')
+
+        if vis_uncropped:
+            vis_obj = vis.updatePolyData(self.poly_data_uncropped, 'Uncropped Fusion Reconstruction',
+                               view=view, colorByName='RGB')
+
+    @staticmethod
+    def from_data_folder(data_folder, config=None, name=None):
+        fr = TSDFReconstruction()
+        fr.data_dir = data_folder
+
+        if name is None:
+            name = ""
+
+        if config is None:
+            print "no config passed in, loading default"
+            config = FusionReconstruction.load_default_config()
+
+        pose_data_filename = os.path.join(data_folder, 'images', 'pose_data.yaml')
+        camera_info_filename = os.path.join(data_folder, 'images', 'camera_info.yaml')
+
+        fr.config = config
+        fr.name = name
+        fr.kinematics_pose_data = utils.getDictFromYamlFilename(pose_data_filename)
+        fr.camera_info = utils.getDictFromYamlFilename(camera_info_filename)
+
+        fr.reconstruction_filename = os.path.join(fr.data_dir, 'fusion_mesh.ply')
+        fr.setup()
+        return fr
