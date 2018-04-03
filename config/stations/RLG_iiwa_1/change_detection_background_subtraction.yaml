@@ -1,0 +1,18 @@
+crop_box:
+  transform:
+    quaternion:
+        w: 1
+        x: 0
+        y: 0
+        z: 0
+    translation:
+      x: 0.66757267
+      y: 0.037
+      z: 0.16631889
+
+  dimensions:
+    x: 0.5
+    y: 0.7
+    z: 0.4
+
+point_size: 3 # the point size to display in the renderer
