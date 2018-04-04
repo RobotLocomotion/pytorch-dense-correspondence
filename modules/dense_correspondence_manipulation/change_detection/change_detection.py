@@ -383,7 +383,10 @@ class ChangeDetection(object):
             # save the images
             cv2.imwrite(mask_image_full_filename, mask)
             cv2.imwrite(visible_mask_filename, visible_mask)
-            cv2.imwrite(depth_img_filename, d['depth_img_foreground_raw'])
+
+            # make sure to save this as uint16
+            depth_img = d['depth_img_foreground_raw']
+            cv2.imwrite(depth_img_filename, depth_img)
 
             if (counter % logging_rate) == 0:
                 print "np.shape(mask): ", np.shape(mask)
