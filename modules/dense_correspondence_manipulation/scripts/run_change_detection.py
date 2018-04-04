@@ -11,9 +11,11 @@ from director.timercallback import TimerCallback
 Runs change detection to compute masks for each image
 """
 
+CONFIG_FILE = CHANGE_DETECTION_CONFIG_FILE
+# CONFIG_FILE = CHANGE_DETECTION_BACKGROUND_SUBTRACTION_CONFIG_FILE
 
-
-def run(data_folder, config_file=CHANGE_DETECTION_CONFIG_FILE, debug=False, globalsDict=None):
+def run(data_folder, config_file=CONFIG_FILE, debug=False, globalsDict=None,
+        background_scene_data_folder=BACKGROUND_SCENE_DATA_FOLDER):
     """
     Runs the change detection pipeline
     :param data_dir:
@@ -24,10 +26,22 @@ def run(data_folder, config_file=CHANGE_DETECTION_CONFIG_FILE, debug=False, glob
     if globalsDict is None:
         globalsDict = globals()
 
+
+
+
+    config_file = CONFIG_FILE
     config = utils.getDictFromYamlFilename(config_file)
-    changeDetection, obj_dict = change_detection.ChangeDetection.from_data_folder(data_folder, config=config, globalsDict=globalsDict)
+
+
+    changeDetection, obj_dict = change_detection.ChangeDetection.from_data_folder(data_folder, config=config, globalsDict=globalsDict,
+                                                                                  background_data_folder=background_scene_data_folder)
 
     app = obj_dict['app']
+    globalsDict['cd'] = changeDetection
+    view = obj_dict['view']
+
+    # if debug:
+    #     changeDetection.background_reconstruction.visualize_reconstruction(view, name='background')
 
     def single_shot_function():
         changeDetection.run()
@@ -36,7 +50,7 @@ def run(data_folder, config_file=CHANGE_DETECTION_CONFIG_FILE, debug=False, glob
     if not debug:
         TimerCallback(callback=single_shot_function).singleShot(0)
 
-    app.app.start()
+    app.app.start(restoreWindow=True)
 
 
 if __name__ == "__main__":

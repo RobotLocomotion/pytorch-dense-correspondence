@@ -12,6 +12,10 @@ from director import screengrabberpanel as sgp
 from director import transformUtils
 from director import visualization as vis
 from director import objectmodel as om
+from director.segmentationroutines import *
+import director.filterUtils as filterUtils
+
+
 import dense_correspondence_manipulation.utils.utils as utils
 
 
@@ -124,6 +128,36 @@ def setCameraInstrinsicsAsus(view):
     principalY = 240.0
     focalLength = 528.0
     setCameraIntrinsics(view, principalX, principalY, focalLength)
+
+
+def cropToLineSegment(polyData, point1, point2, data_type='cells'):
+
+    line = np.array(point2) - np.array(point1)
+    length = np.linalg.norm(line)
+    axis = line / length
+
+    polyData = labelPointDistanceAlongAxis(polyData, axis, origin=point1, resultArrayName='dist_along_line')
+
+    if data_type == "cells":
+        return filterUtils.thresholdCells(polyData, 'dist_along_line', [0.0, length], arrayType="points")
+
+    elif data_type == "points":
+        return filterUtils.thresholdPoints(polyData, 'dist_along_line', [0.0, length])
+    else:
+        raise ValueError("unknown data_type = %s" %(data_type))
+
+def cropToBox(polyData, transform, dimensions, data_type='cells'):
+    '''
+    dimensions is length 3 describing box dimensions
+    '''
+    origin = np.array(transform.GetPosition())
+    axes = transformUtils.getAxesFromTransform(transform)
+
+    for axis, length in zip(axes, dimensions):
+        cropAxis = np.array(axis)*(length/2.0)
+        polyData = cropToLineSegment(polyData, origin - cropAxis, origin + cropAxis)
+
+    return polyData
 
 #######################################################################################
 

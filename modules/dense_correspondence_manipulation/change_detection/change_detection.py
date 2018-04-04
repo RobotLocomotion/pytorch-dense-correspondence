@@ -575,11 +575,12 @@ class ChangeDetection(object):
         self.testIdentity()
         self.updateDepthScanners()
         depth_img = self.depthScanners[type].getDepthImageAsNumpyArray()
-        depth_img = depth_img*255.0/4000.0
+        depth_img_vis = depth_img*255.0/4000.0
 
 
         # make sure to remap the mask to [0,255], otherwise it will be all black
-        ChangeDetection.drawNumpyImage('Depth Image ' + type , depth_img)
+        ChangeDetection.drawNumpyImage('Depth Image ' + type , depth_img_vis)
+        return depth_img
 
     def test(self):
         self.updateDepthScanners()

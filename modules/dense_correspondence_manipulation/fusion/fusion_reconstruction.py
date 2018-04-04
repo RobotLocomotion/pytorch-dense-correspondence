@@ -305,9 +305,14 @@ class TSDFReconstruction(FusionReconstruction):
         return self.kinematics_pose_data.get_camera_pose(idx)
 
 
-    def visualize_reconstruction(self, view, vis_uncropped=False):
+    def visualize_reconstruction(self, view, vis_uncropped=False, name=None):
 
-        vis_name = "Fusion Reconstruction " + self.name
+
+        if name is None:
+            vis_name = "Fusion Reconstruction " + self.name
+        else:
+            vis_name = name
+
         self.reconstruction_vis_obj = vis.updatePolyData(self.poly_data, vis_name,
                                                        view=view, colorByName='RGB')
 
