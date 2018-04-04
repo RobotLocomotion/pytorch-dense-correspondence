@@ -1,32 +1,17 @@
 #!/usr/bin/python
 
-import sys, os
+
+import os
 import dense_correspondence_manipulation.utils.utils as utils
 utils.add_dense_correspondence_to_python_path()
 import matplotlib.pyplot as plt
 import cv2
-from skimage import color
-
-
-import dense_correspondence as DC
-sys.path.insert(0, '../../pytorch-segmentation-detection/vision/')
-sys.path.append('../../pytorch-segmentation-detection/')
-
-
-from PIL import Image
-
-import torch
-from torchvision import transforms
-from torch.autograd import Variable
-import pytorch_segmentation_detection.models.resnet_dilated as resnet_dilated
-
 import numpy as np
-import glob
-
-import sys; sys.path.append('../dataset')
-sys.path.append('../correspondence_tools')
+import pandas as pd
 
 
+from dense_correspondence_manipulation.utils.constants import *
+from dense_correspondence_manipulation.utils.utils import CameraIntrinsics
 from dense_correspondence.dataset.spartan_dataset_masked import SpartanDataset
 import dense_correspondence.correspondence_tools.correspondence_plotter as correspondence_plotter
 import dense_correspondence.correspondence_tools.correspondence_finder as correspondence_finder
@@ -116,6 +101,273 @@ class DenseCorrespondenceEvaluation(object):
 
         res_b_norm = dc_plotting.normalize_descriptor(res_b)
         axes[1].imshow(res_b_norm)
+
+    @staticmethod
+    def single_image_pair_quantitative_analysis(dcn, dataset, scene_name,
+                                                img_a_idx, img_b_idx,
+                                                params=None, camera_intrinsics_matrix=None):
+        """
+
+
+        :param dcn:
+        :type dcn:
+        :param dataset:
+        :type dataset:
+        :param scene_name:
+        :type scene_name:
+        :param img_a_idx:
+        :type img_a_idx:
+        :param img_b_idx:
+        :type img_b_idx:
+        :param params:
+        :type params:
+        :param camera_intrinsics_matrix: Optionally set camera intrinsics, otherwise will get it from the dataset
+        :type camera_intrinsics_matrix: 3 x 3 numpy array
+        :return: Dict with relevant data
+        :rtype:
+        """
+
+        rgb_a, depth_a, mask_a, pose_a = DenseCorrespondenceEvaluation.get_image_data(dataset,
+                                                                                      scene_name,
+                                                                                      img_a_idx)
+
+        rgb_b, depth_b, mask_b, pose_b = DenseCorrespondenceEvaluation.get_image_data(dataset,
+                                                                                      scene_name,
+                                                                                      img_b_idx)
+
+        # compute dense descriptors
+        res_a = dcn.forward_on_img(rgb_a)
+        res_b = dcn.forward_on_img(rgb_b)
+
+        if camera_intrinsics_matrix is None:
+            camera_intrinsics = dataset.get_camera_intrinsics(scene_name)
+            camera_intrinsics_matrix = camera_intrinsics.K
+
+
+        # find correspondences
+        # what type does img_a_depth need to be?
+        (uv_a_vec, uv_b_vec) = correspondence_finder.batch_find_pixel_correspondences(depth_a, pose_a, depth_b, pose_b,
+                                                               device='CPU', img_a_mask=mask_a)
+
+
+        # logging.debug("type(uv_a_vec) " )
+        print "type(uv_a_vec): ", type(uv_a_vec)
+        print "uv_a_vec[0].shape: ", uv_a_vec[0].shape
+
+        num_matches = uv_a_vec[0].size()[0]
+
+        print "num_matches: ", num_matches
+        print "type(num_matches): ", type(num_matches)
+
+        # create pandas dataframe
+        data_frame = pd.DataFrame()
+
+        for i in xrange(0, num_matches):
+            print "i: ", i
+            uv_a = [uv_a_vec[0][i], uv_a_vec[1][i]]
+            uv_b = [int(round(uv_b_vec[0][i])), int(round(uv_b_vec[1][i]))]
+
+            d, series_data = DenseCorrespondenceEvaluation.compute_descriptor_match_statistics(depth_a,
+                                                                                  depth_b,
+                                                                                  uv_a,
+                                                                                  uv_b,
+                                                                                  pose_a,
+                                                                                  pose_b,
+                                                                                  res_a,
+                                                                                  res_b,
+                                                                                  camera_intrinsics_matrix,
+                                                                                  rgb_a=rgb_a,
+                                                                                  rgb_b=rgb_b,
+                                                                                  debug=True)
+
+            series_data['scene_name'] = scene_name
+            series_data['img_a_idx'] = img_a_idx
+            series_data['img_b_idx'] = img_b_idx
+
+            series = pd.Series(series_data)
+
+            # very inefficient but ok for now
+            data_frame = data_frame.append(series, ignore_index=True)
+
+            return data_frame
+
+
+            break
+
+
+
+    @staticmethod
+    def is_depth_valid(depth):
+        """
+        Checks if depth value is valid, usually missing depth values are either 0 or MAX_RANGE
+        :param depth: depth in meters
+        :type depth:
+        :return:
+        :rtype: bool
+        """
+
+        MAX_DEPTH = 10.0
+
+        return ((depth > 0) and (depth < MAX_DEPTH))
+
+
+    @staticmethod
+    def compute_descriptor_match_statistics(depth_a, depth_b, uv_a, uv_b, pose_a, pose_b,
+                                            res_a, res_b, camera_matrix, params=None,
+                                            rgb_a=None, rgb_b=None, debug=False):
+        """
+        Computes statistics of descriptor pixelwise match.
+
+        :param uv_a:
+        :type uv_a:
+        :param uv_b:
+        :type uv_b:
+        :param camera_matrix: camera intrinsics matrix
+        :type camera_matrix: 3 x 3 numpy array
+        :param rgb_a:
+        :type rgb_a:
+        :param rgb_b:
+        :type rgb_b:
+        :param depth_a: depth is assumed to be in mm (see conversion to meters below)
+        :type depth_a: numpy array
+        :param depth_b:
+        :type depth_b:
+        :param pose_a:
+        :type pose_a: 4 x 4 numpy array
+        :param pose_b:
+        :type pose_b:
+        :param res_a:
+        :type res_a:
+        :param res_b:
+        :type res_b:
+        :param params:
+        :type params:
+        :param debug: whether or not to print visualization
+        :type debug:
+        :return:
+        :rtype:
+        """
+
+        DCE = DenseCorrespondenceEvaluation
+
+        d = dict()
+        # compute best match
+
+        uv_b_pred, best_match_diff, norm_diffs =\
+            DenseCorrespondenceNetwork.find_best_match(uv_a, res_a,
+                                                       res_b)
+
+        print "type(depth_a): ", type(depth_a)
+        # print "depth_a.shape(): ", depth_a.shape()
+        print "uv_a:", uv_a
+        print "uv_b: ", uv_b
+        print "uv_b_pred: ", uv_b_pred
+
+
+
+        # extract depth values, note the indexing order of u,v has to be reversed
+        uv_a_depth = depth_a[uv_a[1], uv_a[0]] / DEPTH_IM_SCALE # check if this is not None
+        uv_b_depth = depth_b[uv_b[1], uv_b[0]] / DEPTH_IM_SCALE
+        uv_b_pred_depth = depth_b[uv_b_pred[1], uv_b_pred[0]] / DEPTH_IM_SCALE
+        uv_b_pred_depth_is_valid = DenseCorrespondenceEvaluation.is_depth_valid(uv_b_pred_depth)
+        is_valid = uv_b_pred_depth_is_valid
+
+
+
+
+        uv_a_pos = DCE.compute_3d_position(uv_a, uv_a_depth, camera_matrix, pose_a)
+        uv_b_pos = DCE.compute_3d_position(uv_b, uv_b_depth, camera_matrix, pose_b)
+        uv_b_pred_pos = DCE.compute_3d_position(uv_b_pred, uv_b_pred_depth, camera_matrix, pose_b)
+
+        diff_ground_truth_3d = uv_b_pos - uv_a_pos
+
+        diff_pred_3d = uv_a_pos - uv_b_pred_pos
+
+        if DCE.is_depth_valid(uv_b_depth):
+            norm_diff_ground_truth_3d = np.linalg.norm(diff_ground_truth_3d)
+        else:
+            norm_diff_ground_truth_3d = np.nan
+
+        if is_valid:
+            norm_diff_pred_3d = np.linalg.norm(diff_pred_3d)
+        else:
+            norm_diff_pred_3d = np.nan
+
+        if debug:
+
+            print "uv_b_pred_depth is valid: "
+            print "uv_a_pos: ", uv_a_pos
+            print "uv_b_pos: ", uv_b_pos
+            print "uv_b_pred_pos ", uv_b_pred_pos
+
+            fig, axes = correspondence_plotter.plot_correspondences_direct(rgb_a, depth_a, rgb_b, depth_b,
+                                                               uv_a, uv_b, show=False)
+
+            correspondence_plotter.plot_correspondences_direct(rgb_a, depth_a, rgb_b, depth_b,
+                                                               uv_a, uv_b_pred,
+                                                               use_previous_plot=(fig, axes),
+                                                               show=True,
+                                                               circ_color='purple')
+
+
+
+        # construct a dict with the return data, which will later be put into a pandas.DataFrame object
+        d = dict()
+
+        d['uv_a'] = uv_a
+        d['uv_b'] = uv_b
+        d['uv_b_pred'] = uv_b_pred
+        d['norm_diff_descriptor'] = best_match_diff
+
+        d['pose_a'] = pose_a
+        d['pose_b'] = pose_b
+
+        d['uv_a_depth'] = uv_a_depth
+        d['uv_b_depth'] = uv_b_depth
+        d['uv_b_pred_depth'] = uv_b_pred_depth
+        d['uv_b_pred_depth_is_valid'] = uv_b_pred_depth_is_valid
+
+        d['is_valid'] = is_valid
+
+        d['uv_a_pos'] = uv_a_pos
+        d['uv_b_pos'] = uv_b_pos
+        d['uv_b_pre_pos'] = uv_b_pred_pos
+
+        d['diff_ground_truth_3d'] = diff_ground_truth_3d
+        d['norm_diff_ground_truth_3d'] = norm_diff_ground_truth_3d
+        d['diff_pred_3d'] = diff_pred_3d
+        d['norm_diff_pred_3d'] = norm_diff_pred_3d
+
+        # dict for making a pandas.DataFrame later
+        df_dict = dict()
+        df_dict['norm_diff_descriptor'] = best_match_diff
+        df_dict['is_valid'] = is_valid
+        df_dict['norm_diff_ground_truth_3d'] = norm_diff_ground_truth_3d
+        df_dict['norm_diff_pred_3d'] = norm_diff_pred_3d
+
+        return d, df_dict
+
+    @staticmethod
+    def compute_3d_position(uv, depth, camera_intrinsics_matrix, camera_to_world):
+        """
+
+
+        :param uv: pixel-location in (row, column) ordering
+        :type uv:
+        :param depth: depth-value
+        :type depth:
+        :param camera_intrinsics_matrix: the camera intrinsics matrix
+        :type camera_intrinsics_matrix:
+        :param camera_to_world: camera to world transform as a homogenous transform matrix
+        :type camera_to_world: 4 x 4 numpy array
+        :return:
+        :rtype: np.array with shape (3,)
+        """
+        pos_in_camera_frame = correspondence_finder.pinhole_projection_image_to_world(uv, depth, camera_intrinsics_matrix)
+
+        pos_in_world_frame = np.dot(camera_to_world, np.append(pos_in_camera_frame, 1))[:3]
+
+        return pos_in_world_frame
 
     @staticmethod
     def single_image_pair_qualitative_analysis(dcn, dataset, scene_name,
@@ -243,6 +495,16 @@ class DenseCorrespondenceEvaluation(object):
                                                                                  img_pair[0],
                                                                                  img_pair[1])
 
+    @staticmethod
+    def make_default():
+        """
+        Makes a DenseCorrespondenceEvaluation object using the default config
+        :return:
+        :rtype: DenseCorrespondenceEvaluation
+        """
+        config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'evaluation.yaml')
+        config = utils.getDictFromYamlFilename(config_filename)
+        return DenseCorrespondenceEvaluation(config)
 
     ############ TESTING ################
 
@@ -257,6 +519,7 @@ class DenseCorrespondenceEvaluation(object):
         DenseCorrespondenceEvaluation.single_image_pair_qualitative_analysis(dcn, dataset,
                                                                              scene_name, img_idx_a,
                                                                              img_idx_b)
+
 
 
 def run():
