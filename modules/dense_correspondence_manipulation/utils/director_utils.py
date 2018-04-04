@@ -122,6 +122,14 @@ def setCameraIntrinsics(view, cameraIntrinsics, lockViewSize=True):
     camera.SetWindowCenter(wcx, wcy)
     camera.SetViewAngle(viewAngle)
 
+    # set the focal length fx
+    # followed the last comment here https://stackoverflow.com/questions/18019732/opengl-vtk-setting-camera-intrinsic-parameters
+    m = np.eye(4)
+    m[0, 0] = 1.0 * fx / fy
+    t = vtk.vtkTransform()
+    t.SetMatrix(m.flatten())
+    camera.SetUserTransform(t)
+
 
 def setCameraInstrinsicsAsus(view):
     principalX = 320.0
