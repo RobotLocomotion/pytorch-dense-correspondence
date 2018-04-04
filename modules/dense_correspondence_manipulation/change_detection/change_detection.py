@@ -336,7 +336,7 @@ class ChangeDetection(object):
         vis.updateFrame(t, 'camera transform', scale=0.15)
 
 
-    def run(self, output_dir=None):
+    def run(self, output_dir=None, rendered_images_dir=None):
         """
         Run the mask generation algorithm
         :return:
@@ -345,8 +345,14 @@ class ChangeDetection(object):
         if output_dir is None:
             output_dir = os.path.join(self.foreground_reconstruction.data_dir, 'image_masks')
 
+        if rendered_images_dir is None:
+            rendered_images_dir = os.path.join(self.foreground_reconstruction.data_dir, 'rendered_images')
+
         if not os.path.isdir(output_dir):
             os.makedirs(output_dir)
+
+        if not os.path.isdir(rendered_images_dir):
+            os.makedirs(rendered_images_dir)
 
         start_time = time.time()
 
@@ -377,7 +383,7 @@ class ChangeDetection(object):
             visible_mask_filename = os.path.join(output_dir, utils.getPaddedString(idx) + '_visible_mask'
                                                  + "." + img_file_extension)
 
-            depth_img_filename = os.path.join(output_dir, utils.getPaddedString(idx) + '_depth'
+            depth_img_filename = os.path.join(rendered_images_dir, utils.getPaddedString(idx) + '_depth'
                                                  + "." + img_file_extension)
 
             # save the images
@@ -387,9 +393,6 @@ class ChangeDetection(object):
             # make sure to save this as uint16
             depth_img = d['depth_img_foreground_raw']
             cv2.imwrite(depth_img_filename, depth_img)
-
-            if (counter % logging_rate) == 0:
-                print "np.shape(mask): ", np.shape(mask)
 
             counter += 1
 
