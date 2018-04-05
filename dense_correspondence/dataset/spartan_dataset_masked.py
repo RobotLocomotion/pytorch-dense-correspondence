@@ -11,12 +11,17 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
     PADDED_STRING_WIDTH = 6
 
-    def __init__(self, debug=False, mode="train"):
+    def __init__(self, debug=False, mode="train", config=None):
 
-    	self.logs_root_path = self.load_from_config_yaml("relative_path_to_spartan_logs")
-
-        train_test_config = os.path.join(os.path.dirname(__file__), "train_test_config", "0001_drill_test.yaml")
-        self.set_train_test_split_from_yaml(train_test_config)
+        if config is None:
+            self.logs_root_path = self.load_from_config_yaml("relative_path_to_spartan_logs")
+            train_test_config = os.path.join(os.path.dirname(__file__), "train_test_config", "0001_drill_test.yaml")
+            self.set_train_test_split_from_yaml(train_test_config)
+        else:
+            # assume config has already been parsed
+            self._config = config
+            self.logs_root_path = utils.convert_to_absolute_path(self._config['logs_root_path'])
+            self.set_train_test_split_from_yaml(self._config)
 
 
         self._pose_data = dict()
@@ -98,7 +103,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
             images_dir = os.path.join(scene_directory, 'images')
             file_extension = "_rgb.png"
         elif image_type == ImageType.DEPTH:
-            images_dir = os.path.join(scene_directory, 'images')
+            images_dir = os.path.join(scene_directory, 'rendered_images')
             file_extension = "_depth.png"
         elif image_type == ImageType.MASK:
             images_dir = os.path.join(scene_directory, 'image_masks')
