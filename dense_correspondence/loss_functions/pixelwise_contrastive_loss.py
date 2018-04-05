@@ -16,9 +16,13 @@ class PixelwiseContrastiveLoss():
     	self.type = "pixelwise_contrastive"
         self.debug = False
         self.counter = 0
+        self.M_margin = 0.5 # margin parameter
 
     def get_loss(self, image_a_pred, image_b_pred, matches_a, matches_b, non_matches_a, non_matches_b):
     	loss = 0
+
+        print len(matches_a), "is length matches_a"
+        print len(non_matches_a), "is length non_matches_a"
 
     	# add loss via matches
         matches_a_descriptors = torch.index_select(image_a_pred, 1, matches_a)
@@ -27,13 +31,14 @@ class PixelwiseContrastiveLoss():
         match_loss = 1.0*loss.data[0]
   
         # add loss via non_matches
-        M_margin = 0.5 # margin parameter
         non_matches_a_descriptors = torch.index_select(image_a_pred, 1, non_matches_a)
         non_matches_b_descriptors = torch.index_select(image_b_pred, 1, non_matches_b)
         pixel_wise_loss = (non_matches_a_descriptors - non_matches_b_descriptors).pow(2).sum(dim=2)
-        pixel_wise_loss = torch.add(torch.neg(pixel_wise_loss), M_margin)
+        pixel_wise_loss = torch.add(torch.neg(pixel_wise_loss), self.M_margin)
         zeros_vec = torch.zeros_like(pixel_wise_loss)
-        loss += torch.max(zeros_vec, pixel_wise_loss).sum()/150.0 # need to sync this later with num_non_matches
+        num_non_matches_per_match = len(non_matches_a)/len(matches_a)
+        print num_non_matches_per_match
+        loss += torch.max(zeros_vec, pixel_wise_loss).sum()/num_non_matches_per_match # need to sync this later with num_non_matches
         non_match_loss = loss.data[0] - match_loss
 
         return loss, match_loss, non_match_loss
@@ -53,7 +58,7 @@ class PixelwiseContrastiveLoss():
         #print image_b_pred_squeezed.shape, "is image_b_pred_squeezed.shape"
 
         
-        num_adversarial_samples = 1000
+        num_adversarial_samples = 100
         rand_numbers_in_range = torch.rand(num_adversarial_samples)*len(non_matches_a)
         rand_indices = torch.floor(rand_numbers_in_range).long()
 
@@ -92,12 +97,26 @@ class PixelwiseContrastiveLoss():
 
         return self.get_loss(image_a_pred, image_b_pred, matches_a, matches_b, non_matches_a, non_matches_b)
 
+    def where(self, cond, x_1, x_2):
+            cond = cond.float()    
+            return (cond * x_1) + ((1-cond) * x_2)
 
     def set_adversarial_non_match_by_index(self, index_of_match_pair, non_matches_a_descriptors_squeezed, image_b_pred_squeezed, non_matches_b):
         descriptor_at_pixel = non_matches_a_descriptors_squeezed[index_of_match_pair]
         #print descriptor_at_pixel.shape, "is descriptor_at_pixel.shape"
-        norm_diffs = torch.sum((image_b_pred_squeezed - descriptor_at_pixel).pow(2), dim=1)
+        norm_diffs = (image_b_pred_squeezed - descriptor_at_pixel).pow(2).sum(dim=1)
         #print norm_diffs.shape, "is norm_diffs.shape"
+
+        zeros_vec       = torch.zeros_like(norm_diffs)
+        upper_bound_vec = torch.ones_like(norm_diffs) * self.M_margin
+        vec = self.where(norm_diffs > upper_bound_vec, zeros_vec, norm_diffs)
+
+        in_bound_indices = torch.nonzero(vec).squeeze(1)
+        if in_bound_indices.dim() != 0:
+            #vec = torch.index_select(vec, 0, in_bound_indices)
+            if self.debug:
+                print len(in_bound_indices), "is how many under margin"
+
         smallest_norm_diff, smallest_norm_diff_idx = torch.min(norm_diffs, dim=0)
         #print "smallest_norm_diff, smallest_norm_diff_idx"
         #print smallest_norm_diff, smallest_norm_diff_idx
