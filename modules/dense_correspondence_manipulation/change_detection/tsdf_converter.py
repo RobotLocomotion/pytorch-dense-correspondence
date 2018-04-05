@@ -10,7 +10,7 @@ def main():
     fin = open(filename, "rb")
 
     import array
-    tsdfHeader = array.array("f")  # L is the typecode for uint32
+    tsdfHeader = array.array("f")  # f is the typecode for float32
     tsdfHeader.fromfile(fin, 8)
     print tsdfHeader
     print type(tsdfHeader)
