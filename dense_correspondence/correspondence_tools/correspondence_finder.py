@@ -94,7 +94,7 @@ def create_non_correspondences(uv_a, uv_b_matches, num_non_matches_per_match=100
     """
     Takes in pixel matches and generates non-matches.
 
-    The non-matches share the same uv_a (pixel position in image a), but some different pixel in uv_b (pixel position in image b). 
+    The non-matches share the same uv_a (pixel position in image a), but some different pixel uv_b (pixel position in image b). 
 
     Optionally, the non-matches can be sampled from a mask for image b.
 
@@ -222,24 +222,35 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
     """
     Computes pixel correspondences in batch
 
-    :param img_a_depth:
-    :type img_a_depth:
-    :param img_a_pose:
-    :type img_a_pose:
-    :param img_b_depth:
-    :type img_b_depth:
-    :param img_b_pose:
-    :type img_b_pose:
-    :param uv_a:
-    :type uv_a:
-    :param num_attempts:
-    :type num_attempts:
-    :param device:
-    :type device:
-    :param img_a_mask:
-    :type img_a_mask: ndarray, of shape (H, W)
-    :return: Tuple (uv_a, uv_b). Each of uv_a is a tuple of torch.FloatTensors
-    :rtype:
+    :param img_a_depth: depth image for image a
+    :type  img_a_depth: numpy 2d array (H x W) encoded as a uint16
+    --
+    :param img_a_pose:  pose for image a, in right-down-forward optical frame
+    :type  img_a_pose:  numpy 2d array, 4 x 4 (homogeneous transform)
+    --
+    :param img_b_depth: depth image for image b
+    :type img_b_depth:  numpy 2d array (H x W) encoded as a uint16
+    -- 
+    :param img_b_pose:  pose for image a, in right-down-forward optical frame
+    :type img_b_pose:   numpy 2d array, 4 x 4 (homogeneous transform)
+    -- 
+    :param uv_a:        optional arg, a tuple of (u,v) pixel positions for which to find matches
+    :type uv_a:         each element of tuple is either an int, or a list-like (castable to torch.LongTensor)
+    --
+    :param num_attempts: if random sampling, how many pixels will be _attempted_ to find matches for.  Note that
+                            this is not the same as asking for a specific number of matches, since many attempted matches
+                            will either be occluded or outside of field-of-view. 
+    :type num_attempts:  int
+    --
+    :param device:      either 'CPU' or 'CPU'
+    :type device:       string
+    --
+    :param img_a_mask:  optional arg, an image where each nonzero pixel will be used as a mask
+    :type img_a_mask:   ndarray, of shape (H, W)
+    --
+    :return:            "Tuple of tuples", i.e. pixel position tuples for image a and image b (uv_a, uv_b). 
+                        Each of these is a tuple of pixel positions
+    :rtype:             Each of uv_a is a tuple of torch.FloatTensors
     """
     global dtype_float
     global dtype_long
