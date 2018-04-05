@@ -23,7 +23,7 @@ import dense_correspondence_manipulation.change_detection.change_detection as ch
 from dense_correspondence_manipulation.utils.constants import *
 import dense_correspondence_manipulation.utils.utils as utils
 import dense_correspondence_manipulation.utils.director_utils as director_utils
-from dense_correspondence_manipulation.fusion.fusion_reconstruction import FusionReconstruction
+from dense_correspondence_manipulation.fusion.fusion_reconstruction import FusionReconstruction, TSDFReconstruction
 
 
 CONFIG = utils.getDictFromYamlFilename(CHANGE_DETECTION_CONFIG_FILE)
@@ -83,7 +83,7 @@ def main(globalsDict, data_folder):
     view = globalsDict['view']
     app = globalsDict['app']
 
-    reconstruction = FusionReconstruction.from_data_folder(data_folder, config=CONFIG)
+    reconstruction = TSDFReconstruction.from_data_folder(data_folder, config=CONFIG)
     reconstruction.visualize_reconstruction(view, vis_uncropped=True)
 
     rp = ReconstructionProcessing()

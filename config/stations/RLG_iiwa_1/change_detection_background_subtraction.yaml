@@ -7,8 +7,8 @@ crop_box:
         z: 0
     translation:
       x: 0.66757267
-      y: 0
-      z: 0.18953078
+      y: 0.037
+      z: 0.16631889
 
   dimensions:
     x: 0.5

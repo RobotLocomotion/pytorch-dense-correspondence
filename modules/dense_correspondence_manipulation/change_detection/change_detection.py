@@ -23,7 +23,7 @@ from PythonQt import QtCore, QtGui
 import cv2
 from dense_correspondence_manipulation.change_detection.depthscanner import DepthScanner
 import dense_correspondence_manipulation.utils.director_utils as director_utils
-from dense_correspondence_manipulation.fusion.fusion_reconstruction import FusionReconstruction
+from dense_correspondence_manipulation.fusion.fusion_reconstruction import FusionReconstruction, TSDFReconstruction
 from dense_correspondence_manipulation.utils.constants import *
 
 import dense_correspondence_manipulation.utils.utils as utils
@@ -96,8 +96,13 @@ class ChangeDetection(object):
             director_utils.setCameraIntrinsics(view, self.cameraIntrinsics, lockViewSize=True)
 
         self.depthScanners = dict()
-        self.depthScanners['foreground'] = initDepthScanner(self.app, self.views['foreground'], widgetArea=QtCore.Qt.RightDockWidgetArea)
-        self.depthScanners['background'] = initDepthScanner(self.app, self.views['background'], widgetArea=QtCore.Qt.LeftDockWidgetArea)
+
+
+        self.depthScanners['foreground'] = initDepthScanner(self.app, self.views['foreground'],
+                                                            widgetArea=QtCore.Qt.RightDockWidgetArea)
+
+        self.depthScanners['background'] = initDepthScanner(self.app, self.views['background'],
+                                                            widgetArea=QtCore.Qt.LeftDockWidgetArea)
 
         
         # self.changeDetectionPointCloudView = PythonQt.dd.ddQVTKWidgetView()
@@ -141,6 +146,7 @@ class ChangeDetection(object):
 
         view = self.views['background']
         self._background_reconstruction = value
+        self._background_reconstruction.name = "background"
         self._background_reconstruction.visualize_reconstruction(view)
 
     @property
@@ -151,6 +157,7 @@ class ChangeDetection(object):
     def foreground_reconstruction(self, value):
         assert isinstance(value, FusionReconstruction)
         self._foreground_reconstruction = value
+        self._foreground_reconstruction.name = "foreground"
 
         view = self.views['foreground']
         self._foreground_reconstruction.visualize_reconstruction(view)
@@ -240,7 +247,8 @@ class ChangeDetection(object):
         # get the depth images
         # make sure to convert them to int32 since we want to avoid wrap-around issues when using
         # uint16 types
-        depth_img_f = np.array(self.depthScanners['foreground'].getDepthImageAsNumpyArray(), dtype=np.int32)
+        depth_img_foreground_raw = self.depthScanners['foreground'].getDepthImageAsNumpyArray()
+        depth_img_f = np.array(depth_img_foreground_raw, dtype=np.int32)
         depth_img_b = np.array(self.depthScanners['background'].getDepthImageAsNumpyArray(), dtype=np.int32)
 
         # zero values are interpreted as max-range measurements
@@ -256,6 +264,7 @@ class ChangeDetection(object):
         returnData['mask'] = mask
         returnData['depth_img_foreground'] = depth_img_f
         returnData['depth_img_background'] = depth_img_b
+        returnData['depth_img_foreground_raw'] = depth_img_foreground_raw
         returnData['depth_img_change'] = depth_img_change
 
 
@@ -285,7 +294,8 @@ class ChangeDetection(object):
         # get the depth images
         # make sure to convert them to int32 since we want to avoid wrap-around issues when using
         # uint16 types
-        depth_img_f = np.array(self.depthScanners['foreground'].getDepthImageAsNumpyArray(), dtype=np.int32)
+        depth_img_foreground_raw = self.depthScanners['foreground'].getDepthImageAsNumpyArray()
+        depth_img_f = np.array(depth_img_foreground_raw, dtype=np.int32)
 
 
         idx = depth_img_f > 0
@@ -295,6 +305,7 @@ class ChangeDetection(object):
         returnData = dict()
         returnData['idx'] = idx
         returnData['mask'] = mask
+        returnData['depth_img_foreground_raw'] = depth_img_foreground_raw
         returnData['depth_img_foreground'] = depth_img_f
 
         if visualize:
@@ -325,7 +336,7 @@ class ChangeDetection(object):
         vis.updateFrame(t, 'camera transform', scale=0.15)
 
 
-    def run(self, output_dir=None):
+    def run(self, output_dir=None, rendered_images_dir=None):
         """
         Run the mask generation algorithm
         :return:
@@ -334,8 +345,14 @@ class ChangeDetection(object):
         if output_dir is None:
             output_dir = os.path.join(self.foreground_reconstruction.data_dir, 'image_masks')
 
+        if rendered_images_dir is None:
+            rendered_images_dir = os.path.join(self.foreground_reconstruction.data_dir, 'rendered_images')
+
         if not os.path.isdir(output_dir):
             os.makedirs(output_dir)
+
+        if not os.path.isdir(rendered_images_dir):
+            os.makedirs(rendered_images_dir)
 
         start_time = time.time()
 
@@ -356,7 +373,7 @@ class ChangeDetection(object):
             mask_image_filename = utils.getPaddedString(idx) + "_mask" + "." + img_file_extension
             mask_image_full_filename = os.path.join(output_dir, mask_image_filename)
 
-            camera_to_world = self.foreground_reconstruction.fusion_pose_data.get_camera_to_world_pose(idx)
+            camera_to_world = self.foreground_reconstruction.get_camera_to_world(idx)
             self.setCameraTransform(camera_to_world)
             d = self.computeForegroundMaskUsingCropStrategy(visualize=False)
 
@@ -366,12 +383,16 @@ class ChangeDetection(object):
             visible_mask_filename = os.path.join(output_dir, utils.getPaddedString(idx) + '_visible_mask'
                                                  + "." + img_file_extension)
 
+            depth_img_filename = os.path.join(rendered_images_dir, utils.getPaddedString(idx) + '_depth'
+                                                 + "." + img_file_extension)
+
             # save the images
             cv2.imwrite(mask_image_full_filename, mask)
             cv2.imwrite(visible_mask_filename, visible_mask)
 
-            if (counter % logging_rate) == 0:
-                print "np.shape(mask): ", np.shape(mask)
+            # make sure to save this as uint16
+            depth_img = d['depth_img_foreground_raw']
+            cv2.imwrite(depth_img_filename, depth_img)
 
             counter += 1
 
@@ -409,7 +430,7 @@ class ChangeDetection(object):
         globalsDict['app'] = app
 
     @staticmethod
-    def from_data_folder(data_folder, config=None, globalsDict=None):
+    def from_data_folder(data_folder, config=None, globalsDict=None, background_data_folder=None):
         """
         Creates a ChangeDetection object from a data_folder which contains the
         3D reconstruction and the image files
@@ -419,8 +440,15 @@ class ChangeDetection(object):
         :param globalsDict:
         :return:
         """
-        foreground_reconstruction = FusionReconstruction.from_data_folder(data_folder, config=config)
-        background_reconstruction_placeholder = FusionReconstruction.from_data_folder(data_folder, config=config)
+        foreground_reconstruction = TSDFReconstruction.from_data_folder(data_folder, config=config)
+
+        if background_data_folder is None:
+            background_data_folder = data_folder
+
+        print "background folder: ", background_data_folder
+
+        background_reconstruction_placeholder = TSDFReconstruction.from_data_folder(background_data_folder, config=config)
+
 
         if globalsDict is None:
             globalsDict = dict()
@@ -485,8 +513,8 @@ class ChangeDetection(object):
     def testIdentity(self):
         view = self.views['foreground']
         cameraToWorld = director_utils.getCameraTransform(view.camera())
-        director_utils.setCameraTransform(view.camera(), cameraToWorld)
-        view.forceRender()
+        self.setCameraTransform(cameraToWorld)
+        self.updateDepthScanners()
 
     def testGetCameraTransforms(self):
         vis.updateFrame(vtk.vtkTransform(), "origin frame", view=self.views['background'])
@@ -499,10 +527,6 @@ class ChangeDetection(object):
 
 
             vis.updateFrame(cameraTransform, viewType + "_frame")
-
-    def test(self):
-        self.testCreateBackground()
-        self.testCreateForeground()
 
 
     def testSetCameraPose(self):
@@ -552,6 +576,23 @@ class ChangeDetection(object):
 
         mask_filename = "mask.png"
         cv2.imwrite(mask_filename, mask)
+
+    def testGetDepthImage(self, type='foreground'):
+        self.testIdentity()
+        self.updateDepthScanners()
+        depth_img = self.depthScanners[type].getDepthImageAsNumpyArray()
+        depth_img_vis = depth_img*255.0/4000.0
+
+
+        # make sure to remap the mask to [0,255], otherwise it will be all black
+        ChangeDetection.drawNumpyImage('Depth Image ' + type , depth_img_vis)
+        return depth_img
+
+    def test(self):
+        self.updateDepthScanners()
+        self.testGetDepthImage('foreground')
+        self.testGetDepthImage('background')
+
 
 
 

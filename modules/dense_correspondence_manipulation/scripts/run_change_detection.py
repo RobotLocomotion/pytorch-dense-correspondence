@@ -11,9 +11,11 @@ from director.timercallback import TimerCallback
 Runs change detection to compute masks for each image
 """
 
+CONFIG_FILE = CHANGE_DETECTION_CONFIG_FILE
+# CONFIG_FILE = CHANGE_DETECTION_BACKGROUND_SUBTRACTION_CONFIG_FILE
 
-
-def run(data_folder, config_file=CHANGE_DETECTION_CONFIG_FILE):
+def run(data_folder, config_file=CONFIG_FILE, debug=False, globalsDict=None,
+        background_scene_data_folder=BACKGROUND_SCENE_DATA_FOLDER):
     """
     Runs the change detection pipeline
     :param data_dir:
@@ -21,17 +23,34 @@ def run(data_folder, config_file=CHANGE_DETECTION_CONFIG_FILE):
     :return:
     """
 
+    if globalsDict is None:
+        globalsDict = globals()
+
+
+
+
+    config_file = CONFIG_FILE
     config = utils.getDictFromYamlFilename(config_file)
-    changeDetection, obj_dict = change_detection.ChangeDetection.from_data_folder(data_folder, config=config)
+
+
+    changeDetection, obj_dict = change_detection.ChangeDetection.from_data_folder(data_folder, config=config, globalsDict=globalsDict,
+                                                                                  background_data_folder=background_scene_data_folder)
 
     app = obj_dict['app']
+    globalsDict['cd'] = changeDetection
+    view = obj_dict['view']
+
+    # if debug:
+    #     changeDetection.background_reconstruction.visualize_reconstruction(view, name='background')
 
     def single_shot_function():
         changeDetection.run()
         app.app.quit()
 
-    TimerCallback(callback=single_shot_function).singleShot(0)
-    app.app.start()
+    if not debug:
+        TimerCallback(callback=single_shot_function).singleShot(0)
+
+    app.app.start(restoreWindow=True)
 
 
 if __name__ == "__main__":
@@ -43,8 +62,11 @@ if __name__ == "__main__":
 
     parser.add_argument('--current_dir', action='store_true', default=False, help="run the script with --data_dir set to the current directory")
 
+    parser.add_argument('--debug', action='store_true', default=False,
+                        help="launch the app in debug mode")
 
 
+    globalsDict = globals()
     args = parser.parse_args()
     data_folder = args.data_dir
 
@@ -52,4 +74,4 @@ if __name__ == "__main__":
         print "running with data_dir set to current working directory . . . "
         data_folder = os.getcwd()
 
-    run(data_folder, config_file=args.config_file)
+    run(data_folder, config_file=args.config_file, debug=args.debug, globalsDict=globalsDict)
