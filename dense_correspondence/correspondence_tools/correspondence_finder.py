@@ -90,11 +90,39 @@ def where(cond, x_1, x_2):
     cond = cond.type(dtype_float)    
     return (cond * x_1) + ((1-cond) * x_2)
 
-# This function currenlty only depends on pixel positions,
-# nothing about the underlying data.
-# It may be worthile in future to use the depth
-# To check that we have depth information
 def create_non_correspondences(uv_a, uv_b_matches, num_non_matches_per_match=100, img_b_mask=None):
+    """
+    Takes in pixel matches and generates non-matches.
+
+    The non-matches share the same uv_a (pixel position in image a), but some different pixel in uv_b (pixel position in image b). 
+
+    Optionally, the non-matches can be sampled from a mask for image b.
+
+    Returns non-matches as pixel positions in image b.
+
+    Please see 'coordinate_conventions.md' documentation for an explanation of pixel coordinate conventions.
+
+    ## Note that args uv_a and uv_b_matches are the outputs of batch_find_pixel_correspondences()
+
+    :param uv_a: tuple of torch.FloatTensors, where each FloatTensor is length n, i.e.:
+        (torch.FloatTensor, torch.FloatTensor)
+
+    :param uv_b_matches: tuple of torch.FloatTensors, where each FloatTensor is length n, i.e.:
+        (torch.FloatTensor, torch.FloatTensor)
+
+    (optional)
+    :param num_non_matches_per_match: int
+
+    (optional)
+    :param img_b_mask: torch.FloatTensor (can be cuda or not)
+        - masked image, we will select from the non-zero entries
+        - shape is H x W
+     
+    :return: tuple of torch.FloatTensors, where each FloatTensor is n * m, where m is the number of non-matches.
+        - Non-matches
+        - This shape makes it so that each row of the non-matches corresponds to the row for the match in uv_a
+    """
+
     if uv_a == None:
         return None
 
@@ -115,11 +143,8 @@ def create_non_correspondences(uv_a, uv_b_matches, num_non_matches_per_match=100
         uv_b_non_matches = pytorch_rand_select_pixel(width=640,height=480,num_samples=num_matches*num_non_matches_per_match)
     
     # for each in uv_a, we want non-matches
-    # shape of uv_a : just a vector, of length corresponding to how many samples
-    
     # first just randomly sample "non_matches"
     # we will later move random samples that were too close to being matches
-    
     uv_b_non_matches = (uv_b_non_matches[0].view(num_matches,num_non_matches_per_match), uv_b_non_matches[1].view(num_matches,num_non_matches_per_match))
 
     # uv_b_matches can now be used to make sure no "non_matches" are too close
@@ -136,11 +161,13 @@ def create_non_correspondences(uv_a, uv_b_matches, num_non_matches_per_match=100
     diffs_0_flattened = torch.abs(diffs_0_flattened).squeeze(1)
     diffs_1_flattened = torch.abs(diffs_1_flattened).squeeze(1)
 
+
     need_to_be_perturbed = torch.zeros_like(diffs_0_flattened)
     ones = torch.zeros_like(diffs_0_flattened)
     num_pixels_too_close = 1.0
     threshold = torch.ones_like(diffs_0_flattened)*num_pixels_too_close
 
+    # determine which pixels are too close to being matches
     need_to_be_perturbed = where(diffs_0_flattened < threshold, ones, need_to_be_perturbed)
     need_to_be_perturbed = where(diffs_1_flattened < threshold, ones, need_to_be_perturbed)
 
