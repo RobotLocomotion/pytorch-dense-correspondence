@@ -105,7 +105,8 @@ class DenseCorrespondenceEvaluation(object):
     @staticmethod
     def single_image_pair_quantitative_analysis(dcn, dataset, scene_name,
                                                 img_a_idx, img_b_idx,
-                                                params=None, camera_intrinsics_matrix=None):
+                                                params=None, camera_intrinsics_matrix=None,
+                                                debug=False):
         """
 
 
@@ -150,22 +151,29 @@ class DenseCorrespondenceEvaluation(object):
                                                                device='CPU', img_a_mask=mask_a)
 
 
-        # logging.debug("type(uv_a_vec) " )
-        print "type(uv_a_vec): ", type(uv_a_vec)
-        print "uv_a_vec[0].shape: ", uv_a_vec[0].shape
 
-        num_matches = uv_a_vec[0].size()[0]
-
-        print "num_matches: ", num_matches
-        print "type(num_matches): ", type(num_matches)
 
         # create pandas dataframe
         data_frame = pd.DataFrame()
 
-        for i in xrange(0, num_matches):
-            print "i: ", i
+        num_matches = uv_a_vec[0].size()[0]
+        match_list = range(0, num_matches)
+        if debug:
+            match_list = [50, 1000]
+
+        logging_rate = 100
+
+        image_height, image_width = dcn.image_shape
+        def clip_pixel_to_image_size(uv):
+            u = min(int(round(uv[0])), image_width - 1)
+            v = min(int(round(uv[1])), image_height - 1)
+            return [u,v]
+
+
+        for i in match_list:
             uv_a = [uv_a_vec[0][i], uv_a_vec[1][i]]
-            uv_b = [int(round(uv_b_vec[0][i])), int(round(uv_b_vec[1][i]))]
+            uv_b_raw = [uv_b_vec[0][i], uv_b_vec[1][i]]
+            uv_b = clip_pixel_to_image_size(uv_b_raw)
 
             d, series_data = DenseCorrespondenceEvaluation.compute_descriptor_match_statistics(depth_a,
                                                                                   depth_b,
@@ -178,23 +186,23 @@ class DenseCorrespondenceEvaluation(object):
                                                                                   camera_intrinsics_matrix,
                                                                                   rgb_a=rgb_a,
                                                                                   rgb_b=rgb_b,
-                                                                                  debug=True)
+                                                                                  debug=debug)
 
             series_data['scene_name'] = scene_name
-            series_data['img_a_idx'] = img_a_idx
-            series_data['img_b_idx'] = img_b_idx
+            series_data['img_a_idx'] = int(img_a_idx)
+            series_data['img_b_idx'] = int(img_b_idx)
 
             series = pd.Series(series_data)
 
             # very inefficient but ok for now
             data_frame = data_frame.append(series, ignore_index=True)
 
-            return data_frame
+            if i % logging_rate == 0:
+                print "computing statistics for match %d of %d" %(i, num_matches)
+            # if i > 10:
+            #     break
 
-
-            break
-
-
+        return data_frame
 
     @staticmethod
     def is_depth_valid(depth):
@@ -257,11 +265,11 @@ class DenseCorrespondenceEvaluation(object):
             DenseCorrespondenceNetwork.find_best_match(uv_a, res_a,
                                                        res_b)
 
-        print "type(depth_a): ", type(depth_a)
-        # print "depth_a.shape(): ", depth_a.shape()
-        print "uv_a:", uv_a
-        print "uv_b: ", uv_b
-        print "uv_b_pred: ", uv_b_pred
+        # print "type(depth_a): ", type(depth_a)
+        # # print "depth_a.shape(): ", depth_a.shape()
+        # print "uv_a:", uv_a
+        # print "uv_b: ", uv_b
+        # print "uv_b_pred: ", uv_b_pred
 
 
 
@@ -409,6 +417,7 @@ class DenseCorrespondenceEvaluation(object):
         res_b = dcn.forward_on_img(rgb_b)
 
         # sample points on img_a. Compute best matches on img_b
+        # note that this is in (x,y) format
         sampled_idx_list = random_sample_from_masked_image(mask_a, num_matches)
 
         # list of cv2.KeyPoint
@@ -421,14 +430,15 @@ class DenseCorrespondenceEvaluation(object):
         dist = 0.01
 
         for i in xrange(0, num_matches):
-            pixel_a = [sampled_idx_list[0][i], sampled_idx_list[1][i]]
-            best_match_idx, best_match_diff, norm_diffs =\
+            # convert to (u,v) format
+            pixel_a = [sampled_idx_list[1][i], sampled_idx_list[0][i]]
+            best_match_uv, best_match_diff, norm_diffs =\
                 DenseCorrespondenceNetwork.find_best_match(pixel_a, res_a,
                                                                                                      res_b)
 
-            # be careful, OpenCV format is x - right, y - down
-            kp1.append(cv2.KeyPoint(pixel_a[1], pixel_a[0], diam))
-            kp2.append(cv2.KeyPoint(best_match_idx[1], best_match_idx[0], diam))
+            # be careful, OpenCV format is  (u,v) = (right, down)
+            kp1.append(cv2.KeyPoint(pixel_a[0], pixel_a[1], diam))
+            kp2.append(cv2.KeyPoint(best_match_uv[0], best_match_uv[1], diam))
             matches.append(cv2.DMatch(i, i, dist))
 
         gray_a_numpy = cv2.cvtColor(np.asarray(rgb_a), cv2.COLOR_BGR2GRAY)
@@ -450,8 +460,16 @@ class DenseCorrespondenceEvaluation(object):
 
 
     @staticmethod
-    def evaluate_network_qualitative(dcn, num_image_pairs=5, randomize=False):
-        dataset = SpartanDataset()
+    def evaluate_network_qualitative(dcn, num_image_pairs=5, randomize=False, dataset=None):
+
+        if dataset is None:
+            config_file = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence',
+                                       'dataset',
+                                       'spartan_dataset_masked.yaml')
+
+            config = utils.getDictFromYamlFilename(config_file)
+
+            dataset = SpartanDataset(mode="test", config=config)
 
         # Train Data
         print "\n\n-----------Train Data Evaluation----------------"

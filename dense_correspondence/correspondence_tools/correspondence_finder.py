@@ -67,7 +67,8 @@ def apply_transform_torch(vec3, transform4):
 
 def random_sample_from_masked_image(img_mask, num_samples):
     """
-    Samples num_samples pixel locations from the masked image
+    Samples num_samples (x,y) convention pixel locations from the masked image
+    Note this is not in (u,v) format, but in same format as img_mask
     :param img_mask: numpy.ndarray
         - masked image, we will select from the non-zero entries
         - shape is H x W

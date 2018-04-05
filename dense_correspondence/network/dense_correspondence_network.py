@@ -160,16 +160,17 @@ class DenseCorrespondenceNetwork(object):
         Compute the correspondences between the pixel_a location in image_a
         and image_b
 
-        :param pixel_a: vector of (x,y) pixel coordinates
+        :param pixel_a: vector of (u,v) pixel coordinates
         :param res_a: array of dense descriptors
         :param res_b: array of dense descriptors
         :param pixel_b: Ground truth . . .
-        :return: (best_match_idx, best_match_diff, norm_diffs)
+        :return: (best_match_uv, best_match_diff, norm_diffs)
+        best_match_idx is again in (u,v) = (right, down) coordinates
+
         """
 
         debug = False
-
-        descriptor_at_pixel = res_a[pixel_a[0], pixel_a[1]]
+        descriptor_at_pixel = res_a[pixel_a[1], pixel_a[0]]
         height, width, _ = res_a.shape
 
 
@@ -189,7 +190,9 @@ class DenseCorrespondenceNetwork(object):
         norm_diffs = np.sum(np.square(res_b - descriptor_at_pixel), axis=2)
 
         best_match_flattened_idx = np.argmin(norm_diffs)
-        best_match_idx = np.unravel_index(best_match_flattened_idx, norm_diffs.shape)
-        best_match_diff = norm_diffs[best_match_idx]
+        best_match_xy = np.unravel_index(best_match_flattened_idx, norm_diffs.shape)
+        best_match_diff = norm_diffs[best_match_xy]
 
-        return best_match_idx, best_match_diff, norm_diffs
+        best_match_uv = (best_match_xy[1], best_match_xy[0])
+
+        return best_match_uv, best_match_diff, norm_diffs
