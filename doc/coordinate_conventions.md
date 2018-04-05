@@ -32,7 +32,7 @@ cartesian coordinate system as follows in this diagram:
 that in order to access the correct pixel in this data, if using (u,v) coordinates, you should access the data
 as:
 
-```
-pixel_at_u_v = data_tensor[v,u]
-```
+    ```python
+    pixel_at_u_v = data_tensor[v,u]
+    ```
 
