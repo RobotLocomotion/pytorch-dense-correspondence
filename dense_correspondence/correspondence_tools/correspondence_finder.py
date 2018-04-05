@@ -30,7 +30,7 @@ def pytorch_rand_select_pixel(width,height,num_samples=1):
     two_rand_ints    = torch.floor(two_rand_numbers).type(dtype_long)
     return (two_rand_ints[0], two_rand_ints[1])
 
-def get_K_matrix():
+def get_default_K_matrix():
     K = numpy.zeros((3,3))
     K[0,0] = 539.0756 # focal x
     K[1,1] = 539.782595 # focal y
@@ -218,7 +218,8 @@ def create_non_correspondences(uv_a, uv_b_matches, num_non_matches_per_match=100
 
 # Optionally, uv_a specifies the pixels in img_a for which to find matches
 # If uv_a is not set, then random correspondences are attempted to be found
-def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b_pose, uv_a=None, num_attempts=20, device='CPU', img_a_mask=None):
+def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b_pose, 
+                                        uv_a=None, num_attempts=20, device='CPU', img_a_mask=None, K=None):
     """
     Computes pixel correspondences in batch
 
@@ -229,24 +230,27 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
     :type  img_a_pose:  numpy 2d array, 4 x 4 (homogeneous transform)
     --
     :param img_b_depth: depth image for image b
-    :type img_b_depth:  numpy 2d array (H x W) encoded as a uint16
+    :type  img_b_depth: numpy 2d array (H x W) encoded as a uint16
     -- 
     :param img_b_pose:  pose for image a, in right-down-forward optical frame
-    :type img_b_pose:   numpy 2d array, 4 x 4 (homogeneous transform)
+    :type  img_b_pose:  numpy 2d array, 4 x 4 (homogeneous transform)
     -- 
     :param uv_a:        optional arg, a tuple of (u,v) pixel positions for which to find matches
-    :type uv_a:         each element of tuple is either an int, or a list-like (castable to torch.LongTensor)
+    :type  uv_a:        each element of tuple is either an int, or a list-like (castable to torch.LongTensor)
     --
     :param num_attempts: if random sampling, how many pixels will be _attempted_ to find matches for.  Note that
                             this is not the same as asking for a specific number of matches, since many attempted matches
                             will either be occluded or outside of field-of-view. 
-    :type num_attempts:  int
+    :type  num_attempts: int
     --
     :param device:      either 'CPU' or 'CPU'
-    :type device:       string
+    :type  device:      string
     --
     :param img_a_mask:  optional arg, an image where each nonzero pixel will be used as a mask
-    :type img_a_mask:   ndarray, of shape (H, W)
+    :type  img_a_mask:  ndarray, of shape (H, W)
+    --
+    :param K:           optional arg, an image where each nonzero pixel will be used as a mask
+    :type  K:           ndarray, of shape (H, W)
     --
     :return:            "Tuple of tuples", i.e. pixel position tuples for image a and image b (uv_a, uv_b). 
                         Each of these is a tuple of pixel positions
@@ -290,7 +294,9 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
         # uv_a_vec_flattened = torch.index_select(mask_a_indices_flat, 0, rand_indices_a).squeeze(1)
         # uv_a_vec = (uv_a_vec_flattened/640, uv_a_vec_flattened%640)
 
-    K = get_K_matrix()
+    if K is None:
+        K = get_default_K_matrix()
+
     K_inv = inv(K)
     body_to_rdf = get_body_to_rdf()
     rdf_to_body = inv(body_to_rdf)

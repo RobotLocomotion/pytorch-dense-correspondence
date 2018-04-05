@@ -313,7 +313,9 @@ class DenseCorrespondenceDataset(data.Dataset):
             except yaml.YAMLError as exc:
                 print(exc)
 
-        relative_path = config_dict["relative_path_to_labelfusion_logs_test"]
+        import getpass
+        username = getpass.getuser()
+        relative_path = config_dict[username]["relative_path_to_labelfusion_logs_test"]
         full_path = os.path.join(os.environ['HOME'], relative_path)
         return full_path
 
