@@ -3,6 +3,7 @@ from dense_correspondence_dataset_masked import DenseCorrespondenceDataset, Imag
 import os
 import logging
 import glob
+import random
 
 import dense_correspondence_manipulation.utils.utils as utils
 from dense_correspondence_manipulation.utils.utils import CameraIntrinsics
@@ -136,6 +137,20 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
         camera_info_file = os.path.join(scene_directory, 'images', 'camera_info.yaml')
         return CameraIntrinsics.from_yaml_file(camera_info_file)
+
+    def get_random_image_index(self, scene_name):
+        """
+        Returns a random image index from a given scene
+        :param scene_name:
+        :type scene_name:
+        :return:
+        :rtype:
+        """
+        pose_data = self.get_pose_data(scene_name)
+        image_idxs = pose_data.keys() # list of integers
+        random.choice(image_idxs)
+        random_idx = random.choice(image_idxs)
+        return random_idx
 
 
 
