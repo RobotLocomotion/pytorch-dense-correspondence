@@ -22,6 +22,9 @@ def main():
 
         data_folder = os.path.join(parent_folder, dir)
 
+        if not os.path.isdir(data_folder):
+            continue
+
         image_masks_folder = os.path.join(data_folder, 'image_masks')
         if os.path.isdir(image_masks_folder):
             shutil.rmtree(image_masks_folder)
@@ -29,9 +32,16 @@ def main():
         print "Processing scene %d of %d" %(idx, num_dirs)
         print "Running change detection for %s" %(dir)
 
-        cmd = "run_change_detection_pipeline.py --data_dir " + data_folder
+        cmd = "run_change_detection.py --data_dir " + data_folder
         print "cmd: ", cmd
         os.system(cmd)
+        print "finished running change detection"
+
+        cmd = "render_depth_images.py --data_dir " + data_folder
+        print "\nrendering depth images"
+        print "cmd"
+        os.system(cmd)
+        print "finished rendering depth images\n\n"
 
         # this doesn't work, for some reason different directorApp's won't quit.
         # run_change_detection_pipeline.run(data_folder, CHANGE_DETECTION_CONFIG_FILE)
