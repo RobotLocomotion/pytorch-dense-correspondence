@@ -3,11 +3,13 @@
 
 import os
 import dense_correspondence_manipulation.utils.utils as utils
+import logging
 utils.add_dense_correspondence_to_python_path()
 import matplotlib.pyplot as plt
 import cv2
 import numpy as np
 import pandas as pd
+import random
 
 
 from dense_correspondence_manipulation.utils.constants import *
@@ -21,8 +23,54 @@ import dense_correspondence.evaluation.plotting as dc_plotting
 
 from dense_correspondence.correspondence_tools.correspondence_finder import random_sample_from_masked_image
 
+class PandaDataFrameWrapper(object):
+    """
+    A simple wrapper for a PandaSeries that protects from read/write errors
+    """
+
+    def __init__(self, index, data=None):
+        if data is None:
+            data = np.full(len(index), np.nan)
+
+        self._index = index
+        self._df = pd.DataFrame(data, index=index)
+
+    def set_value(self, key, value):
+        if key not in self._index:
+            raise KeyError("%s is not in the index" %(key))
+
+        self._df[key] = value
+
+    def get_value(self, key):
+        return self._df[key]
+
+    @property
+    def dataframe(self):
+        return self._df
+
+    @dataframe.setter
+    def dataframe(self, value):
+        self._series = value
+
+class DCNEvaluationPandaTemplate(PandaDataFrameWrapper):
+    index = ['scene_name',
+             'img_a_idx',
+             'img_b_idx',
+            'is_valid',
+            'norm_diff_descriptor_ground_truth',
+            'norm_diff_descriptor',
+            'norm_diff_ground_truth_3d',
+            'norm_diff_pred_3d',
+            'pixel_match_error']
+
+    def __init__(self, data=None):
+        PandaDataFrameWrapper.__init__(self, DCNEvaluationPandaTemplate.index, data=data)
 
 class DenseCorrespondenceEvaluation(object):
+    """
+    Samples image pairs from the given scenes. Then uses the network to compute dense
+    descriptors. Records the results of this in a Pandas.DataFrame object.
+    """
 
 
     def __init__(self, config):
@@ -48,15 +96,76 @@ class DenseCorrespondenceEvaluation(object):
         return DenseCorrespondenceNetwork.from_config(network_config)
 
     @staticmethod
-    def evaluate_network(nn, test_dataset):
+    def get_image_pair_with_poses_diff_above_threshold(dataset, scene_name, threshold=0.05,
+                                                       max_num_attempts=100):
+        """
+        Given a dataset and scene name find a random pair of images with
+        poses that are different above a threshold
+        :param dataset:
+        :type dataset:
+        :param scene_name:
+        :type scene_name:
+        :param threshold:
+        :type threshold:
+        :param max_num_attempts:
+        :type max_num_attempts:
+        :return:
+        :rtype:
+        """
+        img_a_idx = dataset.get_random_image_index(scene_name)
+        pose_a = dataset.get_pose_from_scene_name_and_idx(scene_name, img_a_idx)
+        pos_a = pose_a[0:3, 3]
+
+        for i in xrange(0, max_num_attempts):
+            img_b_idx = dataset.get_random_image_index(scene_name)
+            pose_b = dataset.get_pose_from_scene_name_and_idx(scene_name, img_b_idx)
+            pos_b = pose_b[0:3, 3]
+
+            if np.linalg.norm(pos_a - pos_b) > threshold:
+                return (img_a_idx, img_b_idx)
+
+        return None
+
+
+
+
+    @staticmethod
+    def evaluate_network(dcn, dataset, num_images_per_scene=25, num_matches_per_image_pair=100):
         """
 
-        :param nn: A neural network
+        :param nn: A neural network DenseCorrespondenceNetwork
         :param test_dataset: DenseCorrespondenceDataset
             the dataset to draw samples from
         :return:
         """
-        pass
+        DCE = DenseCorrespondenceEvaluation
+
+        # grab random scene
+        scene_name = '05_drill_long_downsampled'
+
+        pd_dataframe_list = []
+        for i in xrange(0,num_images_per_scene):
+            idx_pair = DCE.get_image_pair_with_poses_diff_above_threshold(dataset, scene_name)
+
+            if idx_pair is None:
+                logging.info("no satisfactory image pair found, continuing")
+                continue
+
+            img_idx_a, img_idx_b = idx_pair
+
+            dataframe_list_temp =\
+                DCE.single_image_pair_quantitative_analysis(dcn, dataset, scene_name,
+                                                            img_idx_a,
+                                                            img_idx_b,
+                                                            num_matches=num_matches_per_image_pair,
+                                                            debug=False)
+
+            pd_dataframe_list += dataframe_list_temp
+            # pd_series_list.append(series_list_temp)
+
+
+        df = pd.concat(pd_dataframe_list)
+        return pd_dataframe_list, df
 
     @staticmethod
     def get_image_data(dataset, scene_name, img_idx):
@@ -105,7 +214,9 @@ class DenseCorrespondenceEvaluation(object):
     @staticmethod
     def single_image_pair_quantitative_analysis(dcn, dataset, scene_name,
                                                 img_a_idx, img_b_idx,
-                                                params=None, camera_intrinsics_matrix=None,
+                                                params=None,
+                                                camera_intrinsics_matrix=None,
+                                                num_matches=100,
                                                 debug=False):
         """
 
@@ -151,15 +262,20 @@ class DenseCorrespondenceEvaluation(object):
                                                                device='CPU', img_a_mask=mask_a)
 
 
+        if uv_a_vec is None:
+            print "no matches found, returning"
+            return None
+
+        # container to hold a list of pandas dataframe
+        # will eventually combine them all with concat
+        dataframe_list = []
 
 
-        # create pandas dataframe
-        data_frame = pd.DataFrame()
+        total_num_matches = uv_a_vec[0].size()[0]
+        match_list = random.sample(range(0, total_num_matches), num_matches)
 
-        num_matches = uv_a_vec[0].size()[0]
-        match_list = range(0, num_matches)
         if debug:
-            match_list = [50, 1000]
+            match_list = [50, 500]
 
         logging_rate = 100
 
@@ -175,7 +291,7 @@ class DenseCorrespondenceEvaluation(object):
             uv_b_raw = [uv_b_vec[0][i], uv_b_vec[1][i]]
             uv_b = clip_pixel_to_image_size(uv_b_raw)
 
-            d, series_data = DenseCorrespondenceEvaluation.compute_descriptor_match_statistics(depth_a,
+            d, pd_template = DenseCorrespondenceEvaluation.compute_descriptor_match_statistics(depth_a,
                                                                                   depth_b,
                                                                                   uv_a,
                                                                                   uv_b,
@@ -188,21 +304,20 @@ class DenseCorrespondenceEvaluation(object):
                                                                                   rgb_b=rgb_b,
                                                                                   debug=debug)
 
-            series_data['scene_name'] = scene_name
-            series_data['img_a_idx'] = int(img_a_idx)
-            series_data['img_b_idx'] = int(img_b_idx)
+            pd_template.set_value('scene_name', scene_name)
+            pd_template.set_value('img_a_idx',  int(img_a_idx))
+            pd_template.set_value('img_b_idx', int(img_b_idx))
 
-            series = pd.Series(series_data)
 
-            # very inefficient but ok for now
-            data_frame = data_frame.append(series, ignore_index=True)
+            dataframe_list.append(pd_template.dataframe)
+
 
             if i % logging_rate == 0:
                 print "computing statistics for match %d of %d" %(i, num_matches)
             # if i > 10:
             #     break
 
-        return data_frame
+        return dataframe_list
 
     @staticmethod
     def is_depth_valid(depth):
@@ -263,7 +378,13 @@ class DenseCorrespondenceEvaluation(object):
 
         uv_b_pred, best_match_diff, norm_diffs =\
             DenseCorrespondenceNetwork.find_best_match(uv_a, res_a,
-                                                       res_b)
+                                                       res_b, debug=debug)
+
+        # extract the ground truth descriptors
+        des_a = res_a[uv_a[1], uv_a[0], :]
+        des_b_ground_truth = res_b[uv_b[1], uv_b[0], :]
+        norm_diff_descriptor_ground_truth = np.linalg.norm(des_a - des_b_ground_truth)
+
 
         # print "type(depth_a): ", type(depth_a)
         # # print "depth_a.shape(): ", depth_a.shape()
@@ -347,13 +468,23 @@ class DenseCorrespondenceEvaluation(object):
         d['norm_diff_pred_3d'] = norm_diff_pred_3d
 
         # dict for making a pandas.DataFrame later
-        df_dict = dict()
-        df_dict['norm_diff_descriptor'] = best_match_diff
-        df_dict['is_valid'] = is_valid
-        df_dict['norm_diff_ground_truth_3d'] = norm_diff_ground_truth_3d
-        df_dict['norm_diff_pred_3d'] = norm_diff_pred_3d
+        pd_template = DCNEvaluationPandaTemplate()
+        pd_template.set_value('norm_diff_descriptor', best_match_diff)
+        pd_template.set_value('is_valid', is_valid)
 
-        return d, df_dict
+        pd_template.set_value('norm_diff_ground_truth_3d', norm_diff_ground_truth_3d)
+
+        if is_valid:
+            pd_template.set_value('norm_diff_pred_3d', norm_diff_pred_3d)
+        else:
+            pd_template.set_value('norm_diff_pred_3d', np.nan)
+
+        pd_template.set_value('norm_diff_descriptor_ground_truth', norm_diff_ground_truth_3d)
+
+        pixel_match_error = np.linalg.norm((np.array(uv_b) - np.array(uv_b_pred)), ord=1)
+        pd_template.set_value('pixel_match_error', pixel_match_error)
+
+        return d, pd_template
 
     @staticmethod
     def compute_3d_position(uv, depth, camera_intrinsics_matrix, camera_to_world):
