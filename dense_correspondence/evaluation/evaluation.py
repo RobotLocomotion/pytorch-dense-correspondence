@@ -28,15 +28,13 @@ class PandaDataFrameWrapper(object):
     A simple wrapper for a PandaSeries that protects from read/write errors
     """
 
-    def __init__(self, index, data=None):
-        if data is None:
-            data = np.full(len(index), np.nan)
-
-        self._index = index
-        self._df = pd.DataFrame(data, index=index)
+    def __init__(self, columns):
+        data = [np.nan] * len(columns)
+        self._columns = columns
+        self._df = pd.DataFrame(data=[data], columns=columns)
 
     def set_value(self, key, value):
-        if key not in self._index:
+        if key not in self._columns:
             raise KeyError("%s is not in the index" %(key))
 
         self._df[key] = value
@@ -53,7 +51,7 @@ class PandaDataFrameWrapper(object):
         self._series = value
 
 class DCNEvaluationPandaTemplate(PandaDataFrameWrapper):
-    index = ['scene_name',
+    columns = ['scene_name',
              'img_a_idx',
              'img_b_idx',
             'is_valid',
@@ -63,8 +61,8 @@ class DCNEvaluationPandaTemplate(PandaDataFrameWrapper):
             'norm_diff_pred_3d',
             'pixel_match_error']
 
-    def __init__(self, data=None):
-        PandaDataFrameWrapper.__init__(self, DCNEvaluationPandaTemplate.index, data=data)
+    def __init__(self):
+        PandaDataFrameWrapper.__init__(self, DCNEvaluationPandaTemplate.columns)
 
 class DenseCorrespondenceEvaluation(object):
     """
@@ -271,7 +269,7 @@ class DenseCorrespondenceEvaluation(object):
         dataframe_list = []
 
 
-        total_num_matches = uv_a_vec[0].size()[0]
+        total_num_matches = len(uv_a_vec[0])
         match_list = random.sample(range(0, total_num_matches), num_matches)
 
         if debug:
@@ -280,7 +278,7 @@ class DenseCorrespondenceEvaluation(object):
         logging_rate = 100
 
         image_height, image_width = dcn.image_shape
-        def clip_pixel_to_image_size(uv):
+        def clip_pixel_to_image_size_and_round(uv):
             u = min(int(round(uv[0])), image_width - 1)
             v = min(int(round(uv[1])), image_height - 1)
             return [u,v]
@@ -289,7 +287,7 @@ class DenseCorrespondenceEvaluation(object):
         for i in match_list:
             uv_a = [uv_a_vec[0][i], uv_a_vec[1][i]]
             uv_b_raw = [uv_b_vec[0][i], uv_b_vec[1][i]]
-            uv_b = clip_pixel_to_image_size(uv_b_raw)
+            uv_b = clip_pixel_to_image_size_and_round(uv_b_raw)
 
             d, pd_template = DenseCorrespondenceEvaluation.compute_descriptor_match_statistics(depth_a,
                                                                                   depth_b,
