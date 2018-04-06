@@ -1,0 +1,5 @@
+logs_root_path: code/data_volume/datasets/drill_scenes_test
+train:
+- "05_drill_long_downsampled"
+test:
+- "05_drill_long_downsampled"

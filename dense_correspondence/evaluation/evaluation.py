@@ -10,6 +10,8 @@ import cv2
 import numpy as np
 import pandas as pd
 import random
+import scipy.stats as ss
+
 
 
 from dense_correspondence_manipulation.utils.constants import *
@@ -73,17 +75,8 @@ class DenseCorrespondenceEvaluation(object):
 
     def __init__(self, config):
         self._config = config
+        self._dataset = None
 
-    def evaluate_network(self, network_data_dict):
-        """
-
-        :param network_data_dict: Dict with fields
-            - path_to_network
-            - parameter_file
-            - descriptor_dimensionality
-        :return:
-        """
-        pass
 
     def load_network_from_config(self, name):
         if name not in self._config["networks"]:
@@ -92,6 +85,36 @@ class DenseCorrespondenceEvaluation(object):
 
         network_config = self._config["networks"][name]
         return DenseCorrespondenceNetwork.from_config(network_config)
+
+    def load_dataset(self):
+        """
+        Loads a SpartanDatasetMasked object
+        For now we use a default one
+        :return:
+        :rtype: SpartanDatasetMasked
+        """
+
+        config_file = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence', 'dataset',
+                                   'spartan_dataset_masked_test.yaml')
+
+        config = utils.getDictFromYamlFilename(config_file)
+
+        dataset = SpartanDataset(mode="test", config=config)
+
+        return dataset
+
+    @property
+    def dataset(self):
+        if self._dataset is None:
+            self._dataset = self.load_dataset()
+        return self._dataset
+
+    @dataset.setter
+    def dataset(self, value):
+        self._dataset = value
+
+    def get_output_dir(self):
+        return utils.convert_to_absolute_path(self._config['output_dir'])
 
     @staticmethod
     def get_image_pair_with_poses_diff_above_threshold(dataset, scene_name, threshold=0.05,
@@ -125,10 +148,45 @@ class DenseCorrespondenceEvaluation(object):
         return None
 
 
+    def evaluate_single_network(self, network_name, mode="train", save=True):
+        """
+        Evaluates a single network, this network should be in the config
+        :param network_name:
+        :type network_name:
+        :return:
+        :rtype:
+        """
+        DCE = DenseCorrespondenceEvaluation
+
+        dcn = self.load_network_from_config(network_name)
+        dataset = self.dataset
+
+        if mode == "train":
+            dataset.set_train_mode()
+        if mode == "test":
+            dataset.set_test_mode()
+
+        num_image_pairs = self._config['params']['num_image_pairs']
+        num_matches_per_image_pair = self._config['params']['num_matches_per_image_pair']
+
+        pd_dataframe_list, df = DCE.evaluate_network(dcn, dataset, num_image_pairs=num_image_pairs,
+                                                     num_matches_per_image_pair=num_matches_per_image_pair)
+
+
+        # save pandas.DataFrame to csv
+        if save:
+            output_dir = os.path.join(self.get_output_dir(), network_name, mode)
+            data_file = os.path.join(output_dir, "data.csv")
+            if not os.path.isdir(output_dir):
+                os.makedirs(output_dir)
+
+            df.to_csv(data_file)
+
+
 
 
     @staticmethod
-    def evaluate_network(dcn, dataset, num_images_per_scene=25, num_matches_per_image_pair=100):
+    def evaluate_network(dcn, dataset, num_image_pairs=25, num_matches_per_image_pair=100):
         """
 
         :param nn: A neural network DenseCorrespondenceNetwork
@@ -138,11 +196,21 @@ class DenseCorrespondenceEvaluation(object):
         """
         DCE = DenseCorrespondenceEvaluation
 
-        # grab random scene
-        scene_name = '05_drill_long_downsampled'
+        logging_rate = 5
+
 
         pd_dataframe_list = []
-        for i in xrange(0,num_images_per_scene):
+        for i in xrange(0, num_image_pairs):
+
+
+            scene_name = dataset.get_random_scene_name()
+
+            # grab random scene
+            if i % logging_rate == 0:
+                print "computing statistics for image %d of %d, scene_name %s" %(i, num_image_pairs, scene_name)
+                print "scene"
+
+
             idx_pair = DCE.get_image_pair_with_poses_diff_above_threshold(dataset, scene_name)
 
             if idx_pair is None:
@@ -157,6 +225,10 @@ class DenseCorrespondenceEvaluation(object):
                                                             img_idx_b,
                                                             num_matches=num_matches_per_image_pair,
                                                             debug=False)
+
+            if dataframe_list_temp is None:
+                print "no matches found, skipping"
+                continue
 
             pd_dataframe_list += dataframe_list_temp
             # pd_series_list.append(series_list_temp)
@@ -273,7 +345,7 @@ class DenseCorrespondenceEvaluation(object):
         match_list = random.sample(range(0, total_num_matches), num_matches)
 
         if debug:
-            match_list = [50, 500]
+            match_list = [50]
 
         logging_rate = 100
 
@@ -310,8 +382,8 @@ class DenseCorrespondenceEvaluation(object):
             dataframe_list.append(pd_template.dataframe)
 
 
-            if i % logging_rate == 0:
-                print "computing statistics for match %d of %d" %(i, num_matches)
+            # if i % logging_rate == 0:
+            #     print "computing statistics for match %d of %d" %(i, num_matches)
             # if i > 10:
             #     break
 
@@ -591,7 +663,7 @@ class DenseCorrespondenceEvaluation(object):
         if dataset is None:
             config_file = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence',
                                        'dataset',
-                                       'spartan_dataset_masked.yaml')
+                                       'spartan_dataset_masked_test.yaml')
 
             config = utils.getDictFromYamlFilename(config_file)
 
@@ -664,6 +736,122 @@ class DenseCorrespondenceEvaluation(object):
                                                                              scene_name, img_idx_a,
                                                                              img_idx_b)
 
+class DenseCorrespondenceEvaluationPlotter(object):
+
+    def __init__(self, config=None):
+        if config is None:
+            config_file = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config',
+                                       'dense_correspondence', 'evaluation',
+                                       'evaluation_plotter.yaml')
+
+            config = utils.getDictFromYamlFilename(config_file)
+
+        self._config = config
+
+    def load_dataframe(self, network_name):
+        """
+        Loads the specified dataframe for the given network specified in the config file
+        :param network_name:
+        :type network_name:
+        :return:
+        :rtype:
+        """
+
+        if network_name not in self._config['networks']:
+            raise ValueError("%s not in config" %(network_name))
+
+        path_to_csv = self._config['networks'][network_name]['path_to_csv']
+        path_to_csv = utils.convert_to_absolute_path(path_to_csv)
+        df = pd.read_csv(path_to_csv, index_col=0, parse_dates=True)
+        return df
+
+    @staticmethod
+    def make_cdf_plot(data, num_bins=30):
+        """
+        Plots the empirical CDF of the data
+        :param data:
+        :type data:
+        :param num_bins:
+        :type num_bins:
+        :return:
+        :rtype:
+        """
+        cumhist, l, b, e = ss.cumfreq(data, num_bins)
+        cumhist *= 1.0 / len(data)
+        x_axis = l + b * np.arange(0, num_bins)
+        plot = plt.plot(x_axis, cumhist)
+        return plot
+
+    @staticmethod
+    def make_descriptor_accuracy_plot(df, num_bins=30):
+        """
+        Makes a plot of best match accuracy.
+        Drops nans
+        :param df:
+        :type df:
+        :param num_bins:
+        :type num_bins:
+        :return:
+        :rtype:
+        """
+        DCEP = DenseCorrespondenceEvaluationPlotter
+
+        data = df['norm_diff_pred_3d']
+        data = data.dropna()
+        data *= 100 # convert to cm
+
+        plot = DCEP.make_cdf_plot(data, num_bins=num_bins)
+        plt.xlabel('error (cm)')
+        plt.ylabel('fraction below threshold')
+        plt.title("3D Norm Diff Best Match")
+        return plot
+
+    @staticmethod
+    def compute_area_above_curve(df, field, num_bins=100):
+        """
+        Computes AOC for the entries in that field
+        :param df:
+        :type df: Pandas.DataFrame
+        :param field: specifies which column of the DataFrame to use
+        :type field: str
+        :return:
+        :rtype:
+        """
+
+        data = df[field]
+        data = data.dropna()
+
+        cumhist, l, b, e = ss.cumfreq(data, num_bins)
+        cumhist *= 1.0 / len(data)
+
+        # b is bin width
+        area_above_curve = b * np.sum((1-cumhist))
+        return area_above_curve
+
+    @staticmethod
+    def run_on_single_dataframe(path_to_df_csv, output_dir=None):
+        DCEP = DenseCorrespondenceEvaluationPlotter
+
+        path_to_csv = utils.convert_to_absolute_path(path_to_df_csv)
+
+        if output_dir is None:
+            output_dir = os.path.dirname(path_to_csv)
+
+        df = pd.read_csv(path_to_csv, index_col=0, parse_dates=True)
+
+        # norm diff accuracy
+        fig = plt.figure()
+        plot = DCEP.make_descriptor_accuracy_plot(df)
+        fig_file = os.path.join(output_dir, "norm_diff_pred_3d.png")
+        fig.savefig(fig_file)
+
+
+        aac = DCEP.compute_area_above_curve(df, 'norm_diff_pred_3d')
+        d = dict()
+        d['norm_diff_3d_area_above_curve'] = float(aac)
+
+        yaml_file = os.path.join(output_dir, 'stats.yaml')
+        utils.saveToYaml(d, yaml_file)
 
 
 def run():

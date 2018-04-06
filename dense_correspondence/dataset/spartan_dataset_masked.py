@@ -47,7 +47,6 @@ class SpartanDataset(DenseCorrespondenceDataset):
         pose_matrix4 = self.elasticfusion_pose_to_homogeneous_transform(pose_elasticfusion)
         return pose_matrix4
 
-
     def get_pose_data(self, scene_name):
         if scene_name not in self._pose_data:
             logging.info("Loading pose data for scene %s" %(scene_name) )
