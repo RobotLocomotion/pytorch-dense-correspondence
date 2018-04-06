@@ -384,11 +384,14 @@ class DenseCorrespondenceDataset(data.Dataset):
         :param yaml_config_file_full_path:
         :return:
         """
-        with open(yaml_config_file_full_path, 'r') as stream:
-            try:
-                config_dict = yaml.load(stream)
-            except yaml.YAMLError as exc:
-                print(exc)
+        if isinstance(yaml_config_file_full_path, str):
+            with open(yaml_config_file_full_path, 'r') as stream:
+                try:
+                    config_dict = yaml.load(stream)
+                except yaml.YAMLError as exc:
+                    print(exc)
+        else:
+            config_dict = yaml_config_file_full_path
 
         self.train = config_dict["train"]
         self.test  = config_dict["test"]

@@ -3,6 +3,7 @@ import torch
 
 # math
 import numpy as numpy
+import numpy as np
 import math
 from numpy.linalg import inv
 import random
@@ -15,6 +16,8 @@ import sys
 sys.path.insert(0, '../pytorch-segmentation-detection/vision/') # from subrepo
 from torchvision import transforms
 
+
+from dense_correspondence_manipulation.utils.constants import *
 
 # turns out to be faster to do this match generation on the CPU
 # for the general size of params we expect
@@ -32,10 +35,10 @@ def pytorch_rand_select_pixel(width,height,num_samples=1):
 
 def get_default_K_matrix():
     K = numpy.zeros((3,3))
-    K[0,0] = 539.0756 # focal x
-    K[1,1] = 539.782595 # focal y
-    K[0,2] = 316.229489 # principal point x
-    K[1,2] = 236.154597 # principal point y
+    K[0,0] = 533.6422696034836 # focal x
+    K[1,1] = 534.7824445233571 # focal y
+    K[0,2] = 319.4091030774892 # principal point x
+    K[1,2] = 236.4374299691866 # principal point y
     K[2,2] = 1.0
     return K
 
@@ -64,7 +67,8 @@ def apply_transform_torch(vec3, transform4):
 
 def random_sample_from_masked_image(img_mask, num_samples):
     """
-    Samples num_samples pixel locations from the masked image
+    Samples num_samples (row, column) convention pixel locations from the masked image
+    Note this is not in (u,v) format, but in same format as img_mask
     :param img_mask: numpy.ndarray
         - masked image, we will select from the non-zero entries
         - shape is H x W
@@ -81,6 +85,25 @@ def random_sample_from_masked_image(img_mask, num_samples):
         sampled_idx_list.append(idx[rand_inds])
 
     return sampled_idx_list
+
+def pinhole_projection_image_to_world(uv, z, K):
+    """
+    Takes a (u,v) pixel location to it's 3D location in camera frame.
+    See https://docs.opencv.org/2.4/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html for a detailed explanation.
+
+    :param uv: pixel location in image
+    :type uv:
+    :param z: depth, in camera frame
+    :type z: float
+    :param K: 3 x 3 camera intrinsics matrix
+    :type K: numpy.ndarray
+    :return: (x,y,z) in camera frame
+    :rtype: numpy.array size (3,)
+    """
+
+    u_v_1 = np.array([uv[0], uv[1], 1])
+    pos = z * np.matmul(inv(K),u_v_1)
+    return pos
 
 
 # in torch 0.3 we don't yet have torch.where(), although this
@@ -306,7 +329,7 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
     img_a_depth_torch = img_a_depth_torch.view(-1,1)
 
     
-    depth_vec = torch.index_select(img_a_depth_torch, 0, uv_a_vec_flattened)*1.0/1000
+    depth_vec = torch.index_select(img_a_depth_torch, 0, uv_a_vec_flattened)*1.0/DEPTH_IM_SCALE
     depth_vec = depth_vec.squeeze(1)
     
     # Prune based on

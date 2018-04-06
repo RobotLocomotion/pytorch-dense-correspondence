@@ -383,7 +383,7 @@ class ChangeDetection(object):
             visible_mask_filename = os.path.join(output_dir, utils.getPaddedString(idx) + '_visible_mask'
                                                  + "." + img_file_extension)
 
-            depth_img_filename = os.path.join(rendered_images_dir, utils.getPaddedString(idx) + '_depth'
+            depth_img_filename = os.path.join(rendered_images_dir, utils.getPaddedString(idx) + '_depth_cropped'
                                                  + "." + img_file_extension)
 
             # save the images
@@ -399,6 +399,50 @@ class ChangeDetection(object):
         end_time = time.time()
 
         print "rendering masks took %d seconds" %(end_time - start_time)
+
+    def render_depth_images(self, output_dir=None, rendered_images_dir=None):
+        """
+        Run the mask generation algorithm
+        :return:
+        """
+
+        if output_dir is None:
+            output_dir = os.path.join(self.foreground_reconstruction.data_dir, 'image_masks')
+
+        if rendered_images_dir is None:
+            rendered_images_dir = os.path.join(self.foreground_reconstruction.data_dir, 'rendered_images')
+
+        start_time = time.time()
+
+        # read in each image in the log
+        image_dir = self.foreground_reconstruction.image_dir
+        camera_pose_data = self.foreground_reconstruction.kinematics_pose_data
+        img_file_extension = 'png'
+
+        num_poses = self.foreground_reconstruction.kinematics_pose_data.num_poses()
+
+        logging_rate = 50
+        counter = 0
+
+        for idx, value in camera_pose_data.pose_dict.iteritems():
+            if (counter % logging_rate) == 0:
+                print "Rendering depth image for pose %d of %d" % (counter + 1, num_poses)
+
+
+            camera_to_world = self.foreground_reconstruction.get_camera_to_world(idx)
+            self.setCameraTransform(camera_to_world)
+            depth_img = self.depthScanners['foreground'].getDepthImageAsNumpyArray()
+            depth_img_filename = os.path.join(rendered_images_dir, utils.getPaddedString(idx) + '_depth'
+                                              + "." + img_file_extension)
+
+            cv2.imwrite(depth_img_filename, depth_img)
+
+            counter += 1
+
+        end_time = time.time()
+
+        print "rendering depth images took %d seconds" % (end_time - start_time)
+
 
     @staticmethod
     def create_change_detection_app(globalsDict=None):

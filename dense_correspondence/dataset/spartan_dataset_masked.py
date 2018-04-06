@@ -1,20 +1,32 @@
 from dense_correspondence_dataset_masked import DenseCorrespondenceDataset, ImageType
 
 import os
+import logging
 import glob
+import random
 
 import dense_correspondence_manipulation.utils.utils as utils
+from dense_correspondence_manipulation.utils.utils import CameraIntrinsics
 
 class SpartanDataset(DenseCorrespondenceDataset):
 
     PADDED_STRING_WIDTH = 6
 
-    def __init__(self, debug=False, mode="train"):
+    def __init__(self, debug=False, mode="train", config=None):
 
-    	self.logs_root_path = self.load_from_config_yaml("relative_path_to_spartan_logs")
+        if config is None:
+            self.logs_root_path = self.load_from_config_yaml("relative_path_to_spartan_logs")
+            train_test_config = os.path.join(os.path.dirname(__file__), "train_test_config", "0001_drill_test.yaml")
+            self.set_train_test_split_from_yaml(train_test_config)
+        else:
+            # assume config has already been parsed
+            self._config = config
+            self.logs_root_path = utils.convert_to_absolute_path(self._config['logs_root_path'])
+            self.set_train_test_split_from_yaml(self._config)
 
-        train_test_config = os.path.join(os.path.dirname(__file__), "train_test_config", "0001_drill_test.yaml")
-        self.set_train_test_split_from_yaml(train_test_config)
+
+        self._pose_data = dict()
+
         
         if mode == "test":
             self.set_test_mode()
@@ -35,6 +47,17 @@ class SpartanDataset(DenseCorrespondenceDataset):
         pose_matrix4 = self.elasticfusion_pose_to_homogeneous_transform(pose_elasticfusion)
         return pose_matrix4
 
+
+    def get_pose_data(self, scene_name):
+        if scene_name not in self._pose_data:
+            logging.info("Loading pose data for scene %s" %(scene_name) )
+            pose_data_filename = os.path.join(self.get_full_path_for_scene(scene_name),
+                                              'images', 'pose_data.yaml')
+            self._pose_data[scene_name] = utils.getDictFromYamlFilename(pose_data_filename)
+
+        return self._pose_data[scene_name]
+
+
     def get_pose_from_scene_name_and_idx(self, scene_name, idx):
         """
 
@@ -42,13 +65,10 @@ class SpartanDataset(DenseCorrespondenceDataset):
         :param img_idx: int
         :return: 4 x 4 numpy array
         """
-
-        scene_directory =  self.get_full_path_for_scene(scene_name)
-        pose_list = self.get_pose_list(scene_directory, "images.posegraph")
-        pose_elasticfusion = self.get_pose_from_list(int(idx), pose_list)
-        pose_matrix4 = self.elasticfusion_pose_to_homogeneous_transform(pose_elasticfusion)
-
-        return pose_matrix4
+        idx = int(idx)
+        scene_pose_data = self.get_pose_data(scene_name)
+        pose_data = scene_pose_data[idx]['camera_to_world']
+        return utils.homogenous_transform_from_dict(pose_data)
 
 
     def get_pose_from_list(self, index, pose_list):
@@ -84,7 +104,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
             images_dir = os.path.join(scene_directory, 'images')
             file_extension = "_rgb.png"
         elif image_type == ImageType.DEPTH:
-            images_dir = os.path.join(scene_directory, 'images')
+            images_dir = os.path.join(scene_directory, 'rendered_images')
             file_extension = "_depth.png"
         elif image_type == ImageType.MASK:
             images_dir = os.path.join(scene_directory, 'image_masks')
@@ -100,3 +120,38 @@ class SpartanDataset(DenseCorrespondenceDataset):
             raise ValueError("scene_name = %s doesn't exist" %(scene_name))
 
         return os.path.join(images_dir, img_index + file_extension)
+
+    def get_camera_intrinsics(self, scene_name=None):
+        """
+        Returns the camera matrix for that scene
+        :param scene_name:
+        :type scene_name:
+        :return:
+        :rtype:
+        """
+
+        if scene_name is None:
+            scene_directory = self.get_random_scene_directory()
+        else:
+            scene_directory = os.path.join(self.logs_root_path, scene_name)
+
+        camera_info_file = os.path.join(scene_directory, 'images', 'camera_info.yaml')
+        return CameraIntrinsics.from_yaml_file(camera_info_file)
+
+    def get_random_image_index(self, scene_name):
+        """
+        Returns a random image index from a given scene
+        :param scene_name:
+        :type scene_name:
+        :return:
+        :rtype:
+        """
+        pose_data = self.get_pose_data(scene_name)
+        image_idxs = pose_data.keys() # list of integers
+        random.choice(image_idxs)
+        random_idx = random.choice(image_idxs)
+        return random_idx
+
+
+
+
