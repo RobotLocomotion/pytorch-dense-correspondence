@@ -342,8 +342,17 @@ class DenseCorrespondenceDataset(data.Dataset):
         full_path = os.path.join(self.logs_root_path, scene_name)
         return full_path
 
+    def get_random_scene_name(self):
+        """
+        Returns a random scene_name
+        The result will depend on whether we are in test or train mode
+        :return:
+        :rtype:
+        """
+        return random.choice(self.scenes)
+
     def get_random_scene_directory(self):
-        scene_name = random.choice(self.scenes)
+        scene_name = self.get_random_scene_name()
         # can later add biases for scenes, for example based on # images?
         scene_directory = self.get_full_path_for_scene(scene_name)
         return scene_directory
