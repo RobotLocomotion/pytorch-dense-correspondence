@@ -42,11 +42,12 @@ from dense_correspondence.loss_functions.pixelwise_contrastive_loss import Pixel
 
 class DenseCorrespondenceTraining(object):
 
-    def __init__(self, config=None):
+    def __init__(self, config=None, dataset=None):
         if config is None:
             config = DenseCorrespondenceTraining.load_default_config()
 
         self._config = config
+        self._dataset = dataset
 
     def setup(self):
         """
@@ -68,7 +69,10 @@ class DenseCorrespondenceTraining(object):
         batch_size = self._config['training']['batch_size']
         num_workers = self._config['training']['num_workers']
 
-        self._dataset = SpartanDataset(mode="train")
+        if self._dataset is None:
+            self._dataset = SpartanDataset.make_default_10_scenes_drill()
+
+        self._dataset.load_all_pose_data()
         self._data_loader = torch.utils.data.DataLoader(self._dataset, batch_size=batch_size,
                                           shuffle=True, num_workers=num_workers, drop_last=True)
 
