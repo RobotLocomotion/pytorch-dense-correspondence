@@ -47,6 +47,27 @@ class SpartanDataset(DenseCorrespondenceDataset):
         pose_matrix4 = self.elasticfusion_pose_to_homogeneous_transform(pose_elasticfusion)
         return pose_matrix4
 
+    def get_full_path_for_scene(self, scene_name):
+        """
+        Returns the full path to the processed logs folder
+        :param scene_name:
+        :type scene_name:
+        :return:
+        :rtype:
+        """
+        return os.path.join(self.logs_root_path, scene_name, 'processed')
+
+    def load_all_pose_data(self):
+        """
+        Efficiently pre-loads all pose data for the scenes. This is because when used as
+        part of torch DataLoader in threaded way it behaves strangely
+        :return:
+        :rtype:
+        """
+
+        for scene in self.scenes:
+            self.get_pose_data(scene)
+
     def get_pose_data(self, scene_name):
         if scene_name not in self._pose_data:
             logging.info("Loading pose data for scene %s" %(scene_name) )
@@ -150,6 +171,23 @@ class SpartanDataset(DenseCorrespondenceDataset):
         random.choice(image_idxs)
         random_idx = random.choice(image_idxs)
         return random_idx
+
+    @staticmethod
+    def make_default_10_scenes_drill():
+        """
+        Makes a default SpartanDatase from the 10_scenes_drill data
+        :return:
+        :rtype:
+        """
+        config_file = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence',
+                                   'dataset',
+                                   'spartan_dataset_masked.yaml')
+
+        config = utils.getDictFromYamlFilename(config_file)
+        dataset = SpartanDataset(mode="train", config=config)
+        return dataset
+
+
 
 
 
