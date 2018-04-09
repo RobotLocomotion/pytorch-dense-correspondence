@@ -663,7 +663,7 @@ class DenseCorrespondenceEvaluation(object):
         if dataset is None:
             config_file = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence',
                                        'dataset',
-                                       'spartan_dataset_masked_test.yaml')
+                                       'spartan_dataset_masked.yaml')
 
             config = utils.getDictFromYamlFilename(config_file)
 

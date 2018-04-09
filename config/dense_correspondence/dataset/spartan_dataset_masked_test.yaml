@@ -1,4 +1,4 @@
-logs_root_path: code/data_volume/datasets/drill_scenes_test
+logs_root_path: code/data_volume/pdc/logs_proto
 train:
 - "05_drill_long_downsampled"
 test:
