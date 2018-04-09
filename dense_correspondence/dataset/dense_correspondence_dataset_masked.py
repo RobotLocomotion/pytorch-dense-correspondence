@@ -442,7 +442,7 @@ class DenseCorrespondenceDataset(data.Dataset):
         :return:
         :rtype:
         """
-        raise ValueError("subclass must implement this method")
+        raise NotImplementedError("subclass must implement this method")
 
     def get_random_scene_directory(self):
         scene_name = self.get_random_scene_name()
