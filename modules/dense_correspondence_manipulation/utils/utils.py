@@ -147,6 +147,22 @@ def homogenous_transform_from_dict(d):
 
     return transform_matrix
 
+def compute_distance_between_poses(pose_a, pose_b):
+    """
+    Computes the linear difference between pose_a and pose_b
+    :param pose_a: 4 x 4 homogeneous transform
+    :type pose_a:
+    :param pose_b:
+    :type pose_b:
+    :return: Distance between translation component of the poses
+    :rtype:
+    """
+
+    pos_a = pose_a[0:3,3]
+    pos_b = pose_b[0:3,3]
+
+    return np.linalg.norm(pos_a - pos_b)
+
 
 
 class CameraIntrinsics(object):
