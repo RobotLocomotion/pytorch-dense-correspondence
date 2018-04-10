@@ -272,6 +272,28 @@ class DenseCorrespondenceDataset(data.Dataset):
         mask  = self.get_mask_image(mask_filename) 
         return rgb, depth, pose, mask
 
+    @staticmethod
+    def load_rgb_image(rgb_filename):
+        """
+        Returns Pillow.Image
+        :param rgb_filename:
+        :type rgb_filename:
+        :return:
+        :rtype: Pillow.Image
+        """
+        return Image.open(rgb_filename).convert('RGB')
+
+    @staticmethod
+    def load_mask_image(mask_filename):
+        """
+        Loads the mask image, returns a numpy array
+        :param mask_filename:
+        :type mask_filename:
+        :return:
+        :rtype: numpy.array
+        """
+        return np.asarray(Image.open(mask_filename))
+
     def get_rgb_image(self, rgb_filename):
         return Image.open(rgb_filename).convert('RGB')
 
