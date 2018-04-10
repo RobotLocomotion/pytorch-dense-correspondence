@@ -25,6 +25,6 @@ pip install -U pip setuptools
 apt-get -y install ipython ipython-notebook
 pip install \
   jupyter \
-  opencv-python \
-  pandas \ 
-  plyfile
+  opencv-python\
+  plyfile \
+  pandas 
