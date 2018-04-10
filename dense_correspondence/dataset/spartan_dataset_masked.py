@@ -155,7 +155,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         else:
             scene_directory = os.path.join(self.logs_root_path, scene_name)
 
-        camera_info_file = os.path.join(scene_directory, 'images', 'camera_info.yaml')
+        camera_info_file = os.path.join(scene_directory, 'processed', 'images', 'camera_info.yaml')
         return CameraIntrinsics.from_yaml_file(camera_info_file)
 
     def get_random_image_index(self, scene_name):
