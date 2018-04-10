@@ -9,7 +9,6 @@ training:
   num_workers: 10 # num threads/workers for dataset loading
   batch_size: 1
   loss_function: pixelwise_contrastive_loss # not currently used
-  logging_dir: code/data_volume/trained_models # where to store trained models
   logging_dir_name: test # overwrites if this is here
   logging_dir: code/data_volume/pdc/trained_models # where to store trained models
 
