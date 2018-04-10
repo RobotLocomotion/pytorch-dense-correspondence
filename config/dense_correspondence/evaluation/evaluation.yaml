@@ -11,4 +11,4 @@ networks:
 
 dataset: [] # which dataset to use, not used for now
 
-output_dir: code/data_volume/analysis
+output_dir: code/data_volume/pdc/analysis

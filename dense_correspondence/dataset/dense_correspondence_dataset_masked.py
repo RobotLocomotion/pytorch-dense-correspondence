@@ -4,6 +4,7 @@ import torch.utils.data as data
 import os
 import math
 import yaml
+import logging
 import numpy as np
 import random
 import glob
@@ -60,12 +61,25 @@ class DenseCorrespondenceDataset(data.Dataset):
 
         # pick a scene
         scene_directory = self.get_random_scene_directory()
+        scene_name = self.get_random_scene_name()
+
+
 
         # image a
-        image_a_rgb, image_a_depth, image_a_pose, image_a_mask = self.get_random_rgbd_with_pose_and_mask(scene_directory)
-        
+        img_a_idx = self.get_random_image_index(scene_name, )
+        image_a_rgb, image_a_depth, image_a_mask, image_a_pose = self.get_rgbd_mask_pose(scene_name, img_a_idx)
+
         # image b
-        image_b_rgb, image_b_depth, image_b_pose, image_b_mask = self.get_different_rgbd_with_pose_and_mask(scene_directory, image_a_pose)
+        img_b_idx = self.get_img_idx_with_different_pose(scene_name, image_a_pose, num_attempts=50)
+
+        if img_b_idx is None:
+            logging.info("no frame with sufficiently different pose found, returning")
+            print "no frame with sufficiently different pose found, returning"
+            return "matches", image_a_rgb, image_a_rgb, torch.zeros(1).type(dtype_long), torch.zeros(1).type(
+                dtype_long), torch.zeros(1).type(dtype_long), torch.zeros(1).type(dtype_long)
+
+
+        image_b_rgb, image_b_depth, image_b_mask, image_b_pose = self.get_rgbd_mask_pose(scene_name, img_b_idx)
 
 
         num_attempts = 50000
@@ -151,6 +165,29 @@ class DenseCorrespondenceDataset(data.Dataset):
 
         return rgb, depth, pose
 
+    def get_rgbd_mask_pose(self, scene_name, img_idx):
+        """
+        Returns rgb image, depth image, mask and pose.
+        :param scene_name:
+        :type scene_name: str
+        :param img_idx:
+        :type img_idx: int
+        :return:
+        :rtype:
+        """
+        rgb_file = self.get_image_filename(scene_name, img_idx, ImageType.RGB)
+        rgb = self.get_rgb_image(rgb_file)
+
+        depth_file = self.get_image_filename(scene_name, img_idx, ImageType.DEPTH)
+        depth = self.get_depth_image(depth_file)
+
+        mask_file = self.get_image_filename(scene_name, img_idx, ImageType.MASK)
+        mask = self.get_mask_image(mask_file)
+
+        pose = self.get_pose_from_scene_name_and_idx(scene_name, img_idx)
+
+        return rgb, depth, mask, pose
+
     def get_random_rgbd_with_pose_and_mask(self, scene_directory):
         rgb_filename   = self.get_random_rgb_image_filename(scene_directory)
         depth_filename = self.get_depth_filename(rgb_filename)
@@ -171,6 +208,35 @@ class DenseCorrespondenceDataset(data.Dataset):
         mask  = self.get_mask_image(mask_filename)
 
         return rgb, mask
+
+    def get_img_idx_with_different_pose(self, scene_name, pose_a, threshold=0.2, num_attempts=10):
+        """
+        Try to get an image with a different pose to the one passed in. If one can't be found
+        then return None
+        :param scene_name:
+        :type scene_name:
+        :param pose_a:
+        :type pose_a:
+        :param threshold:
+        :type threshold:
+        :param num_attempts:
+        :type num_attempts:
+        :return:
+        :rtype:
+        """
+
+        counter = 0
+        while counter < num_attempts:
+            img_idx = self.get_random_image_index(scene_name)
+            pose = self.get_pose_from_scene_name_and_idx(scene_name, img_idx)
+
+            diff = utils.compute_distance_between_poses(pose_a, pose)
+            if diff > threshold:
+                return img_idx
+            counter += 1
+
+        return None
+
 
     def get_different_rgbd_with_pose(self, scene_directory, image_a_pose):
         # try to get a far-enough-away pose
@@ -303,6 +369,24 @@ class DenseCorrespondenceDataset(data.Dataset):
     def get_image_filename(self, scene_name, img_index, image_type):
         raise NotImplementedError("Implement in superclass")
 
+    def load_all_pose_data(self):
+        """
+        Efficiently pre-loads all pose data for the scenes. This is because when used as
+        part of torch DataLoader in threaded way it behaves strangely
+        :return:
+        :rtype:
+        """
+        raise NotImplementedError("subclass must implement this method")
+
+    def get_pose_from_scene_name_and_idx(self, scene_name, idx):
+        """
+
+        :param scene_name: str
+        :param img_idx: int
+        :return: 4 x 4 numpy array
+        """
+        raise NotImplementedError("subclass must implement this method")
+
     def get_depth_filename(self, rgb_image):
         prefix = rgb_image.split("rgb")[0]
         depth_filename = prefix+"depth.png"
@@ -339,8 +423,7 @@ class DenseCorrespondenceDataset(data.Dataset):
         return pose_list
 
     def get_full_path_for_scene(self, scene_name):
-        full_path = os.path.join(self.logs_root_path, scene_name)
-        return full_path
+        raise NotImplementedError("subclass must implement this method")
 
     def get_random_scene_name(self):
         """
@@ -350,6 +433,16 @@ class DenseCorrespondenceDataset(data.Dataset):
         :rtype:
         """
         return random.choice(self.scenes)
+
+    def get_random_image_index(self, scene_name):
+        """
+        Returns a random image index from a given scene
+        :param scene_name:
+        :type scene_name:
+        :return:
+        :rtype:
+        """
+        raise NotImplementedError("subclass must implement this method")
 
     def get_random_scene_directory(self):
         scene_name = self.get_random_scene_name()

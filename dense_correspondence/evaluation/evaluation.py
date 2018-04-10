@@ -95,7 +95,7 @@ class DenseCorrespondenceEvaluation(object):
         """
 
         config_file = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence', 'dataset',
-                                   'spartan_dataset_masked_test.yaml')
+                                   'spartan_dataset_masked.yaml')
 
         config = utils.getDictFromYamlFilename(config_file)
 
@@ -663,7 +663,7 @@ class DenseCorrespondenceEvaluation(object):
         if dataset is None:
             config_file = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence',
                                        'dataset',
-                                       'spartan_dataset_masked_test.yaml')
+                                       'spartan_dataset_masked.yaml')
 
             config = utils.getDictFromYamlFilename(config_file)
 
@@ -718,7 +718,7 @@ class DenseCorrespondenceEvaluation(object):
         :return:
         :rtype: DenseCorrespondenceEvaluation
         """
-        config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'evaluation.yaml')
+        config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence', 'evaluation', 'evaluation.yaml')
         config = utils.getDictFromYamlFilename(config_filename)
         return DenseCorrespondenceEvaluation(config)
 
@@ -865,7 +865,7 @@ def main(config):
     DenseCorrespondenceEvaluation.test(dcn, test_dataset)
 
 def test():
-    config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'evaluation.yaml')
+    config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'evaluation', 'evaluation.yaml')
     config = utils.getDictFromYamlFilename(config_filename)
     default_config = utils.get_defaults_config()
     utils.set_cuda_visible_devices(default_config['cuda_visible_devices'])
