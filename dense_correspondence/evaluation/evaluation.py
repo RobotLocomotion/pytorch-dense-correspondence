@@ -729,6 +729,7 @@ class DenseCorrespondenceEvaluation(object):
         kp1, des1, gray1, img_1_kp = DCE.compute_sift_keypoints(rgb_a, mask_a)
         kp2, des2, gray2, img_2_kp = DCE.compute_sift_keypoints(rgb_b, mask_b)
 
+
         img1 = gray1
         img2 = gray2
 
@@ -786,7 +787,16 @@ class DenseCorrespondenceEvaluation(object):
             dataframe_list.append(df)
 
 
-        return kp1, kp2, matches, good, dataframe_list
+
+        returnData = dict()
+        returnData['kp1'] = kp1
+        returnData['kp2'] = kp2
+        returnData['matches'] = matches
+        returnData['good'] = good
+        returnData['dataframe_list'] = dataframe_list
+
+        return returnData
+
 
 
 
@@ -871,6 +881,77 @@ class DenseCorrespondenceEvaluation(object):
             pd_template.set_value('norm_diff_pred_3d', norm_diff_pred_3d)
 
         return pd_template
+
+
+    @staticmethod
+    def single_image_pair_keypoint_analysis(dcn, dataset, scene_name,
+                                                img_a_idx, img_b_idx,
+                                                params=None,
+                                                camera_intrinsics_matrix=None, visualize=True):
+
+        DCE = DenseCorrespondenceEvaluation
+        # first compute SIFT stuff
+        sift_data = DCE.single_image_pair_sift_analysis(dataset, scene_name,
+                                        img_a_idx, img_b_idx, visualize=visualize)
+
+        kp1 = sift_data['kp1']
+        kp2 = sift_data['kp2']
+
+        rgb_a, depth_a, mask_a, pose_a = dataset.get_rgbd_mask_pose(scene_name, img_a_idx)
+        rgb_a = np.array(rgb_a)  # converts PIL image to rgb
+
+        rgb_b, depth_b, mask_b, pose_b = dataset.get_rgbd_mask_pose(scene_name, img_b_idx)
+        rgb_b = np.array(rgb_b)  # converts PIL image to rgb
+
+
+        # compute the best matches among the SIFT keypoints
+        des1 = dcn.evaluate_descriptor_at_keypoints(rgb_a, kp1)
+        des2 = dcn.evaluate_descriptor_at_keypoints(rgb_b, kp2)
+
+        bf = cv2.BFMatcher()
+        matches = bf.knnMatch(des1, des2, k=2)  # Sort them in the order of their distance.
+        total_num_matches = len(matches)
+
+        good = []
+        for idx, val in enumerate(matches):
+            m, n = val
+            if m.distance < 0.75 * n.distance:
+                good.append([m])
+
+            # print "\n\n"
+            # print "m.distance", m.distance
+            # print "n.distance", n.distance
+            #
+            # if idx > 5:
+            #     return
+
+
+        if visualize:
+            img1 = cv2.cvtColor(rgb_a, cv2.COLOR_BGR2GRAY)
+            img2 = cv2.cvtColor(rgb_b, cv2.COLOR_BGR2GRAY)
+
+
+            good_vis = random.sample(good, 5)
+            outImg = 0 * img1 # placeholder
+            fig, axes = plt.subplots(nrows=1, ncols=1)
+            fig.set_figheight(10)
+            fig.set_figwidth(15)
+            img3 = cv2.drawMatchesKnn(img1, kp1, img2, kp2, good_vis, outImg, flags=2)
+            plt.imshow(img3)
+            plt.title("Dense Correspondence Keypoint Matches")
+            plt.show()
+
+        returnData = dict()
+        returnData['kp1'] = kp1
+        returnData['kp2'] = kp2
+        returnData['matches'] = matches
+        returnData['des1'] = des1
+        returnData['des2'] = des2
+
+        return returnData
+        return returnData
+
+
 
 
 
