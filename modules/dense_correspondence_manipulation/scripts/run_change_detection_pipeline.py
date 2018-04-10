@@ -22,12 +22,15 @@ def run(data_folder, config_file):
     #     print "finished converting ply to vtp\n\n"
 
 
-    print "running change detection . . . "
-    run_change_detection.run(data_folder, config_file=config_file)
+    cmd = "run_change_detection.py --data_dir " + data_folder
+    print "cmd: ", cmd
+    os.system(cmd)
     print "finished running change detection"
 
-    print "rendering depth images"
-    render_depth_images.run(data_folder)
+    cmd = "render_depth_images.py --data_dir " + data_folder
+    print "\nrendering depth images"
+    print "cmd"
+    os.system(cmd)
     print "finished rendering depth images"
 
 def run_on_all_subfolders(directory, config_file):
@@ -37,7 +40,6 @@ def run_on_all_subfolders(directory, config_file):
 
         if not os.path.isdir(full_dir):
             continue
-
         # print "full_dir", full_dir
         run(full_dir, config_file)
 
