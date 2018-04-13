@@ -192,13 +192,13 @@ class DenseCorrespondenceTraining(object):
                     """
                     self._logging_dict['loss_iteration_number_history'].append(loss_current_iteration)
                     self._logging_dict['loss_history'].append(loss.data[0])
-                    self._logging_dict['match_loss_history'].append(match_loss)
-                    self._logging_dict['non_match_loss_history'].append(non_match_loss)
+                    self._logging_dict['match_loss_history'].append(match_loss.data[0])
+                    self._logging_dict['non_match_loss_history'].append(non_match_loss.data[0])
 
                     self._visdom_plots['train_loss'].log(loss_current_iteration, loss.data[0])
-                    self._visdom_plots['match_loss'].log(loss_current_iteration, match_loss)
+                    self._visdom_plots['match_loss'].log(loss_current_iteration, match_loss.data[0])
                     self._visdom_plots['non_match_loss'].log(loss_current_iteration,
-                                                             non_match_loss)
+                                                             non_match_loss.data[0])
 
 
 

@@ -915,17 +915,21 @@ class DenseCorrespondenceEvaluation(object):
         good = []
         for idx, val in enumerate(matches):
             m, n = val
-            if m.distance < 0.75 * n.distance:
+            if (m.distance < 0.5 * n.distance) and m.distance < 0.01:
+                print "\n\n"
+                print "m.distance", m.distance
+                print "n.distance", n.distance
                 good.append([m])
 
-            # print "\n\n"
-            # print "m.distance", m.distance
-            # print "n.distance", n.distance
+
             #
             # if idx > 5:
             #     return
 
 
+        print "total keypoints = ", len(kp1)
+        print "num good matches = ", len(good)
+        print "SIFT good matches = ", len(sift_data['good'])
         if visualize:
             img1 = cv2.cvtColor(rgb_a, cv2.COLOR_BGR2GRAY)
             img2 = cv2.cvtColor(rgb_b, cv2.COLOR_BGR2GRAY)
