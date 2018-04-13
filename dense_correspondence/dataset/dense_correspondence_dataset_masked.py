@@ -147,8 +147,6 @@ class DenseCorrespondenceDataset(data.Dataset):
             import correspondence_plotter
 
             # Just show all images 
-            # self.debug_show_data(image_a_rgb, image_a_depth, image_b_pose,
-            #                  image_b_rgb, image_b_depth, image_b_pose)
             uv_a_long = (torch.t(uv_a[0].repeat(self.num_non_matches_per_match, 1)).contiguous().view(-1,1), 
                      torch.t(uv_a[1].repeat(self.num_non_matches_per_match, 1)).contiguous().view(-1,1))
             uv_b_non_matches_long = (uv_b_non_matches[0].view(-1,1), uv_b_non_matches[1].view(-1,1) )
