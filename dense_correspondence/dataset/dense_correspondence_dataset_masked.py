@@ -17,6 +17,7 @@ sys.path.append('../../pytorch-segmentation-detection/')
 from pytorch_segmentation_detection.transforms import ComposeJoint
 sys.path.append('../correspondence_tools/')
 import correspondence_finder
+import correspondence_augmentation
 import dense_correspondence_manipulation.utils.utils as utils
 
 # This implements an abstract Dataset class in PyTorch
@@ -88,10 +89,13 @@ class DenseCorrespondenceDataset(data.Dataset):
             num_attempts = 20
             num_non_matches_per_match = 1
 
+        image_a_depth_numpy = np.asarray(image_a_depth)
+        image_b_depth_numpy = np.asarray(image_b_depth)
+
         # find correspondences
-        uv_a, uv_b = correspondence_finder.batch_find_pixel_correspondences(image_a_depth, image_a_pose, 
-                                                                           image_b_depth, image_b_pose, 
-                                                                           num_attempts=num_attempts, img_a_mask=image_a_mask)
+        uv_a, uv_b = correspondence_finder.batch_find_pixel_correspondences(image_a_depth_numpy, image_a_pose, 
+                                                                           image_b_depth_numpy, image_b_pose, 
+                                                                           num_attempts=num_attempts, img_a_mask=np.asarray(image_a_mask))
 
 
         if uv_a is None:
@@ -105,15 +109,25 @@ class DenseCorrespondenceDataset(data.Dataset):
             uv_a = (torch.index_select(uv_a[0], 0, indexes_to_keep), torch.index_select(uv_a[1], 0, indexes_to_keep))
             uv_b = (torch.index_select(uv_b[0], 0, indexes_to_keep), torch.index_select(uv_b[1], 0, indexes_to_keep))
 
+        # data augmentation
+        if not self.debug:
+            [image_a_rgb], uv_a                 = correspondence_augmentation.random_image_and_indices_mutation([image_a_rgb], uv_a)
+            [image_b_rgb, image_b_mask], uv_b   = correspondence_augmentation.random_image_and_indices_mutation([image_b_rgb, image_b_mask], uv_b)
+        else: # also mutate depth just for plotting
+            [image_a_rgb, image_a_depth], uv_a               = correspondence_augmentation.random_image_and_indices_mutation([image_a_rgb, image_a_depth], uv_a)
+            [image_b_rgb, image_b_depth, image_b_mask], uv_b = correspondence_augmentation.random_image_and_indices_mutation([image_b_rgb, image_b_depth, image_b_mask], uv_b)
+            image_a_depth_numpy = np.asarray(image_a_depth)
+            image_b_depth_numpy = np.asarray(image_b_depth)
+
         # find non_correspondences
         if index%2:
             print "masking non-matches"
-            image_b_mask = torch.from_numpy(image_b_mask).type(torch.FloatTensor)
+            image_b_mask = torch.from_numpy(np.asarray(image_b_mask)).type(torch.FloatTensor)
         else:
             print "not masking non-matches"
             image_b_mask = None
             
-        uv_b_non_matches = correspondence_finder.create_non_correspondences(uv_a, uv_b, num_non_matches_per_match=num_non_matches_per_match, img_b_mask=image_b_mask)
+        uv_b_non_matches = correspondence_finder.create_non_correspondences(uv_b, num_non_matches_per_match=num_non_matches_per_match, img_b_mask=image_b_mask)
 
         if self.debug:
             # only want to bring in plotting code if in debug mode
@@ -128,8 +142,8 @@ class DenseCorrespondenceDataset(data.Dataset):
             
             # Show correspondences
             if uv_a is not None:
-                fig, axes = correspondence_plotter.plot_correspondences_direct(image_a_rgb, image_a_depth, image_b_rgb, image_b_depth, uv_a, uv_b, show=False)
-                correspondence_plotter.plot_correspondences_direct(image_a_rgb, image_a_depth, image_b_rgb, image_b_depth,
+                fig, axes = correspondence_plotter.plot_correspondences_direct(image_a_rgb, image_a_depth_numpy, image_b_rgb, image_b_depth_numpy, uv_a, uv_b, show=False)
+                correspondence_plotter.plot_correspondences_direct(image_a_rgb, image_a_depth_numpy, image_b_rgb, image_b_depth_numpy,
                                                   uv_a_long, uv_b_non_matches_long,
                                                   use_previous_plot=(fig,axes),
                                                   circ_color='r')
@@ -286,7 +300,7 @@ class DenseCorrespondenceDataset(data.Dataset):
         return self.get_rgb_image(img_filename)
 
     def get_depth_image(self, depth_filename):
-        return np.asarray(Image.open(depth_filename))
+        return Image.open(depth_filename)
 
     def get_depth_image_from_scene_name_and_idx(self, scene_name, img_idx):
         """
@@ -300,7 +314,7 @@ class DenseCorrespondenceDataset(data.Dataset):
         return self.get_depth_image(img_filename)
 
     def get_mask_image(self, mask_filename):
-        return np.asarray(Image.open(mask_filename))
+        return Image.open(mask_filename)
 
     def get_mask_image_from_scene_name_and_idx(self, scene_name, img_idx):
         """
