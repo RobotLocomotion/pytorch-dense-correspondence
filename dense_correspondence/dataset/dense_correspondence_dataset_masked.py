@@ -61,26 +61,23 @@ class DenseCorrespondenceDataset(data.Dataset):
         dtype_long = torch.LongTensor
 
         # pick a scene
-        scene_directory = self.get_random_scene_directory()
         scene_name = self.get_random_scene_name()
 
-
-
         # image a
-        img_a_idx = self.get_random_image_index(scene_name, )
-        image_a_rgb, image_a_depth, image_a_mask, image_a_pose = self.get_rgbd_mask_pose(scene_name, img_a_idx)
+        image_a_idx = self.get_random_image_index(scene_name)
+        image_a_rgb, image_a_depth, image_a_mask, image_a_pose = self.get_rgbd_mask_pose(scene_name, image_a_idx)
 
         # image b
-        img_b_idx = self.get_img_idx_with_different_pose(scene_name, image_a_pose, num_attempts=50)
+        image_b_idx = self.get_img_idx_with_different_pose(scene_name, image_a_pose, num_attempts=50)
 
-        if img_b_idx is None:
+        if image_b_idx is None:
             logging.info("no frame with sufficiently different pose found, returning")
             print "no frame with sufficiently different pose found, returning"
             return "matches", image_a_rgb, image_a_rgb, torch.zeros(1).type(dtype_long), torch.zeros(1).type(
                 dtype_long), torch.zeros(1).type(dtype_long), torch.zeros(1).type(dtype_long)
 
 
-        image_b_rgb, image_b_depth, image_b_mask, image_b_pose = self.get_rgbd_mask_pose(scene_name, img_b_idx)
+        image_b_rgb, image_b_depth, image_b_mask, image_b_pose = self.get_rgbd_mask_pose(scene_name, image_b_idx)
 
 
         num_attempts = 50000
@@ -96,7 +93,6 @@ class DenseCorrespondenceDataset(data.Dataset):
         uv_a, uv_b = correspondence_finder.batch_find_pixel_correspondences(image_a_depth_numpy, image_a_pose, 
                                                                            image_b_depth_numpy, image_b_pose, 
                                                                            num_attempts=num_attempts, img_a_mask=np.asarray(image_a_mask))
-
 
         if uv_a is None:
             print "No matches this time"
@@ -152,8 +148,6 @@ class DenseCorrespondenceDataset(data.Dataset):
         if self.tensor_transform is not None:
             image_a_rgb, image_b_rgb = self.both_to_tensor([image_a_rgb, image_b_rgb])
 
-
-
         uv_a_long = (torch.t(uv_a[0].repeat(num_non_matches_per_match, 1)).contiguous().view(-1,1), 
                      torch.t(uv_a[1].repeat(num_non_matches_per_match, 1)).contiguous().view(-1,1))
         uv_b_non_matches_long = (uv_b_non_matches[0].view(-1,1), uv_b_non_matches[1].view(-1,1) )
@@ -166,18 +160,7 @@ class DenseCorrespondenceDataset(data.Dataset):
         uv_a_long = uv_a_long.squeeze(1)
         uv_b_non_matches_long = uv_b_non_matches_long.squeeze(1)
 
-
         return "matches", image_a_rgb, image_b_rgb, uv_a, uv_b, uv_a_long, uv_b_non_matches_long
-
-    def get_random_rgbd_with_pose(self, scene_directory):
-        rgb_filename   = self.get_random_rgb_image_filename(scene_directory)
-        depth_filename = self.get_depth_filename(rgb_filename) 
-
-        rgb   = self.get_rgb_image(rgb_filename)
-        depth = self.get_depth_image(depth_filename)
-        pose  = self.get_pose(rgb_filename)
-
-        return rgb, depth, pose
 
     def get_rgbd_mask_pose(self, scene_name, img_idx):
         """
@@ -186,8 +169,8 @@ class DenseCorrespondenceDataset(data.Dataset):
         :type scene_name: str
         :param img_idx:
         :type img_idx: int
-        :return:
-        :rtype:
+        :return: rgb, depth, mask, pose
+        :rtype: PIL.Image.Image, PIL.Image.Image, PIL.Image.Image, a 4x4 numpy array
         """
         rgb_file = self.get_image_filename(scene_name, img_idx, ImageType.RGB)
         rgb = self.get_rgb_image(rgb_file)
@@ -202,27 +185,6 @@ class DenseCorrespondenceDataset(data.Dataset):
 
         return rgb, depth, mask, pose
 
-    def get_random_rgbd_with_pose_and_mask(self, scene_directory):
-        rgb_filename   = self.get_random_rgb_image_filename(scene_directory)
-        depth_filename = self.get_depth_filename(rgb_filename)
-        mask_filename  = self.get_mask_filename(rgb_filename)
-
-        rgb   = self.get_rgb_image(rgb_filename)
-        depth = self.get_depth_image(depth_filename)
-        pose  = self.get_pose(rgb_filename)
-        mask  = self.get_mask_image(mask_filename)
-
-        return rgb, depth, pose, mask
-
-    def get_random_rgb_with_mask(self, scene_directory):
-        rgb_filename   = self.get_random_rgb_image_filename(scene_directory)
-        mask_filename  = self.get_mask_filename(rgb_filename)
-
-        rgb   = self.get_rgb_image(rgb_filename)
-        mask  = self.get_mask_image(mask_filename)
-
-        return rgb, mask
-
     def get_img_idx_with_different_pose(self, scene_name, pose_a, threshold=0.2, num_attempts=10):
         """
         Try to get an image with a different pose to the one passed in. If one can't be found
@@ -235,8 +197,8 @@ class DenseCorrespondenceDataset(data.Dataset):
         :type threshold:
         :param num_attempts:
         :type num_attempts:
-        :return:
-        :rtype:
+        :return: an index with a different-enough pose
+        :rtype: int or None
         """
 
         counter = 0
@@ -252,41 +214,11 @@ class DenseCorrespondenceDataset(data.Dataset):
         return None
 
 
-    def get_different_rgbd_with_pose(self, scene_directory, image_a_pose):
-        # try to get a far-enough-away pose
-        # if can't, then just return last sampled pose
-        num_attempts = 0
-        while num_attempts < 10:
-            rgb_filename   = self.get_random_rgb_image_filename(scene_directory)
-            depth_filename = self.get_depth_filename(rgb_filename)
-            pose           = self.get_pose(rgb_filename) 
-            if self.different_enough(image_a_pose, pose):
-                break
-            num_attempts += 1
-
-        rgb   = self.get_rgb_image(rgb_filename)
-        depth = self.get_depth_image(depth_filename)
-        return rgb, depth, pose
-
-    def get_different_rgbd_with_pose_and_mask(self, scene_directory, image_a_pose):
-        # try to get a far-enough-away pose
-        # if can't, then just return last sampled pose
-        num_attempts = 0
-        while num_attempts < 10:
-            rgb_filename   = self.get_random_rgb_image_filename(scene_directory)
-            depth_filename = self.get_depth_filename(rgb_filename)
-            pose           = self.get_pose(rgb_filename) 
-            mask_filename  = self.get_mask_filename(rgb_filename)
-            if self.different_enough(image_a_pose, pose):
-                break
-            num_attempts += 1
-
-        rgb   = self.get_rgb_image(rgb_filename)
-        depth = self.get_depth_image(depth_filename)
-        mask  = self.get_mask_image(mask_filename) 
-        return rgb, depth, pose, mask
-
     def get_rgb_image(self, rgb_filename):
+        """
+        :param depth_filename: string of full path to depth image
+        :return: PIL.Image.Image, in particular an 'RGB' PIL image
+        """
         return Image.open(rgb_filename).convert('RGB')
 
     def get_rgb_image_from_scene_name_and_idx(self, scene_name, img_idx):
@@ -300,20 +232,17 @@ class DenseCorrespondenceDataset(data.Dataset):
         return self.get_rgb_image(img_filename)
 
     def get_depth_image(self, depth_filename):
-        return Image.open(depth_filename)
-
-    def get_depth_image_from_scene_name_and_idx(self, scene_name, img_idx):
         """
-        Returns a depth image given a scene_name and image index
-        :param scene_name:
-        :param img_idx: str or int
+        :param depth_filename: string of full path to depth image
         :return: PIL.Image.Image
         """
-
-        img_filename = self.get_image_filename(scene_name, img_idx, ImageType.DEPTH)
-        return self.get_depth_image(img_filename)
+        return Image.open(depth_filename)
 
     def get_mask_image(self, mask_filename):
+        """
+        :param mask_filename: string of full path to mask image
+        :return: PIL.Image.Image
+        """
         return Image.open(mask_filename)
 
     def get_mask_image_from_scene_name_and_idx(self, scene_name, img_idx):
@@ -343,23 +272,6 @@ class DenseCorrespondenceDataset(data.Dataset):
         all_rgb_images_in_scene = sorted(glob.glob(rgb_images_regex))
         random_rgb_image = random.choice(all_rgb_images_in_scene)
         return random_rgb_image
-
-    def get_specific_rgbd_with_pose(self, scene_name, img_index):
-        """
-        Returns a rgbd image along with the camera pose for a specific image
-        in a specific scene
-        :param scene_name:
-        :param img_index:
-        :return:
-        """
-        rgb_filename   = self.get_specific_rgb_image_filename(scene_name, img_index)
-        depth_filename = self.get_depth_filename(rgb_filename) 
-
-        rgb   = self.get_rgb_image(rgb_filename)
-        depth = self.get_depth_image(depth_filename)
-        pose  = self.get_pose(rgb_filename)
-
-        return rgb, depth, pose
 
     def get_specific_rgb_image_filname(self, scene_name, img_index):
         DeprecationWarning("use get_specific_rgb_image_filename instead")

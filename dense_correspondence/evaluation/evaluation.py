@@ -238,29 +238,6 @@ class DenseCorrespondenceEvaluation(object):
         return pd_dataframe_list, df
 
     @staticmethod
-    def get_image_data(dataset, scene_name, img_idx):
-        """
-        Gets RGBD image, pose, mask
-
-        :param dataset: dataset that has image
-        :type dataset: DenseCorrespondenceDataset
-        :param scene_name: name of scene
-        :type scene_name: str
-        :param img_idx: index of the image
-        :type img_idx: int
-        :return: (rgb, depth, mask, pose)
-        :rtype: (PIL.Image.Image, PIL.Image.Image, PIL.Image.Image, numpy.ndarray)
-        """
-
-        img_idx = utils.getPaddedString(img_idx)
-        rgb = dataset.get_rgb_image_from_scene_name_and_idx(scene_name, img_idx)
-        depth = dataset.get_depth_image_from_scene_name_and_idx(scene_name, img_idx)
-        mask = dataset.get_mask_image_from_scene_name_and_idx(scene_name, img_idx)
-        pose = dataset.get_pose_from_scene_name_and_idx(scene_name, img_idx)
-
-        return rgb, depth, mask, pose
-
-    @staticmethod
     def plot_descriptor_colormaps(res_a, res_b):
         """
         Plots the colormaps of descriptors for a pair of images
@@ -309,13 +286,14 @@ class DenseCorrespondenceEvaluation(object):
         :rtype:
         """
 
-        rgb_a, depth_a, mask_a, pose_a = DenseCorrespondenceEvaluation.get_image_data(dataset,
-                                                                                      scene_name,
-                                                                                      img_a_idx)
+        rgb_a, depth_a, mask_a, pose_a = dataset.get_rgbd_mask_pose(scene_name, img_a_idx)
 
-        rgb_b, depth_b, mask_b, pose_b = DenseCorrespondenceEvaluation.get_image_data(dataset,
-                                                                                      scene_name,
-                                                                                      img_b_idx)
+        rgb_b, depth_b, mask_b, pose_b = dataset.get_rgbd_mask_pose(scene_name, img_b_idx)
+
+        depth_a = np.asarray(depth_a)
+        depth_b = np.asarray(depth_b)
+        mask_a = np.asarray(mask_a)
+        mask_b = np.asarray(mask_b)
 
         # compute dense descriptors
         res_a = dcn.forward_on_img(rgb_a)
@@ -605,13 +583,14 @@ class DenseCorrespondenceEvaluation(object):
         :return: None
         """
 
-        rgb_a, depth_a, mask_a, pose_a = DenseCorrespondenceEvaluation.get_image_data(dataset,
-                                                                                      scene_name,
-                                                                                      img_a_idx)
+        rgb_a, depth_a, mask_a, pose_a = dataset.get_rgbd_mask_pose(scene_name, img_a_idx)
 
-        rgb_b, depth_b, mask_b, pose_b = DenseCorrespondenceEvaluation.get_image_data(dataset,
-                                                                                      scene_name,
-                                                                                      img_b_idx)
+        rgb_b, depth_b, mask_b, pose_b = dataset.get_rgbd_mask_pose(scene_name, img_b_idx)
+
+        depth_a = np.asarray(depth_a)
+        depth_b = np.asarray(depth_b)
+        mask_a = np.asarray(mask_a)
+        mask_b = np.asarray(mask_b)
 
         # compute dense descriptors
         res_a = dcn.forward_on_img(rgb_a)
@@ -674,12 +653,12 @@ class DenseCorrespondenceEvaluation(object):
         if randomize:
             raise NotImplementedError("not yet implemented")
         else:
-            scene_name = '13_drill_long_downsampled'
+            scene_name = '2018-04-10-16-06-26'
             img_pairs = []
-            img_pairs.append([0,737])
-            img_pairs.append([409, 1585])
-            img_pairs.append([2139, 1041])
-            img_pairs.append([235, 1704])
+            img_pairs.append([0,753])
+            img_pairs.append([812, 1218])
+            img_pairs.append([1430, 1091])
+            img_pairs.append([1070, 649])
 
         for img_pair in img_pairs:
             print "Image pair (%d, %d)" %(img_pair[0], img_pair[1])
@@ -695,12 +674,12 @@ class DenseCorrespondenceEvaluation(object):
         if randomize:
             raise NotImplementedError("not yet implemented")
         else:
-            scene_name = '06_drill_long_downsampled'
+            scene_name = '2018-04-10-16-08-46'
             img_pairs = []
-            img_pairs.append([0, 617])
-            img_pairs.append([270, 786])
-            img_pairs.append([1001, 2489])
-            img_pairs.append([1536, 1917])
+            img_pairs.append([0, 754])
+            img_pairs.append([813, 1219])
+            img_pairs.append([1429, 1092])
+            img_pairs.append([1071, 637])
 
 
         for img_pair in img_pairs:

@@ -15,13 +15,14 @@ from PIL import Image, ImageOps
 import random
 
 
-def random_image_and_indices_mutation(image, uv_pixel_positions):
+def random_image_and_indices_mutation(images, uv_pixel_positions):
     """
-    This function takes an image and a list of pixel positions in the image, 
+    This function takes a list of images and a list of pixel positions in the image, 
     and picks some subset of available mutations.
 
-    :param image: image for which to augment
-    :type  image: PIL.image.image
+    :param images: a list of images (for example the rgb, depth, and mask) for which the 
+                        **same** mutation will be applied
+    :type  images: list of PIL.image.image
 
     :param uv_pixel_positions: pixel locations (u, v) in the image. 
     	See doc/coordinate_conventions.md for definition of (u, v)
@@ -35,34 +36,34 @@ def random_image_and_indices_mutation(image, uv_pixel_positions):
     	Note: aim is to support both torch.LongTensor and torch.FloatTensor,
     	      and return the mutated_uv_pixel_positions with same type
 
-    :return mutated_image, mutated_uv_pixel_positions
-    	:rtype: PIL.image.image, tuple of torch Tensors
+    :return mutated_image_list, mutated_uv_pixel_positions
+    	:rtype: list of PIL.image.image, tuple of torch Tensors
 
     """
-    mutated_image, mutated_uv_pixel_positions = random_flip_vertical(image, uv_pixel_positions)
-    mutated_image, mutated_uv_pixel_positions = random_flip_horizontal(mutated_image, mutated_uv_pixel_positions)
-    return mutated_image, mutated_uv_pixel_positions
+    mutated_images, mutated_uv_pixel_positions = random_flip_vertical(images, uv_pixel_positions)
+    mutated_images, mutated_uv_pixel_positions = random_flip_horizontal(mutated_images, mutated_uv_pixel_positions)
+    return mutated_images, mutated_uv_pixel_positions
 
 
-def random_flip_vertical(image, uv_pixel_positions):
+def random_flip_vertical(images, uv_pixel_positions):
     """
-    Randomly flip the image and the pixel positions vertically (flip up/down)
+    Randomly flip the images and the pixel positions vertically (flip up/down)
 
     See random_image_and_indices_mutation() for documentation of args and return types.
 
     """
 
     if random.random() < 0.5:
-        return image, uv_pixel_positions  # Randomly do not apply
+        return images, uv_pixel_positions  # Randomly do not apply
 
     print "Flip vertically"
-    mutated_image = ImageOps.flip(image)
+    mutated_images = [ImageOps.flip(image) for image in images]
     v_pixel_positions = uv_pixel_positions[1]
     mutated_v_pixel_positions = image.height - v_pixel_positions
     mutated_uv_pixel_positions = (uv_pixel_positions[0], mutated_v_pixel_positions)
-    return mutated_image, mutated_uv_pixel_positions
+    return mutated_images, mutated_uv_pixel_positions
 
-def random_flip_horizontal(image, uv_pixel_positions):
+def random_flip_horizontal(images, uv_pixel_positions):
     """
     Randomly flip the image and the pixel positions horizontall (flip left/right)
 
@@ -71,11 +72,11 @@ def random_flip_horizontal(image, uv_pixel_positions):
     """
 
     if random.random() < 0.5:
-        return image, uv_pixel_positions  # Randomly do not apply
+        return images, uv_pixel_positions  # Randomly do not apply
 
     print "Flip left and right"
-    mutated_image = ImageOps.mirror(image)
+    mutated_images = [ImageOps.mirror(image) for image in images]
     u_pixel_positions = uv_pixel_positions[0]
     mutated_u_pixel_positions = image.width - u_pixel_positions
     mutated_uv_pixel_positions = (mutated_u_pixel_positions, uv_pixel_positions[1])
-    return mutated_image, mutated_uv_pixel_positions
+    return mutated_images, mutated_uv_pixel_positions
