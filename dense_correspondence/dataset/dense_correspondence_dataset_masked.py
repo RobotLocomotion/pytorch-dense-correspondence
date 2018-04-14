@@ -20,8 +20,8 @@ import correspondence_finder
 import correspondence_augmentation
 import dense_correspondence_manipulation.utils.utils as utils
 
-# This implements an abstract Dataset class in PyTorch
-# to load in LabelFusion data (labelfusion.csail.mit.edu)
+# This implements a subclass for a data.Dataset class in PyTorch
+# to load in data for dense descriptor training
 #
 # in particular note:
 # __len__     is overloaded
@@ -37,7 +37,7 @@ class ImageType:
 
 class DenseCorrespondenceDataset(data.Dataset):
 
-    def __init__(self, debug=False, training_config=None):
+    def __init__(self, debug=False):
         
         self.debug = debug
         self.mode = "train"
@@ -45,15 +45,11 @@ class DenseCorrespondenceDataset(data.Dataset):
             [
                 [transforms.ToTensor(), transforms.ToTensor()]
             ])
-        if training_config==None:
-            self.num_matching_attempts     = 50000
-            self.num_non_matches_per_match = 150
-        else:
-            self.num_matching_attempts = training_config["num_matching_attempts"]
-            self.num_non_matches_per_match = training_config["num_non_matches_per_match"]
 
+        # Otherwise, all of these parameters should be set in
+        # set_parameters_from_training_config()
         if self.debug:
-            self.num_attempts = 20
+            self.num_matching_attempts = 20
             self.num_non_matches_per_match = 1
       
     def __len__(self):
@@ -84,7 +80,7 @@ class DenseCorrespondenceDataset(data.Dataset):
         5th, 6th return args: non_matches_a, non_matches_b
         5th, 6th rtype: 1-dimensional torch.LongTensor of shape (num_non_matches)        
         """
-
+        
         # pick a scene
         scene_name = self.get_random_scene_name()
 
@@ -408,6 +404,17 @@ class DenseCorrespondenceDataset(data.Dataset):
         self.train = config_dict["train"]
         self.test  = config_dict["test"]
         self.set_train_mode()
+
+    def set_parameters_from_training_config(self, training_config):
+        """
+        Some parameters that are really associated only with training, for example
+        those associated with random sampling during the training process,
+        should be passed in from a training.yaml config file.
+
+        :param training_config: a dict() holding params
+        """
+        self.num_matching_attempts     = training_config['training']['num_matching_attempts']
+        self.num_non_matches_per_match = training_config['training']['num_non_matches_per_match']
 
     def set_train_mode(self):
         self.scenes = self.train

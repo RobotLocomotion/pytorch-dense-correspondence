@@ -1,14 +1,21 @@
 training:
+  # Optimizer config
   learning_rate: 1.0e-4
   learning_rate_decay: 0.9
   steps_between_learning_rate_decay: 500 # decay the learning rate after this many steps
   weight_decay: 1.0e-4
   num_iterations: 3500 # number of iterations to train for
-  logging_rate: 10 # how often to print out
-  save_rate: 500 # how often to save the network
+  # Dataset loader config
   num_workers: 10 # num threads/workers for dataset loading
   batch_size: 1
+  # Dataset sampling config
+  num_matching_attempts: 50000
+  num_non_matches_per_match: 150
+  # Loss function config
   loss_function: pixelwise_contrastive_loss # not currently used
+  # Logging config
+  logging_rate: 10 # how often to print out
+  save_rate: 500 # how often to save the network
   logging_dir_name: test # overwrites if this is here
   logging_dir: code/data_volume/pdc/trained_models # where to store trained models
 
