@@ -80,7 +80,7 @@ class DenseCorrespondenceDataset(data.Dataset):
         5th, 6th return args: non_matches_a, non_matches_b
         5th, 6th rtype: 1-dimensional torch.LongTensor of shape (num_non_matches)        
         """
-        
+
         # pick a scene
         scene_name = self.get_random_scene_name()
 
@@ -118,14 +118,14 @@ class DenseCorrespondenceDataset(data.Dataset):
             uv_b = (torch.index_select(uv_b[0], 0, indexes_to_keep), torch.index_select(uv_b[1], 0, indexes_to_keep))
 
         # data augmentation
-        # if not self.debug:
-        #     [image_a_rgb], uv_a                 = correspondence_augmentation.random_image_and_indices_mutation([image_a_rgb], uv_a)
-        #     [image_b_rgb, image_b_mask], uv_b   = correspondence_augmentation.random_image_and_indices_mutation([image_b_rgb, image_b_mask], uv_b)
-        # else: # also mutate depth just for plotting
-        #     [image_a_rgb, image_a_depth], uv_a               = correspondence_augmentation.random_image_and_indices_mutation([image_a_rgb, image_a_depth], uv_a)
-        #     [image_b_rgb, image_b_depth, image_b_mask], uv_b = correspondence_augmentation.random_image_and_indices_mutation([image_b_rgb, image_b_depth, image_b_mask], uv_b)
-        #     image_a_depth_numpy = np.asarray(image_a_depth)
-        #     image_b_depth_numpy = np.asarray(image_b_depth)
+        if not self.debug:
+            [image_a_rgb], uv_a                 = correspondence_augmentation.random_image_and_indices_mutation([image_a_rgb], uv_a)
+            [image_b_rgb, image_b_mask], uv_b   = correspondence_augmentation.random_image_and_indices_mutation([image_b_rgb, image_b_mask], uv_b)
+        else: # also mutate depth just for plotting
+            [image_a_rgb, image_a_depth], uv_a               = correspondence_augmentation.random_image_and_indices_mutation([image_a_rgb, image_a_depth], uv_a)
+            [image_b_rgb, image_b_depth, image_b_mask], uv_b = correspondence_augmentation.random_image_and_indices_mutation([image_b_rgb, image_b_depth, image_b_mask], uv_b)
+            image_a_depth_numpy = np.asarray(image_a_depth)
+            image_b_depth_numpy = np.asarray(image_b_depth)
 
         # find non_correspondences
 
