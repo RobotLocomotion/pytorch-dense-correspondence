@@ -120,7 +120,7 @@ def pinhole_projection_world_to_image(world_pos, K, camera_to_world=None):
     world_pos_vec = np.append(world_pos, 1)
 
     # transform to camera frame if camera_to_world is not None
-    if camera_to_world is None:
+    if camera_to_world is not None:
         world_pos_vec = np.dot(np.linalg.inv(camera_to_world), world_pos_vec)
 
     world_pos_vec = np.append(world_pos, 1)
