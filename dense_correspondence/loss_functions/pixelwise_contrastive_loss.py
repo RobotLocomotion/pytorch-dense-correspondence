@@ -19,8 +19,8 @@ class PixelwiseContrastiveLoss():
         D = descriptor dimension
 
 
-        match_loss = 1/num_matches \sum_m ||descriptor_a - descriptor_b||_2^2
-        non_match_loss = 1/num_non_matches \sum_m max(0, M_margin - ||descriptor_a - descriptor_b||_2^2 )
+        match_loss = 1/num_matches \sum_{num_matches} ||descriptor_a - descriptor_b||_2^2
+        non_match_loss = 1/num_non_matches \sum_{num_non_matches} max(0, M_margin - ||descriptor_a - descriptor_b||_2^2 )
 
         loss = match_loss + non_match_loss
 
