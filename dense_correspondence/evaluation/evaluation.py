@@ -745,7 +745,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
         return df
 
     @staticmethod
-    def make_cdf_plot(data, num_bins=30):
+    def make_cdf_plot(data, label=None, num_bins=30):
         """
         Plots the empirical CDF of the data
         :param data:
@@ -758,11 +758,11 @@ class DenseCorrespondenceEvaluationPlotter(object):
         cumhist, l, b, e = ss.cumfreq(data, num_bins)
         cumhist *= 1.0 / len(data)
         x_axis = l + b * np.arange(0, num_bins)
-        plot = plt.plot(x_axis, cumhist)
+        plot = plt.plot(x_axis, cumhist, label=label)
         return plot
 
     @staticmethod
-    def make_descriptor_accuracy_plot(df, num_bins=30):
+    def make_descriptor_accuracy_plot(df, label=None, num_bins=30):
         """
         Makes a plot of best match accuracy.
         Drops nans
@@ -779,7 +779,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
         data = data.dropna()
         data *= 100 # convert to cm
 
-        plot = DCEP.make_cdf_plot(data, num_bins=num_bins)
+        plot = DCEP.make_cdf_plot(data, label=label, num_bins=num_bins)
         plt.xlabel('error (cm)')
         plt.ylabel('fraction below threshold')
         plt.title("3D Norm Diff Best Match")
@@ -808,7 +808,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
         return area_above_curve
 
     @staticmethod
-    def run_on_single_dataframe(path_to_df_csv, output_dir=None):
+    def run_on_single_dataframe(path_to_df_csv, label=None, output_dir=None, save=True, use_previous_plot=None):
         DCEP = DenseCorrespondenceEvaluationPlotter
 
         path_to_csv = utils.convert_to_absolute_path(path_to_df_csv)
@@ -818,12 +818,18 @@ class DenseCorrespondenceEvaluationPlotter(object):
 
         df = pd.read_csv(path_to_csv, index_col=0, parse_dates=True)
 
+        
+        if use_previous_plot==None:
+            fig = plt.figure()
+        else:
+            fig = use_previous_plot
+        
         # norm diff accuracy
-        fig = plt.figure()
-        plot = DCEP.make_descriptor_accuracy_plot(df)
-        fig_file = os.path.join(output_dir, "norm_diff_pred_3d.png")
-        fig.savefig(fig_file)
-
+        plot = DCEP.make_descriptor_accuracy_plot(df, label=label)
+        plt.legend()
+        if save:
+            fig_file = os.path.join(output_dir, "norm_diff_pred_3d.png")
+            fig.savefig(fig_file)
 
         aac = DCEP.compute_area_above_curve(df, 'norm_diff_pred_3d')
         d = dict()
@@ -831,6 +837,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
 
         yaml_file = os.path.join(output_dir, 'stats.yaml')
         utils.saveToYaml(d, yaml_file)
+        return fig
 
 
 def run():
