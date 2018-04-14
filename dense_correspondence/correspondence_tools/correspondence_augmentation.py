@@ -13,6 +13,7 @@ implementation.
 
 from PIL import Image, ImageOps
 import random
+import torch
 
 
 def random_image_and_indices_mutation(images, uv_pixel_positions):
@@ -42,6 +43,7 @@ def random_image_and_indices_mutation(images, uv_pixel_positions):
     """
     mutated_images, mutated_uv_pixel_positions = random_flip_vertical(images, uv_pixel_positions)
     mutated_images, mutated_uv_pixel_positions = random_flip_horizontal(mutated_images, mutated_uv_pixel_positions)
+
     return mutated_images, mutated_uv_pixel_positions
 
 
@@ -56,10 +58,9 @@ def random_flip_vertical(images, uv_pixel_positions):
     if random.random() < 0.5:
         return images, uv_pixel_positions  # Randomly do not apply
 
-    print "Flip vertically"
     mutated_images = [ImageOps.flip(image) for image in images]
     v_pixel_positions = uv_pixel_positions[1]
-    mutated_v_pixel_positions = image.height - v_pixel_positions
+    mutated_v_pixel_positions = (image.height-1) - v_pixel_positions
     mutated_uv_pixel_positions = (uv_pixel_positions[0], mutated_v_pixel_positions)
     return mutated_images, mutated_uv_pixel_positions
 
@@ -74,9 +75,8 @@ def random_flip_horizontal(images, uv_pixel_positions):
     if random.random() < 0.5:
         return images, uv_pixel_positions  # Randomly do not apply
 
-    print "Flip left and right"
     mutated_images = [ImageOps.mirror(image) for image in images]
     u_pixel_positions = uv_pixel_positions[0]
-    mutated_u_pixel_positions = image.width - u_pixel_positions
+    mutated_u_pixel_positions = (image.width-1) - u_pixel_positions
     mutated_uv_pixel_positions = (mutated_u_pixel_positions, uv_pixel_positions[1])
     return mutated_images, mutated_uv_pixel_positions
