@@ -9,7 +9,7 @@ training:
   num_workers: 10 # num threads/workers for dataset loading
   batch_size: 1
   # Dataset sampling config
-  num_matching_attempts: 50000
+  num_matching_attempts: 50000 # note this is not currently used, since all masked pixels are used
   num_non_matches_per_match: 150
   # Loss function config
   loss_function: pixelwise_contrastive_loss # not currently used
