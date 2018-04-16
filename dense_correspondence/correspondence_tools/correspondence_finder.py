@@ -123,8 +123,9 @@ def pinhole_projection_world_to_image(world_pos, K, camera_to_world=None):
     if camera_to_world is not None:
         world_pos_vec = np.dot(np.linalg.inv(camera_to_world), world_pos_vec)
 
-    world_pos_vec = np.append(world_pos, 1)
-    uv = np.dot(K, world_pos_vec)[:2]
+    # scaled position is [X/Z, Y/Z, 1] where X,Y,Z is the position in camera frame
+    scaled_pos = np.array( [world_pos_vec[0]/world_pos_vec[2], world_pos_vec[1]/world_pos_vec[2], 1] )
+    uv = np.dot(K, scaled_pos)[:2]
     return uv
 
 
