@@ -163,6 +163,40 @@ def compute_distance_between_poses(pose_a, pose_b):
 
     return np.linalg.norm(pos_a - pos_b)
 
+def compute_angle_between_quaternions(q, r):
+    """
+    Computes the angle between two quaternions.
+
+    theta = arccos(2 * <q1, q2>^2 - 1)
+
+    See https://math.stackexchange.com/questions/90081/quaternion-distance
+    :param q: numpy array in form [w,x,y,z]. As long as both q,r are consistent it doesn't matter
+    :type q:
+    :param r:
+    :type r:
+    :return: angle between the quaternions, in radians
+    :rtype:
+    """
+
+    theta = 2*np.arccos(2 * np.dot(q,r)**2 - 1)
+    return theta
+
+def compute_angle_between_poses(pose_a, pose_b):
+    """
+    Computes the angle distance in radians between two homogenous transforms
+    :param pose_a: 4 x 4 homogeneous transform
+    :type pose_a:
+    :param pose_b:
+    :type pose_b:
+    :return: Angle between poses in radians
+    :rtype:
+    """
+
+    quat_a = transformations.quaternion_from_matrix(pose_a)
+    quat_b = transformations.quaternion_from_matrix(pose_b)
+
+    return compute_angle_between_quaternions(quat_a, quat_b)
+
 
 
 class CameraIntrinsics(object):
