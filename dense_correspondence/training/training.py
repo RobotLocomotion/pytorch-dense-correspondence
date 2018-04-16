@@ -66,13 +66,15 @@ class DenseCorrespondenceTraining(object):
         :return:
         :rtype:
         """
-        batch_size = self._config['training']['batch_size']
-        num_workers = self._config['training']['num_workers']
 
         if self._dataset is None:
             self._dataset = SpartanDataset.make_default_10_scenes_drill()
 
         self._dataset.load_all_pose_data()
+        self._dataset.set_parameters_from_training_config(self._config)
+
+        batch_size = self._config['training']['batch_size']
+        num_workers = self._config['training']['num_workers']
         self._data_loader = torch.utils.data.DataLoader(self._dataset, batch_size=batch_size,
                                           shuffle=True, num_workers=num_workers, drop_last=True)
 

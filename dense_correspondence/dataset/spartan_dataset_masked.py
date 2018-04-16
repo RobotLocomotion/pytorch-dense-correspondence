@@ -15,9 +15,14 @@ class SpartanDataset(DenseCorrespondenceDataset):
     def __init__(self, debug=False, mode="train", config=None):
 
         if config is None:
-            self.logs_root_path = self.load_from_config_yaml("relative_path_to_spartan_logs")
-            train_test_config = os.path.join(os.path.dirname(__file__), "train_test_config", "0001_drill_test.yaml")
-            self.set_train_test_split_from_yaml(train_test_config)
+            dataset_config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence',
+                                       'dataset',
+                                       'spartan_dataset_masked.yaml')
+
+            dataset_config = utils.getDictFromYamlFilename(dataset_config_filename)
+            self._config = dataset_config
+            self.logs_root_path = utils.convert_to_absolute_path(self._config['logs_root_path'])
+            self.set_train_test_split_from_yaml(self._config)
         else:
             # assume config has already been parsed
             self._config = config
