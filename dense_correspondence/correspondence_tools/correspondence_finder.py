@@ -136,8 +136,9 @@ def create_non_correspondences(uv_b_matches, num_non_matches_per_match=100, img_
         - masked image, we will select from the non-zero entries
         - shape is H x W
      
-    :return: tuple of torch.FloatTensors, where each FloatTensor is n * m, where m is the number of non-matches.
-        - Non-matches
+    :return: tuple of torch.FloatTensors, i.e. (torch.FloatTensor, torch.FloatTensor).
+        - The first element of the tuple is all "u" pixel positions, and the right element of the tuple is all "v" positions
+        - Each torch.FloatTensor is of shape torch.Shape([num_matches, non_matches_per_match])
         - This shape makes it so that each row of the non-matches corresponds to the row for the match in uv_a
     """
 
