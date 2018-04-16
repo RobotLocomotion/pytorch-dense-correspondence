@@ -1059,9 +1059,10 @@ class DenseCorrespondenceEvaluation(object):
                                                         non_matches_b)
 
 
-                loss_vec.append(loss)
-                non_match_loss_vec.append(non_match_loss)
-                match_loss_vec.append(match_loss)
+
+                loss_vec.append(loss.data[0])
+                non_match_loss_vec.append(non_match_loss.data[0])
+                match_loss_vec.append(match_loss.data[0])
 
 
             if i > num_iterations:

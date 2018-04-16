@@ -228,12 +228,23 @@ class DenseCorrespondenceTraining(object):
 
                 def update_visdom_test_loss_plots(train_loss, train_match_loss, train_non_match_loss):
                     """
-                    Update the test loss plots
+                    Log data about test loss and update the visdom plots
                     :return:
                     :rtype:
                     """
 
-                    self._visdom_plots['train_loss'].log(loss_current_iteration, loss)
+                    self._logging_dict['test']['loss'].append(test_loss)
+                    self._logging_dict['test']['match_loss'].append(test_match_loss)
+                    self._logging_dict['test']['non_match_loss'].append(test_non_match_loss)
+                    self._logging_dict['test']['iteration'].append(loss_current_iteration)
+
+
+                    self._visdom_plots['train_loss'].log(loss_current_iteration, train_loss)
+                    self._visdom_plots['train_match_loss'].log(loss_current_iteration, train_match_loss)
+                    self._visdom_plots['train_non_match_loss'].log(loss_current_iteration, train_non_match_loss)
+
+
+
                 update_visdom_plots()
 
                 if loss_current_iteration % save_rate == 0:
