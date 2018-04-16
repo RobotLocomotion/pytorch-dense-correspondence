@@ -808,7 +808,34 @@ class DenseCorrespondenceEvaluationPlotter(object):
         return area_above_curve
 
     @staticmethod
-    def run_on_single_dataframe(path_to_df_csv, label=None, output_dir=None, save=True, use_previous_plot=None):
+    def run_on_single_dataframe(path_to_df_csv, label=None, output_dir=None, save=True, previous_plot=None):
+        """
+        This method is intended to be called from an ipython notebook for plotting.
+
+        Usage notes:
+        - after calling this function, you can still change many things about the plot
+        - for example you can still call plt.title("New title") to change the title
+        - if you'd like to plot multiple lines on the same axes, then take the return arg of a previous call to this function, 
+        - and pass it into previous_plot, i.e.:
+            fig = run_on_single_dataframe("thing1.csv")
+            run_on_single_dataframe("thing2.csv", previous_plot=fig)
+            plt.title("both things")
+            plt.show()
+        - if you'd like each line to have a label in the plot, then use pass a string to label, i.e.:
+            fig = run_on_single_dataframe("thing1.csv", label="thing1")
+            run_on_single_dataframe("thing2.csv", label="thing2", previous_plot=fig)
+            plt.title("both things")
+            plt.show()
+
+        :param path_to_df_csv: full path to csv file
+        :type path_to_df_csv: string
+        :param label: name that will show up labeling this line in the legend
+        :type label: string
+        :param save: whether or not you want to save a .png
+        :type save: bool
+        :param previous_plot: a previous matplotlib figure to keep building on
+        :type previous_plot: None or matplotlib figure 
+        """
         DCEP = DenseCorrespondenceEvaluationPlotter
 
         path_to_csv = utils.convert_to_absolute_path(path_to_df_csv)
@@ -819,10 +846,10 @@ class DenseCorrespondenceEvaluationPlotter(object):
         df = pd.read_csv(path_to_csv, index_col=0, parse_dates=True)
 
         
-        if use_previous_plot==None:
+        if previous_plot==None:
             fig = plt.figure()
         else:
-            fig = use_previous_plot
+            fig = previous_plot
         
         # norm diff accuracy
         plot = DCEP.make_descriptor_accuracy_plot(df, label=label)
