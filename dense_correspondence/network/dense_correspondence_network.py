@@ -114,6 +114,17 @@ class DenseCorrespondenceNetwork(object):
         image_pred = image_pred.permute(0, 2, 1)
         return image_pred
 
+    def clip_pixel_to_image_size_and_round(self, uv):
+        """
+        Clips pixel to image coordinates and converts to int
+        :param uv:
+        :type uv:
+        :return:
+        :rtype:
+        """
+        u = min(int(round(uv[0])), self._image_width - 1)
+        v = min(int(round(uv[1])), self._image_height - 1)
+        return [u, v]
 
     @staticmethod
     def from_config(config, load_stored_params=True):
@@ -196,3 +207,34 @@ class DenseCorrespondenceNetwork(object):
         best_match_uv = (best_match_xy[1], best_match_xy[0])
 
         return best_match_uv, best_match_diff, norm_diffs
+
+    def evaluate_descriptor_at_keypoints(self, img, keypoint_list, res=None):
+        """
+
+        :param dcn:
+        :type dcn: DenseCorrespondenceNetwork
+        :param img:
+        :type img: numpy array (RGB)
+        :param kp: list of cv2.KeyPoint
+        :type kp:
+        :param res: optionally pass in result of forward pass on network
+        :return: numpy.ndarray (N,D) N = num keypoints, D = descriptor dimension
+        This is the same format as sift.compute from OpenCV
+        :rtype:
+        """
+
+        if res is None:
+            res = self.forward_on_img(img)
+
+        N = len(keypoint_list)
+        D = self.descriptor_dimension
+        des = np.zeros([N,D])
+
+        for idx, kp in enumerate(keypoint_list):
+            uv = self.clip_pixel_to_image_size_and_round([kp.pt[0], kp.pt[1]])
+            des[idx,:] = res[uv[1], uv[0], :]
+
+        # cast to float32, need this in order to use cv2.BFMatcher() with bf.knnMatch
+        des = np.array(des, dtype=np.float32)
+        return des
+

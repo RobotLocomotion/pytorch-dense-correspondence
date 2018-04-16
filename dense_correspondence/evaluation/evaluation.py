@@ -66,6 +66,17 @@ class DCNEvaluationPandaTemplate(PandaDataFrameWrapper):
     def __init__(self):
         PandaDataFrameWrapper.__init__(self, DCNEvaluationPandaTemplate.columns)
 
+class SIFTKeypointMatchPandaTemplate(PandaDataFrameWrapper):
+    columns = ['scene_name',
+               'img_a_idx',
+               'img_b_idx',
+               'is_valid',
+               'norm_diff_pred_3d']
+
+    def __init__(self):
+        PandaDataFrameWrapper.__init__(self, SIFTKeypointMatchPandaTemplate.columns)
+
+
 class DenseCorrespondenceEvaluation(object):
     """
     Samples image pairs from the given scenes. Then uses the network to compute dense
@@ -634,6 +645,298 @@ class DenseCorrespondenceEvaluation(object):
             DenseCorrespondenceEvaluation.plot_descriptor_colormaps(res_a, res_b)
 
         plt.show()
+
+    @staticmethod
+    def compute_sift_keypoints(img, mask=None):
+        """
+        Compute SIFT keypoints given a grayscale img
+        :param img:
+        :type img:
+        :param mask:
+        :type mask:
+        :return:
+        :rtype:
+        """
+
+        # convert to grayscale image if needed
+        if len(img.shape) > 2:
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        else:
+            gray = img
+
+        sift = cv2.xfeatures2d.SIFT_create()
+        kp = sift.detect(gray, mask)
+        kp, des = sift.compute(gray, kp)
+        img_w_kp = 0 * img
+        cv2.drawKeypoints(gray, kp, img_w_kp)
+        return kp, des, gray, img_w_kp
+
+
+    @staticmethod
+    def single_image_pair_sift_analysis(dataset, scene_name,
+                                        img_a_idx, img_b_idx,
+                                        cross_match_threshold=0.75,
+                                        num_matches=10,
+                                        visualize=True,
+                                        camera_intrinsics_matrix=None):
+        """
+        Computes SIFT features and does statistics
+        :param dcn:
+        :type dcn:
+        :param dataset:
+        :type dataset:
+        :param scene_name:
+        :type scene_name:
+        :param img_a_idx:
+        :type img_a_idx:
+        :param img_b_idx:
+        :type img_b_idx:
+        :param num_matches:
+        :type num_matches:
+        :return:
+        :rtype:
+        """
+
+        DCE = DenseCorrespondenceEvaluation
+
+        rgb_a, depth_a, mask_a, pose_a = dataset.get_rgbd_mask_pose(scene_name, img_a_idx)
+        rgb_a = np.array(rgb_a) # converts PIL image to rgb
+
+        rgb_b, depth_b, mask_b, pose_b = dataset.get_rgbd_mask_pose(scene_name, img_b_idx)
+        rgb_b = np.array(rgb_b) # converts PIL image to rgb
+
+        kp1, des1, gray1, img_1_kp = DCE.compute_sift_keypoints(rgb_a, mask_a)
+        kp2, des2, gray2, img_2_kp = DCE.compute_sift_keypoints(rgb_b, mask_b)
+
+
+        img1 = gray1
+        img2 = gray2
+
+        if visualize:
+            fig, axes = plt.subplots(nrows=1, ncols=2)
+            fig.set_figheight(10)
+            fig.set_figwidth(15)
+            axes[0].imshow(img_1_kp)
+            axes[1].imshow(img_2_kp)
+            plt.title("SIFT Keypoints")
+            plt.show()
+
+        # compute matches
+        # Match descriptors.
+        # BFMatcher with default params
+        bf = cv2.BFMatcher()
+        matches = bf.knnMatch(des1, des2, k=2)  # Sort them in the order of their distance.
+        total_num_matches = len(matches)
+
+        # Apply ratio test
+        good = []
+        for m, n in matches:
+            # m is the best match
+            # n is the second best match
+
+            if m.distance < 0.75 * n.distance:
+                good.append([m])
+
+
+        if visualize:
+            good_vis = random.sample(good, 5)
+            outImg = 0 * img1 # placeholder
+            fig, axes = plt.subplots(nrows=1, ncols=1)
+            fig.set_figheight(10)
+            fig.set_figwidth(15)
+            img3 = cv2.drawMatchesKnn(img1, kp1, img2, kp2, good_vis, outImg, flags=2)
+            plt.imshow(img3)
+            plt.title("SIFT Keypoint Matches")
+            plt.show()
+
+
+        if camera_intrinsics_matrix is None:
+            camera_intrinsics = dataset.get_camera_intrinsics(scene_name)
+            camera_intrinsics_matrix = camera_intrinsics.K
+
+        dataframe_list = []
+
+        for idx, val in enumerate(good):
+            match = val[0]
+            kp_a = kp1[match.queryIdx]
+            kp_b = kp2[match.trainIdx]
+            df = DCE.compute_single_sift_match_statistics(depth_a, depth_b, kp_a, kp_b,
+                                                     pose_a, pose_b, camera_intrinsics_matrix)
+
+            dataframe_list.append(df)
+
+
+
+        returnData = dict()
+        returnData['kp1'] = kp1
+        returnData['kp2'] = kp2
+        returnData['matches'] = matches
+        returnData['good'] = good
+        returnData['dataframe_list'] = dataframe_list
+
+        return returnData
+
+
+
+
+
+    @staticmethod
+    def compute_single_sift_match_statistics(depth_a, depth_b, kp_a, kp_b, pose_a, pose_b,
+                                            camera_matrix, params=None,
+                                            rgb_a=None, rgb_b=None, debug=False):
+        """
+        Compute some statistics of the SIFT match
+
+        :param depth_a:
+        :type depth_a:
+        :param depth_b:
+        :type depth_b:
+        :param kp_a: kp_a.pt is the (u,v) = (column, row) coordinates in the image
+        :type kp_a: cv2.KeyPoint
+        :param kp_b:
+        :type kp_b:
+        :param pose_a:
+        :type pose_a:
+        :param pose_b:
+        :type pose_b:
+        :param camera_matrix:
+        :type camera_matrix:
+        :param params:
+        :type params:
+        :param rgb_a:
+        :type rgb_a:
+        :param rgb_b:
+        :type rgb_b:
+        :param debug:
+        :type debug:
+        :return:
+        :rtype:
+        """
+
+        DCE = DenseCorrespondenceEvaluation
+        # first compute location of kp_a in world frame
+
+        image_height, image_width = depth_a.shape[0], depth_a.shape[1]
+
+        def clip_pixel_to_image_size_and_round(uv):
+            u = min(int(round(uv[0])), image_width - 1)
+            v = min(int(round(uv[1])), image_height - 1)
+            return [u,v]
+
+        uv_a = clip_pixel_to_image_size_and_round((kp_a.pt[0], kp_a.pt[1]))
+        uv_a_depth = depth_a[uv_a[1], uv_a[0]] / DEPTH_IM_SCALE
+        # print "uv_a", uv_a
+        # print "uv_a_depth", uv_a_depth
+        # print "camera_matrix", camera_matrix
+        # print "pose_a", pose_a
+        kp_a_3d = DCE.compute_3d_position(uv_a, uv_a_depth, camera_matrix, pose_a)
+
+
+        uv_b = clip_pixel_to_image_size_and_round((kp_b.pt[0], kp_b.pt[1]))
+        uv_b_depth = depth_b[uv_b[1], uv_b[0]] / DEPTH_IM_SCALE
+        uv_b_depth_valid = DCE.is_depth_valid(uv_b_depth)
+        kp_b_3d = DCE.compute_3d_position(uv_b, uv_b_depth, camera_matrix, pose_b)
+
+
+        # uv_b_ground_truth = correspondence_finder.pinhole_projection_world_to_image(kp_b_3d, camera_matrix, camera_to_world=pose_b)
+
+        is_valid = uv_b_depth_valid
+
+        if debug:
+            print "\n\n"
+            print "uv_a", uv_a
+            print "kp_a_3d", kp_a_3d
+            print "kp_b_3d", kp_b_3d
+            print "is_valid", is_valid
+
+
+
+        norm_diff_pred_3d = np.linalg.norm(kp_b_3d - kp_a_3d)
+
+        pd_template = SIFTKeypointMatchPandaTemplate()
+        pd_template.set_value('is_valid', is_valid)
+
+        if is_valid:
+            pd_template.set_value('norm_diff_pred_3d', norm_diff_pred_3d)
+
+        return pd_template
+
+
+    @staticmethod
+    def single_image_pair_keypoint_analysis(dcn, dataset, scene_name,
+                                                img_a_idx, img_b_idx,
+                                                params=None,
+                                                camera_intrinsics_matrix=None, visualize=True):
+
+        DCE = DenseCorrespondenceEvaluation
+        # first compute SIFT stuff
+        sift_data = DCE.single_image_pair_sift_analysis(dataset, scene_name,
+                                        img_a_idx, img_b_idx, visualize=visualize)
+
+        kp1 = sift_data['kp1']
+        kp2 = sift_data['kp2']
+
+        rgb_a, depth_a, mask_a, pose_a = dataset.get_rgbd_mask_pose(scene_name, img_a_idx)
+        rgb_a = np.array(rgb_a)  # converts PIL image to rgb
+
+        rgb_b, depth_b, mask_b, pose_b = dataset.get_rgbd_mask_pose(scene_name, img_b_idx)
+        rgb_b = np.array(rgb_b)  # converts PIL image to rgb
+
+
+        # compute the best matches among the SIFT keypoints
+        des1 = dcn.evaluate_descriptor_at_keypoints(rgb_a, kp1)
+        des2 = dcn.evaluate_descriptor_at_keypoints(rgb_b, kp2)
+
+        bf = cv2.BFMatcher()
+        matches = bf.knnMatch(des1, des2, k=2)  # Sort them in the order of their distance.
+        total_num_matches = len(matches)
+
+        good = []
+        for idx, val in enumerate(matches):
+            m, n = val
+            if (m.distance < 0.5 * n.distance) and m.distance < 0.01:
+                print "\n\n"
+                print "m.distance", m.distance
+                print "n.distance", n.distance
+                good.append([m])
+
+
+            #
+            # if idx > 5:
+            #     return
+
+
+        print "total keypoints = ", len(kp1)
+        print "num good matches = ", len(good)
+        print "SIFT good matches = ", len(sift_data['good'])
+        if visualize:
+            img1 = cv2.cvtColor(rgb_a, cv2.COLOR_BGR2GRAY)
+            img2 = cv2.cvtColor(rgb_b, cv2.COLOR_BGR2GRAY)
+
+
+            good_vis = random.sample(good, 5)
+            outImg = 0 * img1 # placeholder
+            fig, axes = plt.subplots(nrows=1, ncols=1)
+            fig.set_figheight(10)
+            fig.set_figwidth(15)
+            img3 = cv2.drawMatchesKnn(img1, kp1, img2, kp2, good_vis, outImg, flags=2)
+            plt.imshow(img3)
+            plt.title("Dense Correspondence Keypoint Matches")
+            plt.show()
+
+        returnData = dict()
+        returnData['kp1'] = kp1
+        returnData['kp2'] = kp2
+        returnData['matches'] = matches
+        returnData['des1'] = des1
+        returnData['des2'] = des2
+
+        return returnData
+        return returnData
+
+
+
+
 
 
     @staticmethod

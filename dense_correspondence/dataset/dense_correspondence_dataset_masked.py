@@ -226,6 +226,28 @@ class DenseCorrespondenceDataset(data.Dataset):
         return None
 
 
+    @staticmethod
+    def load_rgb_image(rgb_filename):
+        """
+        Returns PIL.Image.Image
+        :param rgb_filename:
+        :type rgb_filename:
+        :return:
+        :rtype: PIL.Image.Image
+        """
+        return Image.open(rgb_filename).convert('RGB')
+
+    @staticmethod
+    def load_mask_image(mask_filename):
+        """
+        Loads the mask image, returns a PIL.Image.Image
+        :param mask_filename:
+        :type mask_filename:
+        :return:
+        :rtype: PIL.Image.Image
+        """
+        return Image.open(mask_filename)
+
     def get_rgb_image(self, rgb_filename):
         """
         :param depth_filename: string of full path to depth image
