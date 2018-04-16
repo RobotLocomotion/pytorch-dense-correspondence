@@ -249,29 +249,6 @@ class DenseCorrespondenceEvaluation(object):
         return pd_dataframe_list, df
 
     @staticmethod
-    def get_image_data(dataset, scene_name, img_idx):
-        """
-        Gets RGBD image, pose, mask
-
-        :param dataset: dataset that has image
-        :type dataset: DenseCorrespondenceDataset
-        :param scene_name: name of scene
-        :type scene_name: str
-        :param img_idx: index of the image
-        :type img_idx: int
-        :return: (rgb, depth, mask, pose)
-        :rtype: (PIL.Image.Image, PIL.Image.Image, PIL.Image.Image, numpy.ndarray)
-        """
-
-        img_idx = utils.getPaddedString(img_idx)
-        rgb = dataset.get_rgb_image_from_scene_name_and_idx(scene_name, img_idx)
-        depth = dataset.get_depth_image_from_scene_name_and_idx(scene_name, img_idx)
-        mask = dataset.get_mask_image_from_scene_name_and_idx(scene_name, img_idx)
-        pose = dataset.get_pose_from_scene_name_and_idx(scene_name, img_idx)
-
-        return rgb, depth, mask, pose
-
-    @staticmethod
     def plot_descriptor_colormaps(res_a, res_b):
         """
         Plots the colormaps of descriptors for a pair of images
@@ -320,13 +297,14 @@ class DenseCorrespondenceEvaluation(object):
         :rtype:
         """
 
-        rgb_a, depth_a, mask_a, pose_a = DenseCorrespondenceEvaluation.get_image_data(dataset,
-                                                                                      scene_name,
-                                                                                      img_a_idx)
+        rgb_a, depth_a, mask_a, pose_a = dataset.get_rgbd_mask_pose(scene_name, img_a_idx)
 
-        rgb_b, depth_b, mask_b, pose_b = DenseCorrespondenceEvaluation.get_image_data(dataset,
-                                                                                      scene_name,
-                                                                                      img_b_idx)
+        rgb_b, depth_b, mask_b, pose_b = dataset.get_rgbd_mask_pose(scene_name, img_b_idx)
+
+        depth_a = np.asarray(depth_a)
+        depth_b = np.asarray(depth_b)
+        mask_a = np.asarray(mask_a)
+        mask_b = np.asarray(mask_b)
 
         # compute dense descriptors
         res_a = dcn.forward_on_img(rgb_a)
@@ -616,13 +594,14 @@ class DenseCorrespondenceEvaluation(object):
         :return: None
         """
 
-        rgb_a, depth_a, mask_a, pose_a = DenseCorrespondenceEvaluation.get_image_data(dataset,
-                                                                                      scene_name,
-                                                                                      img_a_idx)
+        rgb_a, depth_a, mask_a, pose_a = dataset.get_rgbd_mask_pose(scene_name, img_a_idx)
 
-        rgb_b, depth_b, mask_b, pose_b = DenseCorrespondenceEvaluation.get_image_data(dataset,
-                                                                                      scene_name,
-                                                                                      img_b_idx)
+        rgb_b, depth_b, mask_b, pose_b = dataset.get_rgbd_mask_pose(scene_name, img_b_idx)
+
+        depth_a = np.asarray(depth_a)
+        depth_b = np.asarray(depth_b)
+        mask_a = np.asarray(mask_a)
+        mask_b = np.asarray(mask_b)
 
         # compute dense descriptors
         res_a = dcn.forward_on_img(rgb_a)
@@ -977,12 +956,12 @@ class DenseCorrespondenceEvaluation(object):
         if randomize:
             raise NotImplementedError("not yet implemented")
         else:
-            scene_name = '13_drill_long_downsampled'
+            scene_name = '2018-04-10-16-06-26'
             img_pairs = []
-            img_pairs.append([0,737])
-            img_pairs.append([409, 1585])
-            img_pairs.append([2139, 1041])
-            img_pairs.append([235, 1704])
+            img_pairs.append([0,753])
+            img_pairs.append([812, 1218])
+            img_pairs.append([1430, 1091])
+            img_pairs.append([1070, 649])
 
         for img_pair in img_pairs:
             print "Image pair (%d, %d)" %(img_pair[0], img_pair[1])
@@ -998,12 +977,12 @@ class DenseCorrespondenceEvaluation(object):
         if randomize:
             raise NotImplementedError("not yet implemented")
         else:
-            scene_name = '06_drill_long_downsampled'
+            scene_name = '2018-04-10-16-08-46'
             img_pairs = []
-            img_pairs.append([0, 617])
-            img_pairs.append([270, 786])
-            img_pairs.append([1001, 2489])
-            img_pairs.append([1536, 1917])
+            img_pairs.append([0, 754])
+            img_pairs.append([813, 1219])
+            img_pairs.append([1429, 1092])
+            img_pairs.append([1071, 637])
 
 
         for img_pair in img_pairs:
@@ -1069,7 +1048,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
         return df
 
     @staticmethod
-    def make_cdf_plot(data, num_bins=30):
+    def make_cdf_plot(data, label=None, num_bins=30):
         """
         Plots the empirical CDF of the data
         :param data:
@@ -1082,11 +1061,11 @@ class DenseCorrespondenceEvaluationPlotter(object):
         cumhist, l, b, e = ss.cumfreq(data, num_bins)
         cumhist *= 1.0 / len(data)
         x_axis = l + b * np.arange(0, num_bins)
-        plot = plt.plot(x_axis, cumhist)
+        plot = plt.plot(x_axis, cumhist, label=label)
         return plot
 
     @staticmethod
-    def make_descriptor_accuracy_plot(df, num_bins=30):
+    def make_descriptor_accuracy_plot(df, label=None, num_bins=30):
         """
         Makes a plot of best match accuracy.
         Drops nans
@@ -1103,7 +1082,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
         data = data.dropna()
         data *= 100 # convert to cm
 
-        plot = DCEP.make_cdf_plot(data, num_bins=num_bins)
+        plot = DCEP.make_cdf_plot(data, label=label, num_bins=num_bins)
         plt.xlabel('error (cm)')
         plt.ylabel('fraction below threshold')
         plt.title("3D Norm Diff Best Match")
@@ -1132,7 +1111,34 @@ class DenseCorrespondenceEvaluationPlotter(object):
         return area_above_curve
 
     @staticmethod
-    def run_on_single_dataframe(path_to_df_csv, output_dir=None):
+    def run_on_single_dataframe(path_to_df_csv, label=None, output_dir=None, save=True, previous_plot=None):
+        """
+        This method is intended to be called from an ipython notebook for plotting.
+
+        Usage notes:
+        - after calling this function, you can still change many things about the plot
+        - for example you can still call plt.title("New title") to change the title
+        - if you'd like to plot multiple lines on the same axes, then take the return arg of a previous call to this function, 
+        - and pass it into previous_plot, i.e.:
+            fig = run_on_single_dataframe("thing1.csv")
+            run_on_single_dataframe("thing2.csv", previous_plot=fig)
+            plt.title("both things")
+            plt.show()
+        - if you'd like each line to have a label in the plot, then use pass a string to label, i.e.:
+            fig = run_on_single_dataframe("thing1.csv", label="thing1")
+            run_on_single_dataframe("thing2.csv", label="thing2", previous_plot=fig)
+            plt.title("both things")
+            plt.show()
+
+        :param path_to_df_csv: full path to csv file
+        :type path_to_df_csv: string
+        :param label: name that will show up labeling this line in the legend
+        :type label: string
+        :param save: whether or not you want to save a .png
+        :type save: bool
+        :param previous_plot: a previous matplotlib figure to keep building on
+        :type previous_plot: None or matplotlib figure 
+        """
         DCEP = DenseCorrespondenceEvaluationPlotter
 
         path_to_csv = utils.convert_to_absolute_path(path_to_df_csv)
@@ -1142,12 +1148,18 @@ class DenseCorrespondenceEvaluationPlotter(object):
 
         df = pd.read_csv(path_to_csv, index_col=0, parse_dates=True)
 
+        
+        if previous_plot==None:
+            fig = plt.figure()
+        else:
+            fig = previous_plot
+        
         # norm diff accuracy
-        fig = plt.figure()
-        plot = DCEP.make_descriptor_accuracy_plot(df)
-        fig_file = os.path.join(output_dir, "norm_diff_pred_3d.png")
-        fig.savefig(fig_file)
-
+        plot = DCEP.make_descriptor_accuracy_plot(df, label=label)
+        plt.legend()
+        if save:
+            fig_file = os.path.join(output_dir, "norm_diff_pred_3d.png")
+            fig.savefig(fig_file)
 
         aac = DCEP.compute_area_above_curve(df, 'norm_diff_pred_3d')
         d = dict()
@@ -1155,6 +1167,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
 
         yaml_file = os.path.join(output_dir, 'stats.yaml')
         utils.saveToYaml(d, yaml_file)
+        return fig
 
 
 def run():

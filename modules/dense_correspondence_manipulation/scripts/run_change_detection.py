@@ -15,7 +15,7 @@ CONFIG_FILE = CHANGE_DETECTION_CONFIG_FILE
 # CONFIG_FILE = CHANGE_DETECTION_BACKGROUND_SUBTRACTION_CONFIG_FILE
 
 def run(data_folder, config_file=CONFIG_FILE, debug=False, globalsDict=None,
-        background_scene_data_folder=BACKGROUND_SCENE_DATA_FOLDER):
+        background_scene_data_folder=None):
     """
     Runs the change detection pipeline
     :param data_dir:
@@ -25,6 +25,9 @@ def run(data_folder, config_file=CONFIG_FILE, debug=False, globalsDict=None,
 
     if globalsDict is None:
         globalsDict = globals()
+
+    if background_scene_data_folder is None:
+        background_scene_data_folder = data_folder
 
 
 
