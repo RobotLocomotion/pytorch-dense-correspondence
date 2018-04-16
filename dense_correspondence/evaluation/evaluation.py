@@ -12,6 +12,8 @@ import pandas as pd
 import random
 import scipy.stats as ss
 
+from torch.autograd import Variable
+
 
 
 from dense_correspondence_manipulation.utils.constants import *
@@ -20,6 +22,7 @@ from dense_correspondence.dataset.spartan_dataset_masked import SpartanDataset
 import dense_correspondence.correspondence_tools.correspondence_plotter as correspondence_plotter
 import dense_correspondence.correspondence_tools.correspondence_finder as correspondence_finder
 from dense_correspondence.network.dense_correspondence_network import DenseCorrespondenceNetwork
+from dense_correspondence.loss_functions.pixelwise_contrastive_loss import PixelwiseContrastiveLoss
 
 import dense_correspondence.evaluation.plotting as dc_plotting
 
@@ -992,6 +995,87 @@ class DenseCorrespondenceEvaluation(object):
                                                                                  scene_name,
                                                                                  img_pair[0],
                                                                                  img_pair[1])
+
+    @staticmethod
+    def compute_loss_on_dataset(dcn, data_loader, num_iterations=500):
+        """
+
+        Computes the loss for the given number of iterations
+
+        :param dcn:
+        :type dcn:
+        :param data_loader:
+        :type data_loader:
+        :param num_iterations:
+        :type num_iterations:
+        :return:
+        :rtype:
+        """
+
+
+        # loss_vec = np.zeros(num_iterations)
+        loss_vec = []
+        match_loss_vec = []
+        non_match_loss_vec = []
+        counter = 0
+        pixelwise_contrastive_loss = PixelwiseContrastiveLoss()
+
+        batch_size = 1
+
+        for i, data in enumerate(data_loader, 0):
+
+            # get the inputs
+            data_type, img_a, img_b, matches_a, matches_b, non_matches_a, non_matches_b = data
+            data_type = data_type[0]
+
+            if len(matches_a[0]) == 0:
+                print "didn't have any matches, continuing"
+                continue
+
+            img_a = Variable(img_a.cuda(), requires_grad=False)
+            img_b = Variable(img_b.cuda(), requires_grad=False)
+
+            if data_type == "matches":
+                matches_a = Variable(matches_a.cuda().squeeze(0), requires_grad=False)
+                matches_b = Variable(matches_b.cuda().squeeze(0), requires_grad=False)
+                non_matches_a = Variable(non_matches_a.cuda().squeeze(0), requires_grad=False)
+                non_matches_b = Variable(non_matches_b.cuda().squeeze(0), requires_grad=False)
+
+            # run both images through the network
+            image_a_pred = dcn.forward(img_a)
+            image_a_pred = dcn.process_network_output(image_a_pred, batch_size)
+
+            image_b_pred = dcn.forward(img_b)
+            image_b_pred = dcn.process_network_output(image_b_pred, batch_size)
+
+            # get loss
+            if data_type == "matches":
+                loss, match_loss, non_match_loss = \
+                    pixelwise_contrastive_loss.get_loss(image_a_pred,
+                                                        image_b_pred,
+                                                        matches_a,
+                                                        matches_b,
+                                                        non_matches_a,
+                                                        non_matches_b)
+
+
+                loss_vec.append(loss)
+                non_match_loss_vec.append(non_match_loss)
+                match_loss_vec.append(match_loss)
+
+
+            if i > num_iterations:
+                break
+
+        loss_vec = np.array(loss_vec)
+        match_loss_vec = np.array(match_loss_vec)
+        non_match_loss_vec = np.array(non_match_loss_vec)
+
+        loss = np.average(loss_vec)
+        match_loss = np.average(match_loss_vec)
+        non_match_loss = np.average(non_match_loss_vec)
+
+        return loss, match_loss, non_match_loss
 
     @staticmethod
     def make_default():

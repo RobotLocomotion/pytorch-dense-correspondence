@@ -35,6 +35,7 @@ from dense_correspondence.dataset.spartan_dataset_masked import SpartanDataset
 from dense_correspondence.network.dense_correspondence_network import DenseCorrespondenceNetwork
 
 from dense_correspondence.loss_functions.pixelwise_contrastive_loss import PixelwiseContrastiveLoss
+from dense_correspondence.evaluation.evaluation import DenseCorrespondenceEvaluation
 
 
 
@@ -69,6 +70,8 @@ class DenseCorrespondenceTraining(object):
 
         if self._dataset is None:
             self._dataset = SpartanDataset.make_default_10_scenes_drill()
+            self._dataset_test = SpartanDataset.make_default_10_scenes_drill()
+            self._dataset_test.set_test_mode()
 
         self._dataset.load_all_pose_data()
         self._dataset.set_parameters_from_training_config(self._config)
@@ -77,6 +80,21 @@ class DenseCorrespondenceTraining(object):
         num_workers = self._config['training']['num_workers']
         self._data_loader = torch.utils.data.DataLoader(self._dataset, batch_size=batch_size,
                                           shuffle=True, num_workers=num_workers, drop_last=True)
+
+        self._data_loader_test = torch.utils.data.DataLoader(self._dataset_test, batch_size=batch_size,
+                                          shuffle=True, num_workers=num_workers, drop_last=True)
+
+    def load_dataset_from_config(self, config):
+        """
+        Loads train and test datasets from the given config
+        :param config: Dict gotten from a YAML file
+        :type config:
+        :return: None
+        :rtype:
+        """
+        self._dataset = SpartanDataset(mode="train", config=config)
+        self._dataset_test = SpartanDataset(mode="test", config=config)
+        self.load_dataset()
 
     def build_network(self):
         """
@@ -109,6 +127,8 @@ class DenseCorrespondenceTraining(object):
         :rtype:
         """
 
+        DCE = DenseCorrespondenceEvaluation
+
         self.setup()
         self.save_configs()
         dcn = self.build_network()
@@ -125,6 +145,7 @@ class DenseCorrespondenceTraining(object):
         max_num_iterations = self._config['training']['num_iterations']
         logging_rate = self._config['training']['logging_rate']
         save_rate = self._config['training']['save_rate']
+        compute_test_loss_rate = self._config['compute_test_loss_rate']
 
         # logging
         self._logging_dict = dict()
@@ -132,6 +153,8 @@ class DenseCorrespondenceTraining(object):
         self._logging_dict['match_loss_history'] = []
         self._logging_dict['non_match_loss_history'] = []
         self._logging_dict['loss_iteration_number_history'] = []
+        self._logging_dict['test_loss'] = {"iteration": [], "loss": [], "match_loss": [],
+                                           "non_match_loss": []}
 
         # save network before starting
         self.save_network(dcn, optimizer, 0)
@@ -203,7 +226,14 @@ class DenseCorrespondenceTraining(object):
                                                              non_match_loss.data[0])
 
 
+                def update_visdom_test_loss_plots(train_loss, train_match_loss, train_non_match_loss):
+                    """
+                    Update the test loss plots
+                    :return:
+                    :rtype:
+                    """
 
+                    self._visdom_plots['train_loss'].log(loss_current_iteration, loss)
                 update_visdom_plots()
 
                 if loss_current_iteration % save_rate == 0:
@@ -215,6 +245,13 @@ class DenseCorrespondenceTraining(object):
                     percent_complete = loss_current_iteration * 100.0/max_num_iterations
                     logging.info("Training is %d percent complete\n" %(percent_complete))
 
+
+                if (loss_current_iteration % compute_test_loss_rate == 0):
+                    logging.info("Computing test loss")
+                    test_loss, test_match_loss, test_non_match_loss = DCE.compute_loss_on_dataset(dcn,
+                                                                                                  self._data_loader_test, num_iterations=self._config['test_loss_num_iterations'])
+
+                    self._visdom_plots['']
 
                 if loss_current_iteration > max_num_iterations:
                     logging.info("Finished training after %d iterations" % (max_num_iterations))
@@ -322,10 +359,19 @@ class DenseCorrespondenceTraining(object):
         'line', port=self._port, opts={'title': 'Learning Rate'}, env=self._visdom_env)
 
         self._visdom_plots['match_loss'] = VisdomPlotLogger(
-        'line', port=self._port, opts={'title': 'Match Loss'}, env=self._visdom_env)
+        'line', port=self._port, opts={'title': 'Train Match Loss'}, env=self._visdom_env)
 
         self._visdom_plots['non_match_loss'] = VisdomPlotLogger(
-            'line', port=self._port, opts={'title': 'Non Match Loss'}, env=self._visdom_env)
+            'line', port=self._port, opts={'title': 'Train Non Match Loss'}, env=self._visdom_env)
+
+        self._visdom_plots['test_loss'] = VisdomPlotLogger(
+            'line', port=self._port, opts={'title': 'Test Loss'}, env=self._visdom_env)
+
+        self._visdom_plots['test_match_loss'] = VisdomPlotLogger(
+            'line', port=self._port, opts={'title': 'Test Match Loss'}, env=self._visdom_env)
+
+        self._visdom_plots['test_non_match_loss'] = VisdomPlotLogger(
+            'line', port=self._port, opts={'title': 'Test Non Match Loss'}, env=self._visdom_env)
 
 
     @staticmethod
