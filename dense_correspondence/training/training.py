@@ -285,6 +285,9 @@ class DenseCorrespondenceTraining(object):
         training_params_file = os.path.join(self._logging_dir, 'training.yaml')
         utils.saveToYaml(self._config, training_params_file)
 
+        dataset_params_file = os.path.join(self._logging_dir, 'dataset.yaml')
+        utils.saveToYaml(self._dataset.config, dataset_params_file)        
+
     def adjust_learning_rate(self, optimizer, iteration):
         """
         Adjusts the learning rate according to the schedule
