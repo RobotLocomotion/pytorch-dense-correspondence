@@ -148,8 +148,8 @@ class DenseCorrespondenceTraining(object):
                 data_type, img_a, img_b, matches_a, matches_b, non_matches_a, non_matches_b = data
                 data_type = data_type[0]
 
-                if len(matches_a[0]) == 0:
-                    print "didn't have any matches, continuing"
+                if data_type == None:
+                    print "\n didn't have any matches, continuing \n"
                     continue
 
                 img_a = Variable(img_a.cuda(), requires_grad=False)
