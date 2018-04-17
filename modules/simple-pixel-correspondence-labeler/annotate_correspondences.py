@@ -37,11 +37,13 @@ def get_cv2_img_pair_from_spartan():
 white = (255,255,255)
 black = (0,0,0)
 
-label_colors = [(255,0,0), (0,255,0), (0,0,255)]
-
-ix,iy = -1,-1
+label_colors = [(255,0,0), (0,255,0), (0,0,255), (255,0,255), (0,125,125), (125,125,0), (200,255,50), (255, 125, 220), (10, 125, 255)]
 
 drawing_scale_config = 2.0
+
+###
+
+annotated_data = dict()
 
 ###
 
@@ -66,11 +68,7 @@ def draw_circle1(event,x,y,flags,param):
     if event == cv2.EVENT_LBUTTONDOWN:
         global img1_points_picked
         this_pair_label_index = len(img1_points_picked)
-        supported_num_points = 3
-        if this_pair_label_index >= supported_num_points:
-            print "Currently only suggesting to do", supported_num_points, "points at a time"
-            return
-        label_color = label_colors[this_pair_label_index]
+        label_color = label_colors[this_pair_label_index%len(label_colors)]
         img1_points_picked.append((x/drawing_scale_config,y/drawing_scale_config))
         draw_reticle(img1, x, y, label_color)
         
@@ -78,14 +76,13 @@ def draw_circle2(event,x,y,flags,param):
     if event == cv2.EVENT_LBUTTONDOWN:
         global img2_points_picked
         this_pair_label_index = len(img2_points_picked)
-        supported_num_points = 3
-        if this_pair_label_index >= supported_num_points:
-            print "Currently only suggesting to do", supported_num_points, "points at a time"
-            return
-        label_color = label_colors[this_pair_label_index]
+        label_color = label_colors[this_pair_label_index%len(label_colors)]
         img2_points_picked.append((x/drawing_scale_config,y/drawing_scale_config))
         draw_reticle(img2, x, y, label_color)
         
+def check_same_length(img1_points_picked, img2_points_picked):
+    return (len(img1_points_picked) == len(img2_points_picked))
+
 def scale_image(img, scale):
     return cv2.resize(img, (0,0), fx=scale, fy=scale) 
 
@@ -112,11 +109,16 @@ while(1):
     elif k == ord('a'):
         print ix,iy
     elif k == ord('s'):
-        print "saving"
-        print scene_name_1
-        print img1_points_picked
-        print scene_name_2
-        print img2_points_picked
+        if not check_same_length(img1_points_picked, img2_points_picked):
+            print "can't save when not same length"
+            print "try choosing a new image pair"
+            print "or picking more points on the one with less points"
+        else:
+            print "saving"
+            print scene_name_1
+            print img1_points_picked
+            print scene_name_2
+            print img2_points_picked
     elif k == ord('n'):
         next_image_pair()
         
