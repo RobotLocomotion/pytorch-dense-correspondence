@@ -20,7 +20,8 @@ apt install --no-install-recommends \
   python-dev 
 
 
-pip install -U pip setuptools
+pip install --upgrade pip==9.0.3
+pip install -U setuptools
 
 apt-get -y install ipython ipython-notebook
 pip install \
