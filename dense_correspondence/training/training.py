@@ -76,6 +76,9 @@ class DenseCorrespondenceTraining(object):
         self._dataset.load_all_pose_data()
         self._dataset.set_parameters_from_training_config(self._config)
 
+        self._dataset_test.load_all_pose_data()
+        self._dataset_test.set_parameters_from_training_config(self._config)
+
         batch_size = self._config['training']['batch_size']
         num_workers = self._config['training']['num_workers']
         self._data_loader = torch.utils.data.DataLoader(self._dataset, batch_size=batch_size,
@@ -120,6 +123,28 @@ class DenseCorrespondenceTraining(object):
         optimizer = optim.Adam(parameters, lr=learning_rate, weight_decay=weight_decay)
         return optimizer
 
+    def _get_current_loss(self, logging_dict):
+        """
+        Gets the current loss for both test and train
+        :return:
+        :rtype: dict
+        """
+        d = dict()
+        d['train'] = dict()
+        d['test'] = dict()
+
+        for key, val in d.iteritems():
+            for field in logging_dict[key].keys():
+                vec = logging_dict[key][field]
+
+                if len(vec) > 0:
+                    val[field] = vec[:-1]
+                else:
+                    val[field] = -1 # placeholder
+
+
+        return d
+
     def run(self):
         """
         Runs the training
@@ -145,15 +170,17 @@ class DenseCorrespondenceTraining(object):
         max_num_iterations = self._config['training']['num_iterations']
         logging_rate = self._config['training']['logging_rate']
         save_rate = self._config['training']['save_rate']
-        compute_test_loss_rate = self._config['compute_test_loss_rate']
+        compute_test_loss_rate = self._config['training']['compute_test_loss_rate']
 
         # logging
         self._logging_dict = dict()
-        self._logging_dict['loss_history'] = []
-        self._logging_dict['match_loss_history'] = []
-        self._logging_dict['non_match_loss_history'] = []
-        self._logging_dict['loss_iteration_number_history'] = []
-        self._logging_dict['test_loss'] = {"iteration": [], "loss": [], "match_loss": [],
+        self._logging_dict['train'] = {"iteration": [], "loss": [], "match_loss": [],
+                                           "non_match_loss": []}
+        # self._logging_dict['loss_history'] = []
+        # self._logging_dict['match_loss_history'] = []
+        # self._logging_dict['non_match_loss_history'] = []
+        # self._logging_dict['loss_iteration_number_history'] = []
+        self._logging_dict['test'] = {"iteration": [], "loss": [], "match_loss": [],
                                            "non_match_loss": []}
 
         # save network before starting
@@ -215,10 +242,10 @@ class DenseCorrespondenceTraining(object):
                     :return:
                     :rtype:
                     """
-                    self._logging_dict['loss_iteration_number_history'].append(loss_current_iteration)
-                    self._logging_dict['loss_history'].append(loss.data[0])
-                    self._logging_dict['match_loss_history'].append(match_loss.data[0])
-                    self._logging_dict['non_match_loss_history'].append(non_match_loss.data[0])
+                    self._logging_dict['train']['iteration'].append(loss_current_iteration)
+                    self._logging_dict['train']['loss'].append(loss.data[0])
+                    self._logging_dict['train']['match_loss'].append(match_loss.data[0])
+                    self._logging_dict['train']['non_match_loss'].append(non_match_loss.data[0])
 
                     self._visdom_plots['train_loss'].log(loss_current_iteration, loss.data[0])
                     self._visdom_plots['match_loss'].log(loss_current_iteration, match_loss.data[0])
@@ -226,7 +253,7 @@ class DenseCorrespondenceTraining(object):
                                                              non_match_loss.data[0])
 
 
-                def update_visdom_test_loss_plots(train_loss, train_match_loss, train_non_match_loss):
+                def update_visdom_test_loss_plots(test_loss, test_match_loss, test_non_match_loss):
                     """
                     Log data about test loss and update the visdom plots
                     :return:
@@ -239,9 +266,9 @@ class DenseCorrespondenceTraining(object):
                     self._logging_dict['test']['iteration'].append(loss_current_iteration)
 
 
-                    self._visdom_plots['train_loss'].log(loss_current_iteration, train_loss)
-                    self._visdom_plots['train_match_loss'].log(loss_current_iteration, train_match_loss)
-                    self._visdom_plots['train_non_match_loss'].log(loss_current_iteration, train_non_match_loss)
+                    self._visdom_plots['test_loss'].log(loss_current_iteration, test_loss)
+                    self._visdom_plots['test_match_loss'].log(loss_current_iteration, test_match_loss)
+                    self._visdom_plots['test_non_match_loss'].log(loss_current_iteration, test_non_match_loss)
 
 
 
@@ -257,15 +284,15 @@ class DenseCorrespondenceTraining(object):
                     logging.info("Training is %d percent complete\n" %(percent_complete))
 
 
-                if (loss_current_iteration % compute_test_loss_rate == 0):
+                if (loss_current_iteration % compute_test_loss_rate == 0) or loss_current_iteration == 1:
                     logging.info("Computing test loss")
                     test_loss, test_match_loss, test_non_match_loss = DCE.compute_loss_on_dataset(dcn,
-                                                                                                  self._data_loader_test, num_iterations=self._config['test_loss_num_iterations'])
+                                                                                                  self._data_loader_test, num_iterations=self._config['training']['test_loss_num_iterations'])
 
-                    self._visdom_plots['']
+                    update_visdom_test_loss_plots(test_loss, test_match_loss, test_non_match_loss)
 
                 if loss_current_iteration > max_num_iterations:
-                    logging.info("Finished training after %d iterations" % (max_num_iterations))
+                    logging.info("Finished testing after %d iterations" % (max_num_iterations))
                     return
 
 
@@ -319,8 +346,12 @@ class DenseCorrespondenceTraining(object):
         # also save loss history stuff
         if logging_dict is not None:
             log_history_file = os.path.join(self._logging_dir, utils.getPaddedString(iteration, width=6) + "_log_history.yaml")
-
             utils.saveToYaml(logging_dict, log_history_file)
+
+            current_loss_file = os.path.join(self._logging_dir, 'loss.yaml')
+            current_loss_data = self._get_current_loss(logging_dict)
+
+            utils.saveToYaml(current_loss_data, current_loss_file)
 
 
 
