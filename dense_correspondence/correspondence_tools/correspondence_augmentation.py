@@ -41,41 +41,39 @@ def random_image_and_indices_mutation(images, uv_pixel_positions):
     	:rtype: list of PIL.image.image, tuple of torch Tensors
 
     """
+    mutated_images, mutated_uv_pixel_positions = random_flip_vertical(images, uv_pixel_positions)
+    mutated_images, mutated_uv_pixel_positions = random_flip_horizontal(mutated_images, mutated_uv_pixel_positions)
 
-    # Current augmentation is:
-    # 50% do nothing
-    # 50% rotate the image 180 degrees (by applying flip vertical then flip horizontal) 
-
-    if random.random() < 0.5:
-        return images, uv_pixel_positions
-
-    else:
-        mutated_images, mutated_uv_pixel_positions = flip_vertical(images, uv_pixel_positions)
-        mutated_images, mutated_uv_pixel_positions = flip_horizontal(mutated_images, mutated_uv_pixel_positions)
-
-        return mutated_images, mutated_uv_pixel_positions
+    return mutated_images, mutated_uv_pixel_positions
 
 
-def flip_vertical(images, uv_pixel_positions):
+def random_flip_vertical(images, uv_pixel_positions):
     """
-    Fip the images and the pixel positions vertically (flip up/down)
+    Randomly flip the images and the pixel positions vertically (flip up/down)
 
     See random_image_and_indices_mutation() for documentation of args and return types.
 
     """
+
+    if random.random() < 0.5:
+        return images, uv_pixel_positions  # Randomly do not apply
+
     mutated_images = [ImageOps.flip(image) for image in images]
     v_pixel_positions = uv_pixel_positions[1]
     mutated_v_pixel_positions = (image.height-1) - v_pixel_positions
     mutated_uv_pixel_positions = (uv_pixel_positions[0], mutated_v_pixel_positions)
     return mutated_images, mutated_uv_pixel_positions
 
-def flip_horizontal(images, uv_pixel_positions):
+def random_flip_horizontal(images, uv_pixel_positions):
     """
     Randomly flip the image and the pixel positions horizontall (flip left/right)
 
     See random_image_and_indices_mutation() for documentation of args and return types.
 
     """
+
+    if random.random() < 0.5:
+        return images, uv_pixel_positions  # Randomly do not apply
 
     mutated_images = [ImageOps.mirror(image) for image in images]
     u_pixel_positions = uv_pixel_positions[0]

@@ -993,26 +993,6 @@ class DenseCorrespondenceEvaluation(object):
                                                                                  img_pair[0],
                                                                                  img_pair[1])
 
-        # Train Data
-        print "\n\n-----------More Test Data Evaluation----------------"
-        if randomize:
-            raise NotImplementedError("not yet implemented")
-        else:
-            scene_name = '2018-04-16-14-25-19'
-            img_pairs = []
-            img_pairs.append([0,1553])
-            img_pairs.append([1729, 2386])
-            img_pairs.append([2903, 1751])
-            img_pairs.append([841, 771])
-
-        for img_pair in img_pairs:
-            print "Image pair (%d, %d)" %(img_pair[0], img_pair[1])
-            DenseCorrespondenceEvaluation.single_image_pair_qualitative_analysis(dcn,
-                                                                                 dataset,
-                                                                                 scene_name,
-                                                                                 img_pair[0],
-                                                                                 img_pair[1])
-
     @staticmethod
     def make_default():
         """

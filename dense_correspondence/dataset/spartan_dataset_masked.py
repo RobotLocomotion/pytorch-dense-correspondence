@@ -177,10 +177,6 @@ class SpartanDataset(DenseCorrespondenceDataset):
         random_idx = random.choice(image_idxs)
         return random_idx
 
-    @property
-    def config(self):
-        return self._config
-
     @staticmethod
     def make_default_10_scenes_drill():
         """
