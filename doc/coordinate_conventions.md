@@ -35,4 +35,6 @@ as:
     ```python
     pixel_at_u_v = data_tensor[v,u]
     ```
+- To convert between (u,v) and single index the formulas are n = u + image_width * v. Similarly (u,v) = (n % image_width, n / image_width).
+
 

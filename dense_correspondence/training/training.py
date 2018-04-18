@@ -198,8 +198,8 @@ class DenseCorrespondenceTraining(object):
                 data_type, img_a, img_b, matches_a, matches_b, non_matches_a, non_matches_b = data
                 data_type = data_type[0]
 
-                if len(matches_a[0]) == 0:
-                    print "didn't have any matches, continuing"
+                if data_type == None:
+                    print "\n didn't have any matches, continuing \n"
                     continue
 
                 img_a = Variable(img_a.cuda(), requires_grad=False)
@@ -363,6 +363,9 @@ class DenseCorrespondenceTraining(object):
         """
         training_params_file = os.path.join(self._logging_dir, 'training.yaml')
         utils.saveToYaml(self._config, training_params_file)
+
+        dataset_params_file = os.path.join(self._logging_dir, 'dataset.yaml')
+        utils.saveToYaml(self._dataset.config, dataset_params_file)        
 
     def adjust_learning_rate(self, optimizer, iteration):
         """
