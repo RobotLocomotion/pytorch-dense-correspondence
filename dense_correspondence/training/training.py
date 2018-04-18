@@ -60,6 +60,14 @@ class DenseCorrespondenceTraining(object):
         self.setup_visdom()
 
 
+    @property
+    def dataset(self):
+        return self._dataset
+
+    @dataset.setter
+    def dataset(self, value):
+        self._dataset = value
+
     def load_dataset(self):
         """
         Loads a dataset, construct a trainloader
@@ -115,7 +123,8 @@ class DenseCorrespondenceTraining(object):
         optimizer = self._construct_optimizer(dcn.parameters())
         batch_size = self._data_loader.batch_size
 
-        pixelwise_contrastive_loss = PixelwiseContrastiveLoss()
+        pixelwise_contrastive_loss = PixelwiseContrastiveLoss(config=self._config['loss_function'])
+        pixelwise_contrastive_loss.debug = True
 
         loss = match_loss = non_match_loss = 0
         loss_current_iteration = 0
@@ -185,6 +194,10 @@ class DenseCorrespondenceTraining(object):
                 loss.backward()
                 optimizer.step()
 
+                elapsed = time.time() - start_iter
+
+                print "single iteration took %.3f seconds" %(elapsed)
+
 
                 def update_visdom_plots():
                     """
@@ -201,6 +214,10 @@ class DenseCorrespondenceTraining(object):
                     self._visdom_plots['match_loss'].log(loss_current_iteration, match_loss.data[0])
                     self._visdom_plots['non_match_loss'].log(loss_current_iteration,
                                                              non_match_loss.data[0])
+
+                    if pixelwise_contrastive_loss.debug:
+                        self._visdom_plots['hard_negative_rate'].log(loss_current_iteration, pixelwise_contrastive_loss.debug_data['fraction_hard_negatives'])
+
 
 
 
@@ -238,7 +255,7 @@ class DenseCorrespondenceTraining(object):
         """
 
         if 'logging_dir_name' in self._config['training']:
-            dir_name =  self._config['training']['logging_dir_name']
+            dir_name = self._config['training']['logging_dir_name']
         else:
             dir_name = utils.get_current_time_unique_name() +"_" + str(self._config['dense_correspondence_network']['descriptor_dimension']) + "d"
 
@@ -329,6 +346,9 @@ class DenseCorrespondenceTraining(object):
 
         self._visdom_plots['non_match_loss'] = VisdomPlotLogger(
             'line', port=self._port, opts={'title': 'Non Match Loss'}, env=self._visdom_env)
+
+        self._visdom_plots['hard_negative_rate'] = VisdomPlotLogger(
+            'line', port=self._port, opts={'title': 'Hard Negative Rate'}, env=self._visdom_env)
 
 
     @staticmethod
