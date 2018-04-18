@@ -6,7 +6,7 @@ training:
   weight_decay: 1.0e-4
   num_iterations: 3500 # number of iterations to train for
   # Dataset loader config
-  num_workers: 10 # num threads/workers for dataset loading
+  num_workers: 5 # num threads/workers for dataset loading
   batch_size: 1
   # Dataset sampling config
   num_matching_attempts: 50000 # note this is not currently used, since all masked pixels are used
@@ -23,4 +23,11 @@ dense_correspondence_network:
   descriptor_dimension: 3
   image_width: 640
   image_height: 480
+
+loss_function:
+  M_descriptor: 0.5
+  M_pixel: 100
+  non_match_loss_weight: 1.0
+  use_l2_pixel_loss: True
+  scale_by_hard_negatives: True
 

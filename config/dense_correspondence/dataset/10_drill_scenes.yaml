@@ -1,0 +1,12 @@
+logs_root_path: code/data_volume/pdc/logs_proto
+train:
+- "05_drill_long_downsampled"
+- "07_drill_long_downsampled"
+- "08_drill_long_downsampled"
+- "09_drill_long_downsampled"
+- "10_drill_long_downsampled"
+- "12_drill_long_downsampled"
+- "13_drill_long_downsampled"
+test:
+- "06_drill_long_downsampled"
+- "11_drill_long_downsampled"
