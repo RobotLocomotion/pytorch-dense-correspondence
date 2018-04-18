@@ -940,7 +940,8 @@ class DenseCorrespondenceEvaluation(object):
 
 
     @staticmethod
-    def evaluate_network_qualitative(dcn, num_image_pairs=5, randomize=False, dataset=None):
+    def evaluate_network_qualitative(dcn, num_image_pairs=5, randomize=False, dataset=None,
+                                     scene_type="caterpillar"):
 
         if dataset is None:
             config_file = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence',
@@ -956,12 +957,22 @@ class DenseCorrespondenceEvaluation(object):
         if randomize:
             raise NotImplementedError("not yet implemented")
         else:
-            scene_name = '2018-04-10-16-06-26'
-            img_pairs = []
-            img_pairs.append([0,753])
-            img_pairs.append([812, 1218])
-            img_pairs.append([1430, 1091])
-            img_pairs.append([1070, 649])
+            if scene_type == "caterpillar":
+                scene_name = '2018-04-10-16-06-26'
+                img_pairs = []
+                img_pairs.append([0,753])
+                img_pairs.append([812, 1218])
+                img_pairs.append([1430, 1091])
+                img_pairs.append([1070, 649])
+            elif scene_type == "drill":
+                scene_name = '13_drill_long_downsampled'
+                img_pairs = []
+                img_pairs.append([0, 737])
+                img_pairs.append([409, 1585])
+                img_pairs.append([2139, 1041])
+                img_pairs.append([235, 1704])
+            else:
+                raise ValueError("scene_type must be one of [drill, caterpillar], it was %s)" %(scene_type))
 
         for img_pair in img_pairs:
             print "Image pair (%d, %d)" %(img_pair[0], img_pair[1])
@@ -977,12 +988,22 @@ class DenseCorrespondenceEvaluation(object):
         if randomize:
             raise NotImplementedError("not yet implemented")
         else:
-            scene_name = '2018-04-10-16-08-46'
-            img_pairs = []
-            img_pairs.append([0, 754])
-            img_pairs.append([813, 1219])
-            img_pairs.append([1429, 1092])
-            img_pairs.append([1071, 637])
+            if scene_type == "caterpillar":
+                scene_name = '2018-04-10-16-08-46'
+                img_pairs = []
+                img_pairs.append([0, 754])
+                img_pairs.append([813, 1219])
+                img_pairs.append([1429, 1092])
+                img_pairs.append([1071, 637])
+            elif scene_type == "drill":
+                scene_name = '06_drill_long_downsampled'
+                img_pairs = []
+                img_pairs.append([0, 617])
+                img_pairs.append([270, 786])
+                img_pairs.append([1001, 2489])
+                img_pairs.append([1536, 1917])
+            else:
+                raise ValueError("scene_type must be one of [drill, caterpillar], it was %s)" % (scene_type))
 
 
         for img_pair in img_pairs:
@@ -993,21 +1014,23 @@ class DenseCorrespondenceEvaluation(object):
                                                                                  img_pair[0],
                                                                                  img_pair[1])
 
-        # Train Data
-        print "\n\n-----------More Test Data Evaluation----------------"
-        if randomize:
-            raise NotImplementedError("not yet implemented")
-        else:
-            scene_name = '2018-04-16-14-25-19'
-            img_pairs = []
-            img_pairs.append([0,1553])
-            img_pairs.append([1729, 2386])
-            img_pairs.append([2903, 1751])
-            img_pairs.append([841, 771])
+        if scene_type == "caterpillar":
+            # Train Data
+            print "\n\n-----------More Test Data Evaluation----------------"
+            if randomize:
+                raise NotImplementedError("not yet implemented")
+            else:
 
-        for img_pair in img_pairs:
-            print "Image pair (%d, %d)" %(img_pair[0], img_pair[1])
-            DenseCorrespondenceEvaluation.single_image_pair_qualitative_analysis(dcn,
+                scene_name = '2018-04-16-14-25-19'
+                img_pairs = []
+                img_pairs.append([0,1553])
+                img_pairs.append([1729, 2386])
+                img_pairs.append([2903, 1751])
+                img_pairs.append([841, 771])
+
+            for img_pair in img_pairs:
+                print "Image pair (%d, %d)" %(img_pair[0], img_pair[1])
+                DenseCorrespondenceEvaluation.single_image_pair_qualitative_analysis(dcn,
                                                                                  dataset,
                                                                                  scene_name,
                                                                                  img_pair[0],
