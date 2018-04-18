@@ -101,9 +101,11 @@ def domain_randomize_background(image_rgb, image_mask):
                         be domain randomized
     :type  image_rgb: PIL.image.image
 
+    :param image_mask: mask of part of image to be left alone, all else will be domain randomized
+    :type image_mask: PIL.image.image
+
     :return domain_randomized_image_rgb:
     :rtype: PIL.image.image
-
     """
     # First, mask the rgb image
     image_rgb_numpy = np.asarray(image_rgb)
@@ -182,7 +184,7 @@ def get_gradient_image(rgb1, rgb2, vertical):
     :param rgb1, rgb2: two numpy arrays of shape (H,W,3)
 
     :return interpolated image:
-    :rtype" same as rgb1 and rgb2
+    :rtype: same as rgb1 and rgb2
     """
     bitmap = np.zeros_like(rgb1)
     h, w = rgb1.shape[0], rgb1.shape[1]
