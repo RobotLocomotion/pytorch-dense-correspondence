@@ -1068,7 +1068,7 @@ class DenseCorrespondenceEvaluation(object):
         for i, data in enumerate(data_loader, 0):
 
             # get the inputs
-            data_type, img_a, img_b, matches_a, matches_b, non_matches_a, non_matches_b = data
+            data_type, img_a, img_b, matches_a, matches_b, non_matches_a, non_matches_b, metadata = data
             data_type = data_type[0]
 
             if len(matches_a[0]) == 0:
