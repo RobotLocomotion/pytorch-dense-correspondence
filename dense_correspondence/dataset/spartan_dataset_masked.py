@@ -190,7 +190,22 @@ class SpartanDataset(DenseCorrespondenceDataset):
         """
         config_file = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence',
                                    'dataset',
-                                   'spartan_dataset_masked.yaml')
+                                   '10_drill_scenes.yaml')
+
+        config = utils.getDictFromYamlFilename(config_file)
+        dataset = SpartanDataset(mode="train", config=config)
+        return dataset
+
+    @staticmethod
+    def make_default_caterpillar():
+        """
+        Makes a default SpartanDatase from the 10_scenes_drill data
+        :return:
+        :rtype:
+        """
+        config_file = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence',
+                                   'dataset',
+                                   '10_caterpillar_scenes.yaml')
 
         config = utils.getDictFromYamlFilename(config_file)
         dataset = SpartanDataset(mode="train", config=config)
