@@ -140,7 +140,7 @@ def get_random_image(shape):
         vertical = bool(np.random.uniform() > 0.5)
         rand_image = get_gradient_image(rgb1, rgb2, vertical=vertical)
 
-    if random.random() < 0.0:
+    if random.random() < 0.5:
         return rand_image
     else:
         return add_noise(rand_image)
