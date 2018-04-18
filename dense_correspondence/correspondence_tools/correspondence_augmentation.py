@@ -83,7 +83,17 @@ def flip_horizontal(images, uv_pixel_positions):
     mutated_uv_pixel_positions = (mutated_u_pixel_positions, uv_pixel_positions[1])
     return mutated_images, mutated_uv_pixel_positions
 
-def domain_randomize_mask_complement(image_rgb, image_mask):
+def random_domain_randomize_background(image_rgb, image_mask):
+    """
+    Ranomly call domain_randomize_mask_complement
+    """
+    if random.random() < 0.5:
+        return image_rgb
+    else:
+        return domain_randomize_background(image_rgb, image_mask)
+
+
+def domain_randomize_background(image_rgb, image_mask):
     """
     This function applies domain randomization to the non-masked part of the image.
 
