@@ -12,9 +12,9 @@ implementation.
 """
 
 from PIL import Image, ImageOps
+import numpy as np
 import random
 import torch
-
 
 def random_image_and_indices_mutation(images, uv_pixel_positions):
     """
@@ -82,3 +82,32 @@ def flip_horizontal(images, uv_pixel_positions):
     mutated_u_pixel_positions = (image.width-1) - u_pixel_positions
     mutated_uv_pixel_positions = (mutated_u_pixel_positions, uv_pixel_positions[1])
     return mutated_images, mutated_uv_pixel_positions
+
+def domain_randomize_mask_complement(image_rgb, image_mask):
+    """
+    This function applies domain randomization to the non-masked part of the image.
+
+    :param image_rgb: rgb image for which the non-masked parts of the image will 
+                        be domain randomized
+    :type  image_rgb: PIL.image.image
+
+    :return domain_randomized_image_rgb:
+    :rtype: PIL.image.image
+
+    """
+    # First, mask the rgb image
+    image_rgb_numpy = np.asarray(image_rgb)
+    image_mask_numpy = np.asarray(image_mask)
+    three_channel_mask = np.zeros_like(image_rgb_numpy)
+    three_channel_mask[:,:,0] = three_channel_mask[:,:,1] = three_channel_mask[:,:,2] = image_mask
+    image_rgb_numpy = image_rgb_numpy * three_channel_mask
+    print np.max(image_rgb_numpy)
+
+    # Next, domain randomize all non-masked parts of image
+    three_channel_mask_complement = np.ones_like(three_channel_mask) - three_channel_mask
+    random_rgb_image = np.array(np.random.uniform(size=3) * 255, dtype=np.uint8)
+    random_rgb_background = three_channel_mask_complement * random_rgb_image
+
+    domain_randomized_image_rgb = image_rgb_numpy + random_rgb_background
+
+    return Image.fromarray(domain_randomized_image_rgb)
