@@ -2,6 +2,7 @@ import sys
 import os
 import cv2
 import numpy as np
+import copy
 
 import dense_correspondence_manipulation.utils.utils as utils
 dc_source_dir = utils.getDenseCorrespondenceSourceDir()
@@ -9,7 +10,7 @@ sys.path.append(dc_source_dir)
 sys.path.append(os.path.join(dc_source_dir, "dense_correspondence", "correspondence_tools"))
 from dense_correspondence.dataset.spartan_dataset_masked import SpartanDataset, ImageType
 
-sd = SpartanDataset(debug=False)
+sd = SpartanDataset()
 
 def pil_image_to_cv2(pil_image):
     return np.array(pil_image)[:, :, ::-1].copy() # open and convert between BGR and RGB
@@ -43,16 +44,9 @@ drawing_scale_config = 2.0
 
 ###
 
-annotated_data = dict()
+annotated_data = []
 
 ###
-
-def draw_crosshairs(img, x, y):
-    crosshair_length = 10
-    cv2.line(img,(x,y+1),(x,y+10),white,1)
-    cv2.line(img,(x+1,y),(x+10,y),white,1)
-    cv2.line(img,(x,y-1),(x,y-10),white,1)
-    cv2.line(img,(x-1,y),(x-10,y),white,1)
 
 def draw_reticle(img, x, y, label_color):
     cv2.circle(img,(x,y),10,label_color,1)
@@ -92,34 +86,59 @@ def next_image_pair():
     img2_points_picked = []
     [img1, scene_name_1, image_1_idx], [img2, scene_name_2, image_2_idx] = get_cv2_img_pair_from_spartan()
 
-next_image_pair()
+def to_savable_list(points_picked):
+    savable_list = []
+    for u_v_tuple in points_picked:
+        u_v_dict = dict()
+        u_v_dict["u"] = u_v_tuple[0]
+        u_v_dict["v"] = u_v_tuple[1]
+        savable_list.append(u_v_dict)
+    return savable_list
 
-cv2.namedWindow('image1')
-cv2.setMouseCallback('image1',draw_circle1)
+def make_savable_correspondence_pairs():
+    new_dict = dict()
+    new_dict["image_a"] = dict()
+    new_dict["image_b"] = dict()
 
-cv2.namedWindow('image2')
-cv2.setMouseCallback('image2',draw_circle2)
+    new_dict["image_a"]["scene_name"] = scene_name_1
+    new_dict["image_b"]["scene_name"] = scene_name_2
 
-while(1):
-    cv2.imshow('image1',img1)
-    cv2.imshow('image2',img2)
-    k = cv2.waitKey(20) & 0xFF
-    if k == 27:
-        break
-    elif k == ord('a'):
-        print ix,iy
-    elif k == ord('s'):
-        if not check_same_length(img1_points_picked, img2_points_picked):
-            print "can't save when not same length"
-            print "try choosing a new image pair"
-            print "or picking more points on the one with less points"
-        else:
-            print "saving"
-            print scene_name_1
-            print img1_points_picked
-            print scene_name_2
-            print img2_points_picked
-    elif k == ord('n'):
-        next_image_pair()
-        
-cv2.destroyAllWindows()
+    new_dict["image_a"]["image_idx"] = image_1_idx
+    new_dict["image_b"]["image_idx"] = image_2_idx
+
+    new_dict["image_a"]["pixels"] = to_savable_list(img1_points_picked)
+    new_dict["image_b"]["pixels"] = to_savable_list(img2_points_picked)
+
+    return copy.copy(new_dict)
+
+if __name__ == "__main__":
+    next_image_pair()
+
+    cv2.namedWindow('image1')
+    cv2.setMouseCallback('image1',draw_circle1)
+
+    cv2.namedWindow('image2')
+    cv2.setMouseCallback('image2',draw_circle2)
+
+    while(1):
+        cv2.imshow('image1',img1)
+        cv2.imshow('image2',img2)
+        k = cv2.waitKey(20) & 0xFF
+        if k == 27:
+            break
+        elif k == ord('a'):
+            print ix,iy
+        elif k == ord('s'):
+            if not check_same_length(img1_points_picked, img2_points_picked):
+                print "can't save when not same length"
+                print "try choosing a new image pair"
+                print "or picking more points on the one with less points"
+            else:
+                print "saving"
+                new_dict = make_savable_correspondence_pairs()
+                annotated_data.append(new_dict)
+                utils.saveToYaml(annotated_data, "new_annotated_pairs.yaml")
+        elif k == ord('n'):
+            next_image_pair()
+            
+    cv2.destroyAllWindows()
