@@ -7,6 +7,10 @@ training:
   num_iterations: 3500 # number of iterations to train for
   # Dataset loader config
   num_workers: 5 # num threads/workers for dataset loading
+  compute_test_loss_rate: 1000 # how often to compute the test loss
+  test_loss_num_iterations: 200 # how many samples to use to compute the test loss
+  logging_rate: 10 # how often to print out
+  save_rate: 500 # how often to save the network
   batch_size: 1
   # Dataset sampling config
   num_matching_attempts: 50000 # note this is not currently used, since all masked pixels are used

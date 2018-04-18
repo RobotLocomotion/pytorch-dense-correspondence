@@ -202,7 +202,7 @@ class DenseCorrespondenceDataset(data.Dataset):
 
         return rgb, depth, mask, pose
 
-    def get_img_idx_with_different_pose(self, scene_name, pose_a, threshold=0.2, num_attempts=10):
+    def get_img_idx_with_different_pose(self, scene_name, pose_a, threshold=0.2, angle_threshold=20, num_attempts=10):
         """
         Try to get an image with a different pose to the one passed in. If one can't be found
         then return None
@@ -224,7 +224,8 @@ class DenseCorrespondenceDataset(data.Dataset):
             pose = self.get_pose_from_scene_name_and_idx(scene_name, img_idx)
 
             diff = utils.compute_distance_between_poses(pose_a, pose)
-            if diff > threshold:
+            angle_diff = utils.compute_angle_between_poses(pose_a, pose)
+            if (diff > threshold) or (angle_diff > angle_threshold):
                 return img_idx
             counter += 1
 
