@@ -29,8 +29,8 @@ dense_correspondence_network:
   image_height: 480
 
 loss_function:
-  M_descriptor: 0.5
-  M_pixel: 100
+  M_descriptor: 0.5 # margin for non-match desciptor distance
+  M_pixel: 50 # Clamp for pixel distance
   non_match_loss_weight: 1.0
   use_l2_pixel_loss: True
   scale_by_hard_negatives: True

@@ -142,11 +142,11 @@ class DenseCorrespondenceDataset(data.Dataset):
         # find non_correspondences
 
         if index%2:
-            metadata['non_match_type'] = 'foreground'
+            metadata['non_match_type'] = 'masked'
             logging.debug("masking non-matches")
             image_b_mask = torch.from_numpy(np.asarray(image_b_mask)).type(torch.FloatTensor)
         else:
-            metadata['non_match_type'] = 'background'
+            metadata['non_match_type'] = 'non_masked'
             logging.debug("not masking non-matches")
             image_b_mask = None
             

@@ -4,7 +4,7 @@ from decimal import Decimal
 
 
 
-class PixelwiseContrastiveLoss():
+class PixelwiseContrastiveLoss(object):
 
     def __init__(self, config=None):
     	self.type = "pixelwise_contrastive"
@@ -26,7 +26,7 @@ class PixelwiseContrastiveLoss():
 
     @debug.setter
     def debug(self, value):
-        self._debug = debug
+        self._debug = value
 
     @property
     def debug_data(self):
@@ -38,6 +38,7 @@ class PixelwiseContrastiveLoss():
         self._config['M_pixel'] = 100 # 100 pixel threshold, squared
         self._config['non_match_loss_weight'] = 1.0
         self._config['use_l2_pixel_loss'] = False
+        self._config['scale_by_hard_negatives'] = True
 
     def get_loss(self, image_a_pred, image_b_pred, matches_a, matches_b, non_matches_a, non_matches_b,
                  M_descriptor=None, M_pixel=None, non_match_loss_weight=1.0, use_l2_pixel_loss=None):
@@ -103,9 +104,8 @@ class PixelwiseContrastiveLoss():
                                                        M_pixel=M_pixel)
         else:
             # version with no l2 pixel term
-            non_match_loss_vec, _, _ = PCL.non_match_descriptor_loss(image_a_pred, image_b_pred, non_matches_a, non_matches_b, M=M_descriptor)
-            num_non_matches = non_match_loss_vec.size()[0]
-            non_match_loss =1.0/num_non_matches * non_match_loss_vec.sum()
+            non_match_loss = self.non_match_loss_descriptor_only(image_a_pred, image_b_pred, non_matches_a, non_matches_b, M_descriptor=M_descriptor)
+
 
         loss = match_loss + non_match_loss_weight * non_match_loss
 
@@ -169,8 +169,8 @@ class PixelwiseContrastiveLoss():
         non_match_loss = (non_matches_a_descriptors - non_matches_b_descriptors).norm(norm_degree, 1)
         non_match_loss = torch.clamp(M - non_match_loss.pow(2), min=0)
 
-        num_hard_negatives = (non_match_loss > 0).sum()
-
+        hard_negative_idxs = torch.nonzero(non_match_loss)
+        num_hard_negatives = len(hard_negative_idxs)
 
         return non_match_loss, num_hard_negatives, non_matches_a_descriptors, non_matches_b_descriptors
 
@@ -254,16 +254,20 @@ class PixelwiseContrastiveLoss():
         non_match_loss_vec, num_hard_negatives, _, _ = PCL.non_match_descriptor_loss(image_a_pred, image_b_pred, non_matches_a,
                                                                  non_matches_b, M=M_descriptor)
 
-        num_non_matches = non_match_loss_vec.size()[0]
+        num_non_matches = long(non_match_loss_vec.size()[0])
+
         if self._config['scale_by_hard_negatives']:
             scale_factor = num_hard_negatives
         else:
             scale_factor = num_non_matches
 
+        # self.non_match_loss_vec = non_match_loss_vec
+        # self.scale_factor = scale_factor
+        # self.num_non_matches = num_non_matches
+
         non_match_loss = 1.0 / scale_factor * non_match_loss_vec.sum()
 
         if self._debug:
-            num_hard_negatives = (non_match_loss_vec > 0).sum()
             self._debug_data['num_hard_negatives'] = num_hard_negatives
             self._debug_data['fraction_hard_negatives'] = num_hard_negatives * 1.0/num_non_matches
 
@@ -285,35 +289,19 @@ class PixelwiseContrastiveLoss():
         if M_pixel is None:
             M_pixel = self._config['M_pixel']
 
-        print "M_pixel", M_pixel
-
-        # print len(matches_b)
-        # print len(non_matches_b)
-
         num_non_matches_per_match = len(non_matches_b)/len(matches_b)
 
         ground_truth_pixels_for_non_matches_b = torch.t(matches_b.repeat(num_non_matches_per_match,1)).contiguous().view(-1,1)
 
-        # print "ground_truth_pixels_for_non_matches_b"
-        # print len(ground_truth_pixels_for_non_matches_b)
-        # print type(ground_truth_pixels_for_non_matches_b)
-
-        # print ground_truth_pixels_for_non_matches_b.shape, "is ground_truth_pixels_for_non_matches_b shape"
-        # print non_matches_b.shape, "is non_matches_b.shape"
-
         ground_truth_u_v_b = self.flattened_pixel_locations_to_u_v(ground_truth_pixels_for_non_matches_b)
         sampled_u_v_b      = self.flattened_pixel_locations_to_u_v(non_matches_b.unsqueeze(1))
-
-        # print ground_truth_u_v_b.shape, "is ground_truth_u_v_b.shape"
-        # print sampled_u_v_b.shape, "is sampled_u_v_b.shape"
-
 
         # each element is always within [0,1], you have 1 if you are at least M_pixel away in
         # L2 norm in pixel space
         norm_degree = 2
         squared_l2_pixel_loss = 1.0/M_pixel * torch.clamp((ground_truth_u_v_b - sampled_u_v_b).float().norm(norm_degree,1), max=M_pixel)
 
-        
+
         return squared_l2_pixel_loss, ground_truth_u_v_b, sampled_u_v_b
         
 

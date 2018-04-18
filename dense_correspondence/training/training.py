@@ -49,6 +49,7 @@ class DenseCorrespondenceTraining(object):
 
         self._config = config
         self._dataset = dataset
+        self._dataset_test = None
 
     def setup(self):
         """
@@ -192,10 +193,7 @@ class DenseCorrespondenceTraining(object):
         self._logging_dict = dict()
         self._logging_dict['train'] = {"iteration": [], "loss": [], "match_loss": [],
                                            "non_match_loss": []}
-        # self._logging_dict['loss_history'] = []
-        # self._logging_dict['match_loss_history'] = []
-        # self._logging_dict['non_match_loss_history'] = []
-        # self._logging_dict['loss_iteration_number_history'] = []
+
         self._logging_dict['test'] = {"iteration": [], "loss": [], "match_loss": [],
                                            "non_match_loss": []}
 
@@ -211,7 +209,7 @@ class DenseCorrespondenceTraining(object):
                 start_iter = time.time()
 
                 # get the inputs
-                data_type, img_a, img_b, matches_a, matches_b, non_matches_a, non_matches_b = data
+                data_type, img_a, img_b, matches_a, matches_b, non_matches_a, non_matches_b, metadata = data
                 data_type = data_type[0]
 
                 if data_type == None:
@@ -267,13 +265,23 @@ class DenseCorrespondenceTraining(object):
                     self._logging_dict['train']['match_loss'].append(match_loss.data[0])
                     self._logging_dict['train']['non_match_loss'].append(non_match_loss.data[0])
 
-                    self._visdom_plots['train_loss'].log(loss_current_iteration, loss.data[0])
-                    self._visdom_plots['match_loss'].log(loss_current_iteration, match_loss.data[0])
-                    self._visdom_plots['non_match_loss'].log(loss_current_iteration,
+                    self._visdom_plots['train']['loss'].log(loss_current_iteration, loss.data[0])
+                    self._visdom_plots['train']['match_loss'].log(loss_current_iteration, match_loss.data[0])
+                    self._visdom_plots['train']['non_match_loss'].log(loss_current_iteration,
                                                              non_match_loss.data[0])
 
+
+                    non_match_type = metadata['non_match_type'][0]
+                    fraction_hard_negatives = pixelwise_contrastive_loss.debug_data['fraction_hard_negatives']
+
                     if pixelwise_contrastive_loss.debug:
-                        self._visdom_plots['hard_negative_rate'].log(loss_current_iteration, pixelwise_contrastive_loss.debug_data['fraction_hard_negatives'])
+                        if non_match_type == "masked":
+                            self._visdom_plots['masked_hard_negative_rate'].log(loss_current_iteration, fraction_hard_negatives)
+                        elif non_match_type == "non_masked":
+                            self._visdom_plots['non_masked_hard_negative_rate'].log(loss_current_iteration,
+                                                                                fraction_hard_negatives)
+                        else:
+                            raise ValueError("uknown non_match_type %s" %(non_match_type))
 
 
 
@@ -290,9 +298,9 @@ class DenseCorrespondenceTraining(object):
                     self._logging_dict['test']['iteration'].append(loss_current_iteration)
 
 
-                    self._visdom_plots['test_loss'].log(loss_current_iteration, test_loss)
-                    self._visdom_plots['test_match_loss'].log(loss_current_iteration, test_match_loss)
-                    self._visdom_plots['test_non_match_loss'].log(loss_current_iteration, test_non_match_loss)
+                    self._visdom_plots['test']['loss'].log(loss_current_iteration, test_loss)
+                    self._visdom_plots['test']['match_loss'].log(loss_current_iteration, test_match_loss)
+                    self._visdom_plots['test']['non_match_loss'].log(loss_current_iteration, test_non_match_loss)
 
 
 
@@ -308,7 +316,7 @@ class DenseCorrespondenceTraining(object):
                     logging.info("Training is %d percent complete\n" %(percent_complete))
 
 
-                if (loss_current_iteration % compute_test_loss_rate == 0) or loss_current_iteration == 1:
+                if (loss_current_iteration % compute_test_loss_rate == 0):
                     logging.info("Computing test loss")
                     test_loss, test_match_loss, test_non_match_loss = DCE.compute_loss_on_dataset(dcn,
                                                                                                   self._data_loader_test, num_iterations=self._config['training']['test_loss_num_iterations'])
@@ -421,29 +429,35 @@ class DenseCorrespondenceTraining(object):
         self._port = 8097
         self._visdom_plots = dict()
 
-        self._visdom_plots['train_loss'] = VisdomPlotLogger(
+        self._visdom_plots["train"] = dict()
+        self._visdom_plots['train']['loss'] = VisdomPlotLogger(
         'line', port=self._port, opts={'title': 'Train Loss'}, env=self._visdom_env)
 
         self._visdom_plots['learning_rate'] = VisdomPlotLogger(
         'line', port=self._port, opts={'title': 'Learning Rate'}, env=self._visdom_env)
 
-        self._visdom_plots['match_loss'] = VisdomPlotLogger(
+        self._visdom_plots['train']['match_loss'] = VisdomPlotLogger(
         'line', port=self._port, opts={'title': 'Train Match Loss'}, env=self._visdom_env)
 
-        self._visdom_plots['non_match_loss'] = VisdomPlotLogger(
+        self._visdom_plots['train']['non_match_loss'] = VisdomPlotLogger(
             'line', port=self._port, opts={'title': 'Train Non Match Loss'}, env=self._visdom_env)
 
-        self._visdom_plots['test_loss'] = VisdomPlotLogger(
+
+        self._visdom_plots["test"] = dict()
+        self._visdom_plots['test']['loss'] = VisdomPlotLogger(
             'line', port=self._port, opts={'title': 'Test Loss'}, env=self._visdom_env)
 
-        self._visdom_plots['test_match_loss'] = VisdomPlotLogger(
+        self._visdom_plots['test']['match_loss'] = VisdomPlotLogger(
             'line', port=self._port, opts={'title': 'Test Match Loss'}, env=self._visdom_env)
 
-        self._visdom_plots['test_non_match_loss'] = VisdomPlotLogger(
+        self._visdom_plots['test']['non_match_loss'] = VisdomPlotLogger(
             'line', port=self._port, opts={'title': 'Test Non Match Loss'}, env=self._visdom_env)
 
-        self._visdom_plots['hard_negative_rate'] = VisdomPlotLogger(
-            'line', port=self._port, opts={'title': 'Hard Negative Rate'}, env=self._visdom_env)
+        self._visdom_plots['masked_hard_negative_rate'] = VisdomPlotLogger(
+            'line', port=self._port, opts={'title': 'Masked Matches Hard Negative Rate'}, env=self._visdom_env)
+
+        self._visdom_plots['non_masked_hard_negative_rate'] = VisdomPlotLogger(
+            'line', port=self._port, opts={'title': 'Non-Masked Hard Negative Rate'}, env=self._visdom_env)
 
 
     @staticmethod
