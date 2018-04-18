@@ -78,7 +78,12 @@ class DenseCorrespondenceDataset(data.Dataset):
         3rd, 4th rtype: 1-dimensional torch.LongTensor of shape (num_matches)
 
         5th, 6th return args: non_matches_a, non_matches_b
-        5th, 6th rtype: 1-dimensional torch.LongTensor of shape (num_non_matches)        
+        5th, 6th rtype: 1-dimensional torch.LongTensor of shape (num_non_matches)
+
+        Return values 3,4,5,6 are all in the "single index" format for pixels. That is
+
+        (u,v) --> n = u + image_width * v
+
         """
 
         # pick a scene
@@ -130,10 +135,10 @@ class DenseCorrespondenceDataset(data.Dataset):
         # find non_correspondences
 
         if index%2:
-            print "masking non-matches"
+            logging.debug("masking non-matches")
             image_b_mask = torch.from_numpy(np.asarray(image_b_mask)).type(torch.FloatTensor)
         else:
-            print "not masking non-matches"
+            logging.debug("not masking non-matches")
             image_b_mask = None
             
         uv_b_non_matches = correspondence_finder.create_non_correspondences(uv_b, num_non_matches_per_match=self.num_non_matches_per_match, img_b_mask=image_b_mask)
