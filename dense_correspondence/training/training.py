@@ -43,13 +43,13 @@ from dense_correspondence.evaluation.evaluation import DenseCorrespondenceEvalua
 
 class DenseCorrespondenceTraining(object):
 
-    def __init__(self, config=None, dataset=None):
+    def __init__(self, config=None, dataset=None, dataset_test=None):
         if config is None:
             config = DenseCorrespondenceTraining.load_default_config()
 
         self._config = config
         self._dataset = dataset
-        self._dataset_test = None
+        self._dataset_test = dataset_test
 
     def setup(self):
         """
@@ -95,7 +95,7 @@ class DenseCorrespondenceTraining(object):
         # create a test dataset
         if self._dataset_test is None:
             self._dataset_test = SpartanDataset(mode="test", config=self._dataset.config)
-            
+
         
         self._dataset_test.load_all_pose_data()
         self._dataset_test.set_parameters_from_training_config(self._config)
