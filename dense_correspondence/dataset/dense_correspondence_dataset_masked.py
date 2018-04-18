@@ -86,20 +86,27 @@ class DenseCorrespondenceDataset(data.Dataset):
 
         """
 
+        # stores metadata about this data
+        metadata = dict()
+
+
         # pick a scene
         scene_name = self.get_random_scene_name()
+        metadata['scene_name'] = scene_name
 
         # image a
         image_a_idx = self.get_random_image_index(scene_name)
         image_a_rgb, image_a_depth, image_a_mask, image_a_pose = self.get_rgbd_mask_pose(scene_name, image_a_idx)
 
+        metadata['image_a_idx'] = image_a_idx
+
         # image b
         image_b_idx = self.get_img_idx_with_different_pose(scene_name, image_a_pose, num_attempts=50)
-
+        metadata['image_b_idx'] = image_b_idx
         if image_b_idx is None:
             logging.info("no frame with sufficiently different pose found, returning")
             # TODO: return something cleaner than no-data
-            return self.return_empty_data(image_a_rgb, image_b_rgb)
+            return self.return_empty_data(image_a_rgb, image_a_rgb)
 
         image_b_rgb, image_b_depth, image_b_mask, image_b_pose = self.get_rgbd_mask_pose(scene_name, image_b_idx)
 
@@ -135,9 +142,11 @@ class DenseCorrespondenceDataset(data.Dataset):
         # find non_correspondences
 
         if index%2:
+            metadata['non_match_type'] = 'foreground'
             logging.debug("masking non-matches")
             image_b_mask = torch.from_numpy(np.asarray(image_b_mask)).type(torch.FloatTensor)
         else:
+            metadata['non_match_type'] = 'background'
             logging.debug("not masking non-matches")
             image_b_mask = None
             
@@ -174,10 +183,15 @@ class DenseCorrespondenceDataset(data.Dataset):
         non_matches_b = uv_b_non_matches_long[1].long()*640+uv_b_non_matches_long[0].long()
         non_matches_b = non_matches_b.squeeze(1)
 
-        return "matches", image_a_rgb, image_b_rgb, matches_a, matches_b, non_matches_a, non_matches_b
 
-    def return_empty_data(self, image_a_rgb, image_b_rgb):
-        None, image_a_rgb, image_b_rgb, torch.zeros(1).long(), torch.zeros(1).long(), torch.zeros(1).long(), torch.zeros(1).long()
+
+        return "matches", image_a_rgb, image_b_rgb, matches_a, matches_b, non_matches_a, non_matches_b, metadata
+
+    def return_empty_data(self, image_a_rgb, image_b_rgb, metadata=None):
+        if metadata is None:
+            metadata = dict()
+
+        return None, image_a_rgb, image_b_rgb, torch.zeros(1).long(), torch.zeros(1).long(), torch.zeros(1).long(), torch.zeros(1).long(), metadata
 
     def get_rgbd_mask_pose(self, scene_name, img_idx):
         """
