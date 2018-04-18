@@ -63,26 +63,33 @@ class DenseCorrespondenceTraining(object):
 
     def load_dataset(self):
         """
-        Loads a dataset, construct a trainloader
+        Loads a dataset, construct a trainloader.
+        Additionally creates a dataset and DataLoader for the test data
         :return:
         :rtype:
         """
 
+        batch_size = self._config['training']['batch_size']
+        num_workers = self._config['training']['num_workers']
+
         if self._dataset is None:
             self._dataset = SpartanDataset.make_default_10_scenes_drill()
-            self._dataset_test = SpartanDataset.make_default_10_scenes_drill()
-            self._dataset_test.set_test_mode()
+
+        
 
         self._dataset.load_all_pose_data()
         self._dataset.set_parameters_from_training_config(self._config)
 
-        self._dataset_test.load_all_pose_data()
-        self._dataset_test.set_parameters_from_training_config(self._config)
-
-        batch_size = self._config['training']['batch_size']
-        num_workers = self._config['training']['num_workers']
         self._data_loader = torch.utils.data.DataLoader(self._dataset, batch_size=batch_size,
                                           shuffle=True, num_workers=num_workers, drop_last=True)
+
+        # create a test dataset
+        if self._dataset_test is None:
+            self._dataset_test = SpartanDataset(mode="test", config=self._dataset.config)
+            
+        
+        self._dataset_test.load_all_pose_data()
+        self._dataset_test.set_parameters_from_training_config(self._config)
 
         self._data_loader_test = torch.utils.data.DataLoader(self._dataset_test, batch_size=batch_size,
                                           shuffle=True, num_workers=num_workers, drop_last=True)
