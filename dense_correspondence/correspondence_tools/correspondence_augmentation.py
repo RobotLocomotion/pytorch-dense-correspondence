@@ -115,9 +115,47 @@ def domain_randomize_background(image_rgb, image_mask):
 
     # Next, domain randomize all non-masked parts of image
     three_channel_mask_complement = np.ones_like(three_channel_mask) - three_channel_mask
-    random_rgb_image = np.array(np.random.uniform(size=3) * 255, dtype=np.uint8)
+    random_rgb_image = get_random_image()
+    print "three_channel_mask_complement.shape", three_channel_mask_complement.shape
     random_rgb_background = three_channel_mask_complement * random_rgb_image
+    print "random_rgb_background.shape", random_rgb_background.shape
 
     domain_randomized_image_rgb = image_rgb_numpy + random_rgb_background
+    print "domain_randomized_image_rgb.shape", domain_randomized_image_rgb.shape
 
     return Image.fromarray(domain_randomized_image_rgb)
+
+# this gradient code roughly taken from: 
+# https://github.com/openai/mujoco-py/blob/master/mujoco_py/modder.py
+def get_random_image():
+    if random.random() < 0.5:
+        return get_random_solid_color_image()
+    else:
+        rgb1 = get_random_solid_color_image()
+        print rgb1.shape, "coming out of get_random_rgb_image"
+        rgb2 = get_random_solid_color_image()
+        vertical = bool(np.random.uniform() > 0.5)
+        return get_gradient_image(rgb1, rgb2, vertical=vertical)
+
+def get_random_rgb():
+    return np.array(np.random.uniform(size=3) * 255, dtype=np.uint8)
+
+def get_random_solid_color_image():
+    return np.ones((480,640,3),dtype=np.uint8)*get_random_rgb()
+
+def get_gradient_image(rgb1, rgb2, vertical):
+    bitmap = np.zeros_like(rgb1)
+    print bitmap.shape
+    print rgb1.shape
+    h, w = 480, 640
+    if vertical:
+        p = np.tile(np.linspace(0, 1, h)[:, None], (1, w))
+    else:
+        p = np.tile(np.linspace(0, 1, w), (h, 1))
+
+    print p.shape
+    for i in range(3):
+        bitmap[:, :, i] = rgb2[:, :, i] * p + rgb1[:, :, i] * (1.0 - p)
+
+    return bitmap
+
