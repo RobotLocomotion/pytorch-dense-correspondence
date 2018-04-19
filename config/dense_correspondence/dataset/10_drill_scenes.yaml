@@ -10,3 +10,7 @@ train:
 test:
 - "06_drill_long_downsampled"
 - "11_drill_long_downsampled"
+
+image_normalization:
+ mean: [0.5806, 0.4531, 0.4439]
+ std_dev: [0.2477, 0.2948, 0.3109]
