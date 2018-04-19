@@ -169,7 +169,12 @@ class DenseCorrespondenceDataset(data.Dataset):
                                                   use_previous_plot=(fig,axes),
                                                   circ_color='r')
 
-        image_a_rgb, image_b_rgb = self.both_to_tensor([image_a_rgb, image_b_rgb])
+
+        # image_a_rgb, image_b_rgb = self.both_to_tensor([image_a_rgb, image_b_rgb])
+
+        # convert PIL.Image to torch.FloatTensor
+        image_a_rgb = self.rgb_image_to_tensor(image_a_rgb)
+        image_b_rgb = self.rgb_image_to_tensor(image_b_rgb)
 
         uv_a_long = (torch.t(uv_a[0].repeat(self.num_non_matches_per_match, 1)).contiguous().view(-1,1), 
                      torch.t(uv_a[1].repeat(self.num_non_matches_per_match, 1)).contiguous().view(-1,1))
@@ -244,6 +249,18 @@ class DenseCorrespondenceDataset(data.Dataset):
             counter += 1
 
         return None
+
+
+    def rgb_image_to_tensor(self, img):
+        """
+        Transforms a PIL.Image to a torch.FloatTensor.
+        Performs normalization of mean and std dev
+        :param img: input image
+        :type img: PIL.Image
+        :return:
+        :rtype:
+        """
+        raise NotImplementedError("subclass must implement this method")
 
 
     @staticmethod
