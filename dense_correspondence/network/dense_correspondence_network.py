@@ -183,10 +183,6 @@ class DenseCorrespondenceNetwork(object):
         :rtype:
         """
 
-        # Normalize the image if we are in TEST mode
-        if self.mode == NetworkMode.TEST:
-            img_tensor = self.normalize_tensor_transform(img_tensor)
-
         return self.fcn(img_tensor)
 
     def forward_single_image_tensor(self, img_tensor):
