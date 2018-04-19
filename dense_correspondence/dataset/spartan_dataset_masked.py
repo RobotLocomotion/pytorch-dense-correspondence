@@ -1,10 +1,11 @@
 from dense_correspondence_dataset_masked import DenseCorrespondenceDataset, ImageType
 
 import os
+import numpy as np
 import logging
 import glob
 import random
-import numnpy as np
+
 
 import dense_correspondence_manipulation.utils.utils as utils
 from dense_correspondence_manipulation.utils.utils import CameraIntrinsics
@@ -181,18 +182,18 @@ class SpartanDataset(DenseCorrespondenceDataset):
     def get_image_mean(self):
         """
         Returns dataset image_mean
-        :return: numpy.array
+        :return: list
         :rtype:
         """
-        return np.array(self.config["image_normalization"]["mean"])
+        return self.config["image_normalization"]["mean"]
 
     def get_image_std_dev(self):
         """
         Returns dataset image std_dev
-        :return:
+        :return: list
         :rtype:
         """
-        return np.array(self.config["image_normalization"]["mean"])
+        return self.config["image_normalization"]["mean"]
 
 
     @property
