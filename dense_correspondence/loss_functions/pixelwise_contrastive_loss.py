@@ -66,7 +66,7 @@ class PixelwiseContrastiveLoss(object):
         :param matches_a: torch.Variable(torch.LongTensor) has shape [num_matches,],  a (u,v) pair is mapped
         to (u,v) ---> image_width * v + u, this matches the shape of one dimension of image_a_pred
         :type matches_a: torch.Variable(torch.FloatTensor)
-        :param matches_b: same as matches_b
+        :param matches_b: same as matches_a
         :type matches_b:
         :param non_matches_a: torch.Variable(torch.FloatTensor) has shape [num_non_matches,],  a (u,v) pair is mapped
         to (u,v) ---> image_width * v + u, this matches the shape of image_a_pred
@@ -189,6 +189,8 @@ class PixelwiseContrastiveLoss(object):
         :param matches_a: torch.Variable(torch.LongTensor) has shape [num_matches,],  a (u,v) pair is mapped
         to (u,v) ---> image_width * v + u, this matches the shape of one dimension of image_a_pred
         :type matches_a: torch.Variable(torch.FloatTensor)
+        :param matches_b: same as matches_a
+        :type matches_b:
         :param non_matches_a: torch.Variable(torch.FloatTensor) has shape [num_non_matches,],  a (u,v) pair is mapped
         to (u,v) ---> image_width * v + u, this matches the shape of image_a_pred
         :type non_matches_a: torch.Variable(torch.FloatTensor)
