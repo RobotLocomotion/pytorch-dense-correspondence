@@ -21,7 +21,7 @@ from dense_correspondence_manipulation.utils.utils import CameraIntrinsics
 from dense_correspondence.dataset.spartan_dataset_masked import SpartanDataset
 import dense_correspondence.correspondence_tools.correspondence_plotter as correspondence_plotter
 import dense_correspondence.correspondence_tools.correspondence_finder as correspondence_finder
-from dense_correspondence.network.dense_correspondence_network import DenseCorrespondenceNetwork
+from dense_correspondence.network.dense_correspondence_network import DenseCorrespondenceNetwork, NetworkMode
 from dense_correspondence.loss_functions.pixelwise_contrastive_loss import PixelwiseContrastiveLoss
 
 import dense_correspondence.evaluation.plotting as dc_plotting
@@ -310,8 +310,11 @@ class DenseCorrespondenceEvaluation(object):
         mask_b = np.asarray(mask_b)
 
         # compute dense descriptors
-        res_a = dcn.forward_on_img(rgb_a)
-        res_b = dcn.forward_on_img(rgb_b)
+        rgb_a_tensor = dataset.rgb_image_to_tensor(rgb_a)
+        rgb_b_tensor = dataset.rgb_image_to_tensor(rgb_b)
+
+        res_a = dcn.forward_on_single_image_tensor(rgb_a_tensor)
+        res_b = dcn.forward_on_single_image_tensor(rgb_b_tensor)
 
         if camera_intrinsics_matrix is None:
             camera_intrinsics = dataset.get_camera_intrinsics(scene_name)
@@ -330,6 +333,7 @@ class DenseCorrespondenceEvaluation(object):
 
         # container to hold a list of pandas dataframe
         # will eventually combine them all with concat
+        dataframe_list = []
         dataframe_list = []
 
 
@@ -607,8 +611,13 @@ class DenseCorrespondenceEvaluation(object):
         mask_b = np.asarray(mask_b)
 
         # compute dense descriptors
-        res_a = dcn.forward_on_img(rgb_a)
-        res_b = dcn.forward_on_img(rgb_b)
+        rgb_a_tensor = dataset.rgb_image_to_tensor(rgb_a)
+        rgb_b_tensor = dataset.rgb_image_to_tensor(rgb_b)
+
+        # these are torch.FloatTensor, convert to numpy
+        res_a = dcn.forward_single_image_tensor(rgb_a_tensor).cpu().data.numpy()
+        res_b = dcn.forward_single_image_tensor(rgb_b_tensor).cpu().data.numpy()
+
 
         # sample points on img_a. Compute best matches on img_b
         # note that this is in (x,y) format
