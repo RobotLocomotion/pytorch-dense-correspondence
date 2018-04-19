@@ -365,6 +365,8 @@ class DenseCorrespondenceTraining(object):
                 if loss_current_iteration % logging_rate == 0:
                     logging.info("Training on iteration %d of %d" %(loss_current_iteration, max_num_iterations))
 
+                    logging.info("single iteration took %.3f seconds" %(elapsed))
+
                     percent_complete = loss_current_iteration * 100.0/max_num_iterations
                     logging.info("Training is %d percent complete\n" %(percent_complete))
 
@@ -377,11 +379,11 @@ class DenseCorrespondenceTraining(object):
                     update_visdom_test_loss_plots(test_loss, test_match_loss, test_non_match_loss)
 
                 if loss_current_iteration % self._config['training']['garbage_collect_rate'] == 0:
-                    logging.info("running garbage collection")
+                    logging.debug("running garbage collection")
                     gc_start = time.time()
                     gc.collect()
                     gc_elapsed = time.time() - gc_start
-                    logging.info("garbage collection took %.2d seconds" %(gc_elapsed))
+                    logging.debug("garbage collection took %.2d seconds" %(gc_elapsed))
 
                 if loss_current_iteration > max_num_iterations:
                     logging.info("Finished testing after %d iterations" % (max_num_iterations))
