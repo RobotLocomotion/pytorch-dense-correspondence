@@ -1,6 +1,8 @@
 # system
 import numpy as np
 import os
+import fnmatch
+import gc
 import logging
 import time
 import shutil
@@ -38,9 +40,6 @@ from dense_correspondence.loss_functions.pixelwise_contrastive_loss import Pixel
 from dense_correspondence.evaluation.evaluation import DenseCorrespondenceEvaluation
 
 
-
-
-
 class DenseCorrespondenceTraining(object):
 
     def __init__(self, config=None, dataset=None, dataset_test=None):
@@ -50,6 +49,9 @@ class DenseCorrespondenceTraining(object):
         self._config = config
         self._dataset = dataset
         self._dataset_test = dataset_test
+
+        self._dcn = None
+        self._optimizer = None
 
     def setup(self):
         """
@@ -154,14 +156,53 @@ class DenseCorrespondenceTraining(object):
                 vec = logging_dict[key][field]
 
                 if len(vec) > 0:
-                    val[field] = vec[:-1]
+                    val[field] = vec[-1]
                 else:
                     val[field] = -1 # placeholder
 
 
         return d
 
-    def run(self):
+    def load_pretrained(self, model_folder, iteration=None):
+        """
+        Loads network and optimizer parameters from a previous training run.
+
+        Note: It is up to the user to ensure that the model parameters match.
+        e.g. width, height, descriptor dimension etc.
+        :param model_folder: location of the folder containing the param files 001000.pth
+        :type model_folder:
+        :param iteration: which index to use, e.g. 3500, if None it loads the latest one
+        :type iteration:
+        :return:
+        :rtype:
+        """
+
+        # find idx.pth and idx.pth.opt files
+        if iteration is None:
+            files = os.listdir(model_folder)
+            model_param_file = sorted(fnmatch.filter(files, '*.pth'))[-1]
+            optim_param_file = sorted(fnmatch.filter(files, '*.pth.opt'))[-1]
+
+        else:
+            prefix = utils.getPaddedString(iteration, width=6)
+            model_param_file = prefix + ".pth"
+            optim_param_file = prefix + ".pth.opt"
+
+        print "model_param_file", model_param_file
+        model_param_file = os.path.join(model_folder, model_param_file)
+        optim_param_file = os.path.join(model_folder, optim_param_file)
+
+
+        self._dcn = self.build_network()
+        self._dcn.fcn.load_state_dict(torch.load(model_param_file))
+        self._dcn.fcn.cuda()
+        self._dcn.fcn.train()
+
+        self._optimizer = self._construct_optimizer(self._dcn.parameters())
+        self._optimizer.load_state_dict(torch.load(optim_param_file))
+
+
+    def run(self, use_pretrained=False):
         """
         Runs the training
         :return:
@@ -172,8 +213,20 @@ class DenseCorrespondenceTraining(object):
 
         self.setup()
         self.save_configs()
-        dcn = self.build_network()
-        optimizer = self._construct_optimizer(dcn.parameters())
+
+        if not use_pretrained:
+            # create new network and optimizer
+            self._dcn = self.build_network()
+            self._optimizer = self._construct_optimizer(self._dcn.parameters())
+        else:
+            logging.info("using pretrained model")
+            if (self._dcn is None):
+                raise ValueError("you must set self._dcn if use_pretrained=True")
+            if (self._optimizer is None):
+                raise ValueError("you must set self._optimizer if use_pretrained=True")
+
+        dcn = self._dcn
+        optimizer = self._optimizer
         batch_size = self._data_loader.batch_size
 
         pixelwise_contrastive_loss = PixelwiseContrastiveLoss(config=self._config['loss_function'])
@@ -323,6 +376,13 @@ class DenseCorrespondenceTraining(object):
 
                     update_visdom_test_loss_plots(test_loss, test_match_loss, test_non_match_loss)
 
+                if loss_current_iteration % self._config['training']['garbage_collect_rate'] == 0:
+                    logging.info("running garbage collection")
+                    gc_start = time.time()
+                    gc.collect()
+                    gc_elapsed = time.time() - gc_start
+                    logging.info("garbage collection took %.2d seconds" %(gc_elapsed))
+
                 if loss_current_iteration > max_num_iterations:
                     logging.info("Finished testing after %d iterations" % (max_num_iterations))
                     return
@@ -415,6 +475,13 @@ class DenseCorrespondenceTraining(object):
             for param_group in optimizer.param_groups:
                 param_group['lr'] = param_group['lr'] * 0.9
 
+    @staticmethod
+    def get_learning_rate(optimizer):
+        for param_group in optimizer.param_groups:
+            lr = param_group['lr']
+            break
+
+        return lr
 
     def setup_visdom(self):
         """
