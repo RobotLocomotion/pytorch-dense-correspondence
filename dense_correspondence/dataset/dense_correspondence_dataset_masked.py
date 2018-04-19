@@ -466,6 +466,88 @@ class DenseCorrespondenceDataset(data.Dataset):
         self.scenes = self.test
         self.mode = "test"
 
+
+    def compute_image_mean_and_std_dev(self, num_image_samples=10):
+        """
+        Computes the image_mean and std_dev using the specified number of samples.
+        Returns two torch.FloatTensor objects, each of size [3]
+        :param num_image_samples:
+        :type num_image_samples:
+        :return:
+        :rtype:
+        """
+
+        def get_random_image():
+            scene_name = self.get_random_scene_name()
+            img_idx = self.get_random_image_index(scene_name)
+            img_filename = self.get_image_filename(scene_name, img_idx, ImageType.RGB)
+            img = self.get_rgb_image(img_filename)
+            return img
+
+        def get_image_mean(img_tensor):
+            """
+
+            :param img_tensor: torch.FloatTensor with shape [3, 480, 640]
+            :type img_tensor:
+            :return: torch.FloatTensor with shape [3]
+            :rtype:
+            """
+            img_mean = torch.mean(img_tensor, 1)
+            img_mean = torch.mean(img_mean, 1)
+            return img_mean
+
+        def get_image_std_dev(img_tensor):
+            shape = img_tensor.shape
+            img_height = shape[1]
+            img_width = shape[2]
+
+            v = img_tensor.view(-1, img_height * img_width)
+            std_dev = torch.std(v, 1)
+            return std_dev
+
+
+
+        to_tensor = transforms.ToTensor()
+
+
+        img_mean_sum = None
+
+        img_mean_sum = torch.zeros([3])
+
+        for i in xrange(0, num_image_samples):
+            img = get_random_image()
+            img_tensor = to_tensor(img)
+            single_img_mean = get_image_mean(img_tensor)
+
+            if img_mean_sum is None:
+                img_mean_sum = torch.zeros_like(single_img_mean)
+
+
+            img_mean_sum = img_mean_sum + single_img_mean
+
+
+        std_dev_sum = None
+
+        for i in xrange(0, num_image_samples):
+            img = get_random_image()
+            img_tensor = to_tensor(img)
+            single_std_dev = get_image_std_dev(img_tensor)
+
+            if std_dev_sum is None:
+                std_dev_sum = torch.zeros_like(single_std_dev)
+
+
+            std_dev_sum += single_std_dev
+
+
+        img_mean = 1.0/num_image_samples * img_mean_sum
+        std_dev = 1.0/num_image_samples * std_dev_sum
+
+        return img_mean, std_dev
+
+
+
+
     @property
     def test_scene_directories(self):
         """
