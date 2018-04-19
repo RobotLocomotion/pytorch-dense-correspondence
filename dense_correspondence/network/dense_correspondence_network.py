@@ -176,10 +176,13 @@ class DenseCorrespondenceNetwork(object):
 
         Does NOT normalize the image
 
+        D = descriptor dimension
+        N = batch size
+
         :param img_tensor: input tensor img.shape = [N, 3, H , W] where
                     N is the batch size
         :type img_tensor: torch.Variable or torch.Tensor
-        :return: same as input type
+        :return: torch.Variable with shape [N, D, H, W],
         :rtype:
         """
 
