@@ -78,23 +78,35 @@ class DenseCorrespondenceDataset(data.Dataset):
         3rd, 4th rtype: 1-dimensional torch.LongTensor of shape (num_matches)
 
         5th, 6th return args: non_matches_a, non_matches_b
-        5th, 6th rtype: 1-dimensional torch.LongTensor of shape (num_non_matches)        
+        5th, 6th rtype: 1-dimensional torch.LongTensor of shape (num_non_matches)
+
+        Return values 3,4,5,6 are all in the "single index" format for pixels. That is
+
+        (u,v) --> n = u + image_width * v
+
         """
+
+        # stores metadata about this data
+        metadata = dict()
+
 
         # pick a scene
         scene_name = self.get_random_scene_name()
+        metadata['scene_name'] = scene_name
 
         # image a
         image_a_idx = self.get_random_image_index(scene_name)
         image_a_rgb, image_a_depth, image_a_mask, image_a_pose = self.get_rgbd_mask_pose(scene_name, image_a_idx)
 
+        metadata['image_a_idx'] = image_a_idx
+
         # image b
         image_b_idx = self.get_img_idx_with_different_pose(scene_name, image_a_pose, num_attempts=50)
-
+        metadata['image_b_idx'] = image_b_idx
         if image_b_idx is None:
             logging.info("no frame with sufficiently different pose found, returning")
             # TODO: return something cleaner than no-data
-            return self.return_empty_data(image_a_rgb, image_b_rgb)
+            return self.return_empty_data(image_a_rgb, image_a_rgb)
 
         image_b_rgb, image_b_depth, image_b_mask, image_b_pose = self.get_rgbd_mask_pose(scene_name, image_b_idx)
 
@@ -130,9 +142,11 @@ class DenseCorrespondenceDataset(data.Dataset):
         # find non_correspondences
 
         if index%2:
+            metadata['non_match_type'] = 'masked'
             logging.debug("masking non-matches")
             image_b_mask = torch.from_numpy(np.asarray(image_b_mask)).type(torch.FloatTensor)
         else:
+            metadata['non_match_type'] = 'non_masked'
             logging.debug("not masking non-matches")
             image_b_mask = None
             
@@ -155,7 +169,12 @@ class DenseCorrespondenceDataset(data.Dataset):
                                                   use_previous_plot=(fig,axes),
                                                   circ_color='r')
 
-        image_a_rgb, image_b_rgb = self.both_to_tensor([image_a_rgb, image_b_rgb])
+
+        # image_a_rgb, image_b_rgb = self.both_to_tensor([image_a_rgb, image_b_rgb])
+
+        # convert PIL.Image to torch.FloatTensor
+        image_a_rgb = self.rgb_image_to_tensor(image_a_rgb)
+        image_b_rgb = self.rgb_image_to_tensor(image_b_rgb)
 
         uv_a_long = (torch.t(uv_a[0].repeat(self.num_non_matches_per_match, 1)).contiguous().view(-1,1), 
                      torch.t(uv_a[1].repeat(self.num_non_matches_per_match, 1)).contiguous().view(-1,1))
@@ -169,10 +188,15 @@ class DenseCorrespondenceDataset(data.Dataset):
         non_matches_b = uv_b_non_matches_long[1].long()*640+uv_b_non_matches_long[0].long()
         non_matches_b = non_matches_b.squeeze(1)
 
-        return "matches", image_a_rgb, image_b_rgb, matches_a, matches_b, non_matches_a, non_matches_b
 
-    def return_empty_data(self, image_a_rgb, image_b_rgb):
-        None, image_a_rgb, image_b_rgb, torch.zeros(1).long(), torch.zeros(1).long(), torch.zeros(1).long(), torch.zeros(1).long()
+
+        return "matches", image_a_rgb, image_b_rgb, matches_a, matches_b, non_matches_a, non_matches_b, metadata
+
+    def return_empty_data(self, image_a_rgb, image_b_rgb, metadata=None):
+        if metadata is None:
+            metadata = dict()
+
+        return None, image_a_rgb, image_b_rgb, torch.zeros(1).long(), torch.zeros(1).long(), torch.zeros(1).long(), torch.zeros(1).long(), metadata
 
     def get_rgbd_mask_pose(self, scene_name, img_idx):
         """
@@ -225,6 +249,18 @@ class DenseCorrespondenceDataset(data.Dataset):
             counter += 1
 
         return None
+
+
+    def rgb_image_to_tensor(self, img):
+        """
+        Transforms a PIL.Image to a torch.FloatTensor.
+        Performs normalization of mean and std dev
+        :param img: input image
+        :type img: PIL.Image
+        :return:
+        :rtype:
+        """
+        raise NotImplementedError("subclass must implement this method")
 
 
     @staticmethod
@@ -446,6 +482,88 @@ class DenseCorrespondenceDataset(data.Dataset):
     def set_test_mode(self):
         self.scenes = self.test
         self.mode = "test"
+
+
+    def compute_image_mean_and_std_dev(self, num_image_samples=10):
+        """
+        Computes the image_mean and std_dev using the specified number of samples.
+        Returns two torch.FloatTensor objects, each of size [3]
+        :param num_image_samples:
+        :type num_image_samples:
+        :return:
+        :rtype:
+        """
+
+        def get_random_image():
+            scene_name = self.get_random_scene_name()
+            img_idx = self.get_random_image_index(scene_name)
+            img_filename = self.get_image_filename(scene_name, img_idx, ImageType.RGB)
+            img = self.get_rgb_image(img_filename)
+            return img
+
+        def get_image_mean(img_tensor):
+            """
+
+            :param img_tensor: torch.FloatTensor with shape [3, 480, 640]
+            :type img_tensor:
+            :return: torch.FloatTensor with shape [3]
+            :rtype:
+            """
+            img_mean = torch.mean(img_tensor, 1)
+            img_mean = torch.mean(img_mean, 1)
+            return img_mean
+
+        def get_image_std_dev(img_tensor):
+            shape = img_tensor.shape
+            img_height = shape[1]
+            img_width = shape[2]
+
+            v = img_tensor.view(-1, img_height * img_width)
+            std_dev = torch.std(v, 1)
+            return std_dev
+
+
+
+        to_tensor = transforms.ToTensor()
+
+
+        img_mean_sum = None
+
+        img_mean_sum = torch.zeros([3])
+
+        for i in xrange(0, num_image_samples):
+            img = get_random_image()
+            img_tensor = to_tensor(img)
+            single_img_mean = get_image_mean(img_tensor)
+
+            if img_mean_sum is None:
+                img_mean_sum = torch.zeros_like(single_img_mean)
+
+
+            img_mean_sum = img_mean_sum + single_img_mean
+
+
+        std_dev_sum = None
+
+        for i in xrange(0, num_image_samples):
+            img = get_random_image()
+            img_tensor = to_tensor(img)
+            single_std_dev = get_image_std_dev(img_tensor)
+
+            if std_dev_sum is None:
+                std_dev_sum = torch.zeros_like(single_std_dev)
+
+
+            std_dev_sum += single_std_dev
+
+
+        img_mean = 1.0/num_image_samples * img_mean_sum
+        std_dev = 1.0/num_image_samples * std_dev_sum
+
+        return img_mean, std_dev
+
+
+
 
     @property
     def test_scene_directories(self):

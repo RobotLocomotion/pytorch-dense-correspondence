@@ -1,6 +1,8 @@
 # system
 import numpy as np
 import os
+import fnmatch
+import gc
 import logging
 import time
 import shutil
@@ -38,9 +40,6 @@ from dense_correspondence.loss_functions.pixelwise_contrastive_loss import Pixel
 from dense_correspondence.evaluation.evaluation import DenseCorrespondenceEvaluation
 
 
-
-
-
 class DenseCorrespondenceTraining(object):
 
     def __init__(self, config=None, dataset=None, dataset_test=None):
@@ -50,6 +49,9 @@ class DenseCorrespondenceTraining(object):
         self._config = config
         self._dataset = dataset
         self._dataset_test = dataset_test
+
+        self._dcn = None
+        self._optimizer = None
 
     def setup(self):
         """
@@ -61,6 +63,14 @@ class DenseCorrespondenceTraining(object):
         self.setup_logging_dir()
         self.setup_visdom()
 
+
+    @property
+    def dataset(self):
+        return self._dataset
+
+    @dataset.setter
+    def dataset(self, value):
+        self._dataset = value
 
     def load_dataset(self):
         """
@@ -146,14 +156,53 @@ class DenseCorrespondenceTraining(object):
                 vec = logging_dict[key][field]
 
                 if len(vec) > 0:
-                    val[field] = vec[:-1]
+                    val[field] = vec[-1]
                 else:
                     val[field] = -1 # placeholder
 
 
         return d
 
-    def run(self):
+    def load_pretrained(self, model_folder, iteration=None):
+        """
+        Loads network and optimizer parameters from a previous training run.
+
+        Note: It is up to the user to ensure that the model parameters match.
+        e.g. width, height, descriptor dimension etc.
+        :param model_folder: location of the folder containing the param files 001000.pth
+        :type model_folder:
+        :param iteration: which index to use, e.g. 3500, if None it loads the latest one
+        :type iteration:
+        :return:
+        :rtype:
+        """
+
+        # find idx.pth and idx.pth.opt files
+        if iteration is None:
+            files = os.listdir(model_folder)
+            model_param_file = sorted(fnmatch.filter(files, '*.pth'))[-1]
+            optim_param_file = sorted(fnmatch.filter(files, '*.pth.opt'))[-1]
+
+        else:
+            prefix = utils.getPaddedString(iteration, width=6)
+            model_param_file = prefix + ".pth"
+            optim_param_file = prefix + ".pth.opt"
+
+        print "model_param_file", model_param_file
+        model_param_file = os.path.join(model_folder, model_param_file)
+        optim_param_file = os.path.join(model_folder, optim_param_file)
+
+
+        self._dcn = self.build_network()
+        self._dcn.fcn.load_state_dict(torch.load(model_param_file))
+        self._dcn.fcn.cuda()
+        self._dcn.fcn.train()
+
+        self._optimizer = self._construct_optimizer(self._dcn.parameters())
+        self._optimizer.load_state_dict(torch.load(optim_param_file))
+
+
+    def run(self, use_pretrained=False):
         """
         Runs the training
         :return:
@@ -164,11 +213,24 @@ class DenseCorrespondenceTraining(object):
 
         self.setup()
         self.save_configs()
-        dcn = self.build_network()
-        optimizer = self._construct_optimizer(dcn.parameters())
+
+        if not use_pretrained:
+            # create new network and optimizer
+            self._dcn = self.build_network()
+            self._optimizer = self._construct_optimizer(self._dcn.parameters())
+        else:
+            logging.info("using pretrained model")
+            if (self._dcn is None):
+                raise ValueError("you must set self._dcn if use_pretrained=True")
+            if (self._optimizer is None):
+                raise ValueError("you must set self._optimizer if use_pretrained=True")
+
+        dcn = self._dcn
+        optimizer = self._optimizer
         batch_size = self._data_loader.batch_size
 
-        pixelwise_contrastive_loss = PixelwiseContrastiveLoss()
+        pixelwise_contrastive_loss = PixelwiseContrastiveLoss(config=self._config['loss_function'])
+        pixelwise_contrastive_loss.debug = True
 
         loss = match_loss = non_match_loss = 0
         loss_current_iteration = 0
@@ -184,10 +246,7 @@ class DenseCorrespondenceTraining(object):
         self._logging_dict = dict()
         self._logging_dict['train'] = {"iteration": [], "loss": [], "match_loss": [],
                                            "non_match_loss": []}
-        # self._logging_dict['loss_history'] = []
-        # self._logging_dict['match_loss_history'] = []
-        # self._logging_dict['non_match_loss_history'] = []
-        # self._logging_dict['loss_iteration_number_history'] = []
+
         self._logging_dict['test'] = {"iteration": [], "loss": [], "match_loss": [],
                                            "non_match_loss": []}
 
@@ -203,7 +262,7 @@ class DenseCorrespondenceTraining(object):
                 start_iter = time.time()
 
                 # get the inputs
-                data_type, img_a, img_b, matches_a, matches_b, non_matches_a, non_matches_b = data
+                data_type, img_a, img_b, matches_a, matches_b, non_matches_a, non_matches_b, metadata = data
                 data_type = data_type[0]
 
                 if data_type == None:
@@ -243,6 +302,10 @@ class DenseCorrespondenceTraining(object):
                 loss.backward()
                 optimizer.step()
 
+                elapsed = time.time() - start_iter
+
+                print "single iteration took %.3f seconds" %(elapsed)
+
 
                 def update_visdom_plots():
                     """
@@ -255,10 +318,24 @@ class DenseCorrespondenceTraining(object):
                     self._logging_dict['train']['match_loss'].append(match_loss.data[0])
                     self._logging_dict['train']['non_match_loss'].append(non_match_loss.data[0])
 
-                    self._visdom_plots['train_loss'].log(loss_current_iteration, loss.data[0])
-                    self._visdom_plots['match_loss'].log(loss_current_iteration, match_loss.data[0])
-                    self._visdom_plots['non_match_loss'].log(loss_current_iteration,
+                    self._visdom_plots['train']['loss'].log(loss_current_iteration, loss.data[0])
+                    self._visdom_plots['train']['match_loss'].log(loss_current_iteration, match_loss.data[0])
+                    self._visdom_plots['train']['non_match_loss'].log(loss_current_iteration,
                                                              non_match_loss.data[0])
+
+
+                    non_match_type = metadata['non_match_type'][0]
+                    fraction_hard_negatives = pixelwise_contrastive_loss.debug_data['fraction_hard_negatives']
+
+                    if pixelwise_contrastive_loss.debug:
+                        if non_match_type == "masked":
+                            self._visdom_plots['masked_hard_negative_rate'].log(loss_current_iteration, fraction_hard_negatives)
+                        elif non_match_type == "non_masked":
+                            self._visdom_plots['non_masked_hard_negative_rate'].log(loss_current_iteration,
+                                                                                fraction_hard_negatives)
+                        else:
+                            raise ValueError("uknown non_match_type %s" %(non_match_type))
+
 
 
                 def update_visdom_test_loss_plots(test_loss, test_match_loss, test_non_match_loss):
@@ -274,9 +351,9 @@ class DenseCorrespondenceTraining(object):
                     self._logging_dict['test']['iteration'].append(loss_current_iteration)
 
 
-                    self._visdom_plots['test_loss'].log(loss_current_iteration, test_loss)
-                    self._visdom_plots['test_match_loss'].log(loss_current_iteration, test_match_loss)
-                    self._visdom_plots['test_non_match_loss'].log(loss_current_iteration, test_non_match_loss)
+                    self._visdom_plots['test']['loss'].log(loss_current_iteration, test_loss)
+                    self._visdom_plots['test']['match_loss'].log(loss_current_iteration, test_match_loss)
+                    self._visdom_plots['test']['non_match_loss'].log(loss_current_iteration, test_non_match_loss)
 
 
 
@@ -288,16 +365,25 @@ class DenseCorrespondenceTraining(object):
                 if loss_current_iteration % logging_rate == 0:
                     logging.info("Training on iteration %d of %d" %(loss_current_iteration, max_num_iterations))
 
+                    logging.info("single iteration took %.3f seconds" %(elapsed))
+
                     percent_complete = loss_current_iteration * 100.0/max_num_iterations
                     logging.info("Training is %d percent complete\n" %(percent_complete))
 
 
-                if (loss_current_iteration % compute_test_loss_rate == 0) or loss_current_iteration == 1:
+                if (loss_current_iteration % compute_test_loss_rate == 0):
                     logging.info("Computing test loss")
                     test_loss, test_match_loss, test_non_match_loss = DCE.compute_loss_on_dataset(dcn,
                                                                                                   self._data_loader_test, num_iterations=self._config['training']['test_loss_num_iterations'])
 
                     update_visdom_test_loss_plots(test_loss, test_match_loss, test_non_match_loss)
+
+                if loss_current_iteration % self._config['training']['garbage_collect_rate'] == 0:
+                    logging.debug("running garbage collection")
+                    gc_start = time.time()
+                    gc.collect()
+                    gc_elapsed = time.time() - gc_start
+                    logging.debug("garbage collection took %.2d seconds" %(gc_elapsed))
 
                 if loss_current_iteration > max_num_iterations:
                     logging.info("Finished testing after %d iterations" % (max_num_iterations))
@@ -321,7 +407,7 @@ class DenseCorrespondenceTraining(object):
         """
 
         if 'logging_dir_name' in self._config['training']:
-            dir_name =  self._config['training']['logging_dir_name']
+            dir_name = self._config['training']['logging_dir_name']
         else:
             dir_name = utils.get_current_time_unique_name() +"_" + str(self._config['dense_correspondence_network']['descriptor_dimension']) + "d"
 
@@ -391,6 +477,13 @@ class DenseCorrespondenceTraining(object):
             for param_group in optimizer.param_groups:
                 param_group['lr'] = param_group['lr'] * 0.9
 
+    @staticmethod
+    def get_learning_rate(optimizer):
+        for param_group in optimizer.param_groups:
+            lr = param_group['lr']
+            break
+
+        return lr
 
     def setup_visdom(self):
         """
@@ -405,26 +498,35 @@ class DenseCorrespondenceTraining(object):
         self._port = 8097
         self._visdom_plots = dict()
 
-        self._visdom_plots['train_loss'] = VisdomPlotLogger(
+        self._visdom_plots["train"] = dict()
+        self._visdom_plots['train']['loss'] = VisdomPlotLogger(
         'line', port=self._port, opts={'title': 'Train Loss'}, env=self._visdom_env)
 
         self._visdom_plots['learning_rate'] = VisdomPlotLogger(
         'line', port=self._port, opts={'title': 'Learning Rate'}, env=self._visdom_env)
 
-        self._visdom_plots['match_loss'] = VisdomPlotLogger(
+        self._visdom_plots['train']['match_loss'] = VisdomPlotLogger(
         'line', port=self._port, opts={'title': 'Train Match Loss'}, env=self._visdom_env)
 
-        self._visdom_plots['non_match_loss'] = VisdomPlotLogger(
+        self._visdom_plots['train']['non_match_loss'] = VisdomPlotLogger(
             'line', port=self._port, opts={'title': 'Train Non Match Loss'}, env=self._visdom_env)
 
-        self._visdom_plots['test_loss'] = VisdomPlotLogger(
+
+        self._visdom_plots["test"] = dict()
+        self._visdom_plots['test']['loss'] = VisdomPlotLogger(
             'line', port=self._port, opts={'title': 'Test Loss'}, env=self._visdom_env)
 
-        self._visdom_plots['test_match_loss'] = VisdomPlotLogger(
+        self._visdom_plots['test']['match_loss'] = VisdomPlotLogger(
             'line', port=self._port, opts={'title': 'Test Match Loss'}, env=self._visdom_env)
 
-        self._visdom_plots['test_non_match_loss'] = VisdomPlotLogger(
+        self._visdom_plots['test']['non_match_loss'] = VisdomPlotLogger(
             'line', port=self._port, opts={'title': 'Test Non Match Loss'}, env=self._visdom_env)
+
+        self._visdom_plots['masked_hard_negative_rate'] = VisdomPlotLogger(
+            'line', port=self._port, opts={'title': 'Masked Matches Hard Negative Rate'}, env=self._visdom_env)
+
+        self._visdom_plots['non_masked_hard_negative_rate'] = VisdomPlotLogger(
+            'line', port=self._port, opts={'title': 'Non-Masked Hard Negative Rate'}, env=self._visdom_env)
 
 
     @staticmethod

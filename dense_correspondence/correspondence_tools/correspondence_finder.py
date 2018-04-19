@@ -134,6 +134,23 @@ def pinhole_projection_world_to_image(world_pos, K, camera_to_world=None):
 # is there in 0.4 (not yet stable release)
 # for more see: https://discuss.pytorch.org/t/how-can-i-do-the-operation-the-same-as-np-where/1329/8
 def where(cond, x_1, x_2):
+    """
+    We follow the torch.where implemented in 0.4.
+    See http://pytorch.org/docs/master/torch.html?highlight=where#torch.where
+
+    For more discussion see https://discuss.pytorch.org/t/how-can-i-do-the-operation-the-same-as-np-where/1329/8
+
+
+    Return a tensor of elements selected from either x_1 or x_2, depending on condition.
+    :param cond: cond should be tensor with entries [0,1]
+    :type cond:
+    :param x_1: torch.Tensor
+    :type x_1:
+    :param x_2: torch.Tensor
+    :type x_2:
+    :return:
+    :rtype:
+    """
     cond = cond.type(dtype_float)    
     return (cond * x_1) + ((1-cond) * x_2)
 

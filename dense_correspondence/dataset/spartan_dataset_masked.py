@@ -1,12 +1,15 @@
 from dense_correspondence_dataset_masked import DenseCorrespondenceDataset, ImageType
 
 import os
+import numpy as np
 import logging
 import glob
 import random
 
+
 import dense_correspondence_manipulation.utils.utils as utils
 from dense_correspondence_manipulation.utils.utils import CameraIntrinsics
+from torchvision import transforms
 
 class SpartanDataset(DenseCorrespondenceDataset):
 
@@ -32,6 +35,8 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
         self._pose_data = dict()
 
+        self._initialize_rgb_image_to_tensor()
+
         
         if mode == "test":
             self.set_test_mode()
@@ -43,6 +48,15 @@ class SpartanDataset(DenseCorrespondenceDataset):
         print "   - total images:    ", self.num_images_total
 
         DenseCorrespondenceDataset.__init__(self, debug=debug)
+
+    def _initialize_rgb_image_to_tensor(self):
+        """
+        Sets up the RGB PIL.Image --> torch.FloatTensor transform
+        :return: None
+        :rtype:
+        """
+        norm_transform = transforms.Normalize(self.get_image_mean(), self.get_image_std_dev())
+        self._rgb_image_to_tensor = transforms.Compose([transforms.ToTensor(), norm_transform])
 
     def get_pose(self, rgb_filename):
         scene_directory = rgb_filename.split("images")[0]
@@ -177,6 +191,34 @@ class SpartanDataset(DenseCorrespondenceDataset):
         random_idx = random.choice(image_idxs)
         return random_idx
 
+    def get_image_mean(self):
+        """
+        Returns dataset image_mean
+        :return: list
+        :rtype:
+        """
+        return self.config["image_normalization"]["mean"]
+
+    def get_image_std_dev(self):
+        """
+        Returns dataset image std_dev
+        :return: list
+        :rtype:
+        """
+        return self.config["image_normalization"]["mean"]
+
+    def rgb_image_to_tensor(self, img):
+        """
+        Transforms a PIL.Image to a torch.FloatTensor.
+        Performs normalization of mean and std dev
+        :param img: input image
+        :type img: PIL.Image
+        :return:
+        :rtype:
+        """
+
+        return self._rgb_image_to_tensor(img)
+
     @property
     def config(self):
         return self._config
@@ -190,7 +232,22 @@ class SpartanDataset(DenseCorrespondenceDataset):
         """
         config_file = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence',
                                    'dataset',
-                                   'spartan_dataset_masked.yaml')
+                                   '10_drill_scenes.yaml')
+
+        config = utils.getDictFromYamlFilename(config_file)
+        dataset = SpartanDataset(mode="train", config=config)
+        return dataset
+
+    @staticmethod
+    def make_default_caterpillar():
+        """
+        Makes a default SpartanDatase from the 10_scenes_drill data
+        :return:
+        :rtype:
+        """
+        config_file = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence',
+                                   'dataset',
+                                   '10_caterpillar_scenes.yaml')
 
         config = utils.getDictFromYamlFilename(config_file)
         dataset = SpartanDataset(mode="train", config=config)
