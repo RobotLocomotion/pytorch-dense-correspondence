@@ -173,10 +173,10 @@ class DenseCorrespondenceNetwork(object):
     def forward(self, img_tensor):
         """
         Simple forward pass on the network.
-        Normalize the image if we are in TEST mode
-        If we are in TRAIN mode then assume the dataset object has already normalized
-        the image
-        :param img_tensor: input tensor img.shape = [N,descriptor_dim, H , W] where
+
+        Does NOT normalize the image
+
+        :param img_tensor: input tensor img.shape = [N, 3, H , W] where
                     N is the batch size
         :type img_tensor: torch.Variable or torch.Tensor
         :return: same as input type
@@ -188,6 +188,45 @@ class DenseCorrespondenceNetwork(object):
             img_tensor = self.normalize_tensor_transform(img_tensor)
 
         return self.fcn(img_tensor)
+
+    def forward_single_image_tensor(self, img_tensor):
+        """
+        Simple forward pass on the network.
+
+        Normalize the image if we are in TEST mode
+        If we are in TRAIN mode then assume the dataset object has already normalized
+        the image
+
+        :param img_tensor: torch.FloatTensor with shape [3,H,W]
+        :type img_tensor:
+        :return: torch.FloatTensor with shape  [H, W, D]
+        :rtype:
+        """
+
+        assert len(img_tensor.shape) == 3
+
+        if self.mode == NetworkMode.TEST:
+            img_tensor = self.normalize_tensor_transform(img_tensor)
+
+        # transform to shape [1,3,H,W]
+        img_tensor = img_tensor.unsqueeze(0)
+
+        # The fcn throws and error if we don't use a variable here . . .
+        # Maybe it's because it is in train mode?
+        img_tensor = Variable(img_tensor.cuda(), requires_grad=False)
+        res = self.forward(img_tensor) # shape [1,D,H,W]
+        # print "res.shape 1", res.shape
+
+
+        res = res.squeeze(0) # shape [D,H,W]
+        # print "res.shape 2", res.shape
+
+        res = res.permute(1,2,0) # shape [H,W,D]
+        # print "res.shape 3", res.shape
+
+        return res
+
+
 
     def process_network_output(self, image_pred, N):
         """
@@ -304,23 +343,21 @@ class DenseCorrespondenceNetwork(object):
 
         return best_match_uv, best_match_diff, norm_diffs
 
-    def evaluate_descriptor_at_keypoints(self, img, keypoint_list, res=None):
+    def evaluate_descriptor_at_keypoints(self, res, keypoint_list):
         """
 
-        :param dcn:
-        :type dcn: DenseCorrespondenceNetwork
+        :param res: result of evaluating the network
+        :type res: torch.FloatTensor [D,W,H]
         :param img:
-        :type img: numpy array (RGB)
+        :type img: img_tensor
         :param kp: list of cv2.KeyPoint
         :type kp:
-        :param res: optionally pass in result of forward pass on network
         :return: numpy.ndarray (N,D) N = num keypoints, D = descriptor dimension
         This is the same format as sift.compute from OpenCV
         :rtype:
         """
 
-        if res is None:
-            res = self.forward_on_img(img)
+        raise NotImplementedError("This function is currently broken")
 
         N = len(keypoint_list)
         D = self.descriptor_dimension
