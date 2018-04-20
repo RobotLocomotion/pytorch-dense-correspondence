@@ -64,7 +64,10 @@ class DCNEvaluationPandaTemplate(PandaDataFrameWrapper):
             'norm_diff_descriptor',
             'norm_diff_ground_truth_3d',
             'norm_diff_pred_3d',
-            'pixel_match_error']
+            'pixel_match_error_l2',
+            'pixel_match_error_l1',
+            'fraction_pixels_closer_than_ground_truth',
+            'average_l2_distance_for_false_positives']
 
     def __init__(self):
         PandaDataFrameWrapper.__init__(self, DCNEvaluationPandaTemplate.columns)
@@ -350,15 +353,15 @@ class DenseCorrespondenceEvaluation(object):
         def clip_pixel_to_image_size_and_round(uv):
             u = min(int(round(uv[0])), image_width - 1)
             v = min(int(round(uv[1])), image_height - 1)
-            return [u,v]
+            return (u,v)
 
 
         for i in match_list:
-            uv_a = [uv_a_vec[0][i], uv_a_vec[1][i]]
-            uv_b_raw = [uv_b_vec[0][i], uv_b_vec[1][i]]
+            uv_a = (uv_a_vec[0][i], uv_a_vec[1][i])
+            uv_b_raw = (uv_b_vec[0][i], uv_b_vec[1][i])
             uv_b = clip_pixel_to_image_size_and_round(uv_b_raw)
 
-            d, pd_template = DenseCorrespondenceEvaluation.compute_descriptor_match_statistics(depth_a,
+            pd_template = DenseCorrespondenceEvaluation.compute_descriptor_match_statistics(depth_a,
                                                                                   depth_b,
                                                                                   uv_a,
                                                                                   uv_b,
@@ -440,12 +443,16 @@ class DenseCorrespondenceEvaluation(object):
 
         DCE = DenseCorrespondenceEvaluation
 
-        d = dict()
         # compute best match
-
         uv_b_pred, best_match_diff, norm_diffs =\
             DenseCorrespondenceNetwork.find_best_match(uv_a, res_a,
                                                        res_b, debug=debug)
+
+        
+        # compute pixel space difference
+        pixel_match_error_l2 = np.linalg.norm((np.array(uv_b) - np.array(uv_b_pred)), ord=2)
+        pixel_match_error_l1 = np.linalg.norm((np.array(uv_b) - np.array(uv_b_pred)), ord=1)
+
 
         # extract the ground truth descriptors
         des_a = res_a[uv_a[1], uv_a[0], :]
@@ -453,13 +460,23 @@ class DenseCorrespondenceEvaluation(object):
         norm_diff_descriptor_ground_truth = np.linalg.norm(des_a - des_b_ground_truth)
 
 
-        # print "type(depth_a): ", type(depth_a)
-        # # print "depth_a.shape(): ", depth_a.shape()
-        # print "uv_a:", uv_a
-        # print "uv_b: ", uv_b
-        # print "uv_b_pred: ", uv_b_pred
+        # from Schmidt et al 2017: 
+        """
+        We then determine the number of pixels in the target image that are closer in
+        descriptor space to the source point than the manually-labelled corresponding point.
+        """
+        # compute this
+        (v_indices_better_than_ground_truth, u_indices_better_than_ground_truth) = np.where(norm_diffs < norm_diff_descriptor_ground_truth)
+        num_pixels_closer_than_ground_truth = len(u_indices_better_than_ground_truth) 
+        num_pixels_in_image = res_a.shape[0] * res_a.shape[1]
+        fraction_pixels_closer_than_ground_truth = num_pixels_closer_than_ground_truth*1.0/num_pixels_in_image
 
-
+        # new metric: average l2 distance of the pixels better than ground truth
+        if num_pixels_closer_than_ground_truth == 0:
+            average_l2_distance_for_false_positives = 0.0
+        else:
+            l2_distances = np.sqrt((u_indices_better_than_ground_truth - uv_b[0])**2 + (v_indices_better_than_ground_truth - uv_b[1])**2)
+            average_l2_distance_for_false_positives = np.average(l2_distances)
 
         # extract depth values, note the indexing order of u,v has to be reversed
         uv_a_depth = depth_a[uv_a[1], uv_a[0]] / DEPTH_IM_SCALE # check if this is not None
@@ -467,9 +484,6 @@ class DenseCorrespondenceEvaluation(object):
         uv_b_pred_depth = depth_b[uv_b_pred[1], uv_b_pred[0]] / DEPTH_IM_SCALE
         uv_b_pred_depth_is_valid = DenseCorrespondenceEvaluation.is_depth_valid(uv_b_pred_depth)
         is_valid = uv_b_pred_depth_is_valid
-
-
-
 
         uv_a_pos = DCE.compute_3d_position(uv_a, uv_a_depth, camera_matrix, pose_a)
         uv_b_pos = DCE.compute_3d_position(uv_b, uv_b_depth, camera_matrix, pose_b)
@@ -505,36 +519,6 @@ class DenseCorrespondenceEvaluation(object):
                                                                show=True,
                                                                circ_color='purple')
 
-
-
-        # construct a dict with the return data, which will later be put into a pandas.DataFrame object
-        d = dict()
-
-        d['uv_a'] = uv_a
-        d['uv_b'] = uv_b
-        d['uv_b_pred'] = uv_b_pred
-        d['norm_diff_descriptor'] = best_match_diff
-
-        d['pose_a'] = pose_a
-        d['pose_b'] = pose_b
-
-        d['uv_a_depth'] = uv_a_depth
-        d['uv_b_depth'] = uv_b_depth
-        d['uv_b_pred_depth'] = uv_b_pred_depth
-        d['uv_b_pred_depth_is_valid'] = uv_b_pred_depth_is_valid
-
-        d['is_valid'] = is_valid
-
-        d['uv_a_pos'] = uv_a_pos
-        d['uv_b_pos'] = uv_b_pos
-        d['uv_b_pre_pos'] = uv_b_pred_pos
-
-        d['diff_ground_truth_3d'] = diff_ground_truth_3d
-        d['norm_diff_ground_truth_3d'] = norm_diff_ground_truth_3d
-        d['diff_pred_3d'] = diff_pred_3d
-        d['norm_diff_pred_3d'] = norm_diff_pred_3d
-
-        # dict for making a pandas.DataFrame later
         pd_template = DCNEvaluationPandaTemplate()
         pd_template.set_value('norm_diff_descriptor', best_match_diff)
         pd_template.set_value('is_valid', is_valid)
@@ -548,10 +532,14 @@ class DenseCorrespondenceEvaluation(object):
 
         pd_template.set_value('norm_diff_descriptor_ground_truth', norm_diff_ground_truth_3d)
 
-        pixel_match_error = np.linalg.norm((np.array(uv_b) - np.array(uv_b_pred)), ord=1)
-        pd_template.set_value('pixel_match_error', pixel_match_error)
+        pd_template.set_value('pixel_match_error_l2', pixel_match_error_l2)
+        pd_template.set_value('pixel_match_error_l1', pixel_match_error_l1)
 
-        return d, pd_template
+        pd_template.set_value('fraction_pixels_closer_than_ground_truth', fraction_pixels_closer_than_ground_truth)
+        pd_template.set_value('average_l2_distance_for_false_positives', average_l2_distance_for_false_positives)
+
+
+        return pd_template
 
     @staticmethod
     def compute_3d_position(uv, depth, camera_intrinsics_matrix, camera_to_world):
@@ -1186,9 +1174,10 @@ class DenseCorrespondenceEvaluationPlotter(object):
         return df
 
     @staticmethod
-    def make_cdf_plot(data, label=None, num_bins=30):
+    def make_cdf_plot(ax, data, num_bins, label=None):
         """
         Plots the empirical CDF of the data
+        :param ax: axis of a matplotlib plot to plot on
         :param data:
         :type data:
         :param num_bins:
@@ -1199,14 +1188,34 @@ class DenseCorrespondenceEvaluationPlotter(object):
         cumhist, l, b, e = ss.cumfreq(data, num_bins)
         cumhist *= 1.0 / len(data)
         x_axis = l + b * np.arange(0, num_bins)
-        plot = plt.plot(x_axis, cumhist, label=label)
+        plot = ax.plot(x_axis, cumhist, label=label)
         return plot
 
     @staticmethod
-    def make_descriptor_accuracy_plot(df, label=None, num_bins=30):
+    def make_pixel_match_error_plot(ax, df, label=None, num_bins=100):
+        """
+        :param ax: axis of a matplotlib plot to plot on
+        :param df: pandas dataframe, i.e. generated from quantitative 
+        :param num_bins:
+        :type num_bins:
+        :return:
+        :rtype:
+        """
+        DCEP = DenseCorrespondenceEvaluationPlotter
+
+        data = df['pixel_match_error_l2']
+
+        plot = DCEP.make_cdf_plot(ax, data, num_bins=num_bins, label=label)
+        ax.set_xlabel('Pixel match error, L2 (pixel distance)')
+        ax.set_ylabel('Fraction of images')
+        return plot
+
+    @staticmethod
+    def make_descriptor_accuracy_plot(ax, df, label=None, num_bins=100):
         """
         Makes a plot of best match accuracy.
         Drops nans
+        :param ax: axis of a matplotlib plot to plot on
         :param df:
         :type df:
         :param num_bins:
@@ -1220,10 +1229,70 @@ class DenseCorrespondenceEvaluationPlotter(object):
         data = data.dropna()
         data *= 100 # convert to cm
 
-        plot = DCEP.make_cdf_plot(data, label=label, num_bins=num_bins)
-        plt.xlabel('error (cm)')
-        plt.ylabel('fraction below threshold')
-        plt.title("3D Norm Diff Best Match")
+        plot = DCEP.make_cdf_plot(ax, data, num_bins=num_bins, label=label)
+        ax.set_xlabel('3D match error, L2 (cm)')
+        ax.set_ylabel('Fraction of images')
+        #ax.set_title("3D Norm Diff Best Match")
+        return plot
+
+    @staticmethod
+    def make_norm_diff_ground_truth_plot(ax, df, label=None, num_bins=100):
+        """
+        :param ax: axis of a matplotlib plot to plot on
+        :param df:
+        :type df:
+        :param num_bins:
+        :type num_bins:
+        :return:
+        :rtype:
+        """
+        DCEP = DenseCorrespondenceEvaluationPlotter
+
+        data = df['norm_diff_descriptor_ground_truth']
+        
+        plot = DCEP.make_cdf_plot(ax, data, num_bins=num_bins, label=label)
+        ax.set_xlabel('Descriptor match error, L2')
+        ax.set_ylabel('Fraction of images')
+        return plot
+
+    @staticmethod
+    def make_fraction_false_positives_plot(ax, df, label=None, num_bins=100):
+        """
+        :param ax: axis of a matplotlib plot to plot on
+        :param df:
+        :type df:
+        :param num_bins:
+        :type num_bins:
+        :return:
+        :rtype:
+        """
+        DCEP = DenseCorrespondenceEvaluationPlotter
+
+        data = df['fraction_pixels_closer_than_ground_truth']
+        
+        plot = DCEP.make_cdf_plot(ax, data, num_bins=num_bins, label=label)
+        ax.set_xlabel('Fraction false positives')
+        ax.set_ylabel('Fraction of images')
+        return plot
+
+    @staticmethod
+    def make_average_l2_false_positives_plot(ax, df, label=None, num_bins=100):
+        """
+        :param ax: axis of a matplotlib plot to plot on
+        :param df:
+        :type df:
+        :param num_bins:
+        :type num_bins:
+        :return:
+        :rtype:
+        """
+        DCEP = DenseCorrespondenceEvaluationPlotter
+
+        data = df['average_l2_distance_for_false_positives']
+        
+        plot = DCEP.make_cdf_plot(ax, data, num_bins=num_bins, label=label)
+        ax.set_xlabel('Average l2 pixel distance for false positives')
+        ax.set_ylabel('Fraction of images')
         return plot
 
     @staticmethod
@@ -1249,7 +1318,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
         return area_above_curve
 
     @staticmethod
-    def run_on_single_dataframe(path_to_df_csv, label=None, output_dir=None, save=True, previous_plot=None):
+    def run_on_single_dataframe(path_to_df_csv, label=None, output_dir=None, save=True, previous_fig_axes=None):
         """
         This method is intended to be called from an ipython notebook for plotting.
 
@@ -1286,15 +1355,19 @@ class DenseCorrespondenceEvaluationPlotter(object):
 
         df = pd.read_csv(path_to_csv, index_col=0, parse_dates=True)
 
-        
-        if previous_plot==None:
-            fig = plt.figure()
+        if previous_fig_axes==None:
+            N = 5
+            fig, axes = plt.subplots(N, figsize=(10,N*5))
         else:
-            fig = previous_plot
+            [fig, axes] = previous_fig_axes
         
-        # norm diff accuracy
-        plot = DCEP.make_descriptor_accuracy_plot(df, label=label)
-        plt.legend()
+        
+        # pixel match error
+        plot = DCEP.make_pixel_match_error_plot(axes[0], df, label=label)
+        axes[0].legend()
+       
+        # 3D match error
+        plot = DCEP.make_descriptor_accuracy_plot(axes[1], df, label=label)
         if save:
             fig_file = os.path.join(output_dir, "norm_diff_pred_3d.png")
             fig.savefig(fig_file)
@@ -1303,9 +1376,18 @@ class DenseCorrespondenceEvaluationPlotter(object):
         d = dict()
         d['norm_diff_3d_area_above_curve'] = float(aac)
 
+        # norm difference of the ground truth match (should be 0)
+        plot = DCEP.make_norm_diff_ground_truth_plot(axes[2], df, label=label)
+
+        # fraction false positives
+        plot = DCEP.make_fraction_false_positives_plot(axes[3], df, label=label)
+
+        # average l2 false positives
+        plot = DCEP.make_average_l2_false_positives_plot(axes[4], df, label=label)
+
         yaml_file = os.path.join(output_dir, 'stats.yaml')
         utils.saveToYaml(d, yaml_file)
-        return fig
+        return [fig, axes]
 
 
 def run():
