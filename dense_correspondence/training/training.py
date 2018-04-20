@@ -319,7 +319,7 @@ class DenseCorrespondenceTraining(object):
                     self._logging_dict['train']['non_match_loss'].append(non_match_loss.data[0])
 
                     learning_rate = DenseCorrespondenceTraining.get_learning_rate(optimizer)
-                    self._logging_dict['train']['learning_rate'] = learning_rate
+                    self._logging_dict['train']['learning_rate'].append(learning_rate)
 
                     self._visdom_plots['train']['loss'].log(loss_current_iteration, loss.data[0])
                     self._visdom_plots['train']['match_loss'].log(loss_current_iteration, match_loss.data[0])
