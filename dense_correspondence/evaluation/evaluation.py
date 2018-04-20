@@ -66,7 +66,8 @@ class DCNEvaluationPandaTemplate(PandaDataFrameWrapper):
             'norm_diff_pred_3d',
             'pixel_match_error_l2',
             'pixel_match_error_l1',
-            'fraction_pixels_closer_than_ground_truth']
+            'fraction_pixels_closer_than_ground_truth',
+            'average_l2_distance_for_false_positives']
 
     def __init__(self):
         PandaDataFrameWrapper.__init__(self, DCNEvaluationPandaTemplate.columns)
@@ -470,6 +471,13 @@ class DenseCorrespondenceEvaluation(object):
         num_pixels_in_image = res_a.shape[0] * res_a.shape[1]
         fraction_pixels_closer_than_ground_truth = num_pixels_closer_than_ground_truth*1.0/num_pixels_in_image
 
+        # new metric: average l2 distance of the pixels better than ground truth
+        if num_pixels_closer_than_ground_truth == 0:
+            average_l2_distance_for_false_positives = 0.0
+        else:
+            l2_distances = np.sqrt((u_indices_better_than_ground_truth - uv_b[0])**2 + (v_indices_better_than_ground_truth - uv_b[1])**2)
+            average_l2_distance_for_false_positives = np.average(l2_distances)
+
         # extract depth values, note the indexing order of u,v has to be reversed
         uv_a_depth = depth_a[uv_a[1], uv_a[0]] / DEPTH_IM_SCALE # check if this is not None
         uv_b_depth = depth_b[uv_b[1], uv_b[0]] / DEPTH_IM_SCALE
@@ -527,7 +535,9 @@ class DenseCorrespondenceEvaluation(object):
         pd_template.set_value('pixel_match_error_l2', pixel_match_error_l2)
         pd_template.set_value('pixel_match_error_l1', pixel_match_error_l1)
 
-        pd_template.set_value('fraction_pixels_closer_than_ground_truth', fraction_pixels_closer_than_ground_truth) 
+        pd_template.set_value('fraction_pixels_closer_than_ground_truth', fraction_pixels_closer_than_ground_truth)
+        pd_template.set_value('average_l2_distance_for_false_positives', average_l2_distance_for_false_positives)
+
 
         return pd_template
 
@@ -1242,8 +1252,29 @@ class DenseCorrespondenceEvaluationPlotter(object):
         data = df['fraction_pixels_closer_than_ground_truth']
         
         plot = DCEP.make_cdf_plot(ax, data, label=label, num_bins=num_bins)
-        plt.xlabel('Fraction false positives')
-        plt.ylabel('Fraction of images')
+        ax.set_xlabel('Fraction false positives')
+        ax.set_ylabel('Fraction of images')
+        return plot
+
+    @staticmethod
+    def make_average_l2_false_positives_plot(ax, df, label=None, num_bins=100):
+        """
+        Makes a plot of best match accuracy.
+        Drops nans
+        :param df:
+        :type df:
+        :param num_bins:
+        :type num_bins:
+        :return:
+        :rtype:
+        """
+        DCEP = DenseCorrespondenceEvaluationPlotter
+
+        data = df['average_l2_distance_for_false_positives']
+        
+        plot = DCEP.make_cdf_plot(ax, data, label=label, num_bins=num_bins)
+        ax.set_xlabel('Average l2 pixel distance for false positives')
+        ax.set_ylabel('Fraction of images')
         return plot
 
     @staticmethod
@@ -1307,7 +1338,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
         df = pd.read_csv(path_to_csv, index_col=0, parse_dates=True)
 
         if previous_fig_axes==None:
-            N = 3
+            N = 4
             fig, axes = plt.subplots(N, figsize=(10,N*5))
         else:
             [fig, axes] = previous_fig_axes
@@ -1329,6 +1360,8 @@ class DenseCorrespondenceEvaluationPlotter(object):
 
         # fraction false positives
         plot = DCEP.make_fraction_false_positives_plot(axes[2], df, label=label)
+
+        plot = DCEP.make_average_l2_false_positives_plot(axes[3], df, label=label)
 
         yaml_file = os.path.join(output_dir, 'stats.yaml')
         utils.saveToYaml(d, yaml_file)
