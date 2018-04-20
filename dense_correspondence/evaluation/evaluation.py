@@ -313,8 +313,8 @@ class DenseCorrespondenceEvaluation(object):
         rgb_a_tensor = dataset.rgb_image_to_tensor(rgb_a)
         rgb_b_tensor = dataset.rgb_image_to_tensor(rgb_b)
 
-        res_a = dcn.forward_on_single_image_tensor(rgb_a_tensor)
-        res_b = dcn.forward_on_single_image_tensor(rgb_b_tensor)
+        res_a = dcn.forward_single_image_tensor(rgb_a_tensor)
+        res_b = dcn.forward_single_image_tensor(rgb_b_tensor)
 
         if camera_intrinsics_matrix is None:
             camera_intrinsics = dataset.get_camera_intrinsics(scene_name)
