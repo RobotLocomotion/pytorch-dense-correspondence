@@ -442,9 +442,7 @@ class DenseCorrespondenceEvaluation(object):
 
         DCE = DenseCorrespondenceEvaluation
 
-        d = dict()
         # compute best match
-
         uv_b_pred, best_match_diff, norm_diffs =\
             DenseCorrespondenceNetwork.find_best_match(uv_a, res_a,
                                                        res_b, debug=debug)
