@@ -1177,6 +1177,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
     def make_cdf_plot(ax, data, num_bins, label=None):
         """
         Plots the empirical CDF of the data
+        :param ax: axis of a matplotlib plot to plot on
         :param data:
         :type data:
         :param num_bins:
@@ -1193,10 +1194,8 @@ class DenseCorrespondenceEvaluationPlotter(object):
     @staticmethod
     def make_pixel_match_error_plot(ax, df, label=None, num_bins=100):
         """
-        Makes a plot of best match accuracy.
-        Drops nans
-        :param df:
-        :type df:
+        :param ax: axis of a matplotlib plot to plot on
+        :param df: pandas dataframe, i.e. generated from quantitative 
         :param num_bins:
         :type num_bins:
         :return:
@@ -1206,7 +1205,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
 
         data = df['pixel_match_error_l2']
 
-        plot = DCEP.make_cdf_plot(ax, data, label=label, num_bins=num_bins)
+        plot = DCEP.make_cdf_plot(ax, data, num_bins=num_bins, label=label)
         ax.set_xlabel('Pixel match error, L2 (pixel distance)')
         ax.set_ylabel('Fraction of images')
         return plot
@@ -1216,6 +1215,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
         """
         Makes a plot of best match accuracy.
         Drops nans
+        :param ax: axis of a matplotlib plot to plot on
         :param df:
         :type df:
         :param num_bins:
@@ -1229,7 +1229,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
         data = data.dropna()
         data *= 100 # convert to cm
 
-        plot = DCEP.make_cdf_plot(ax, data, label=label, num_bins=num_bins)
+        plot = DCEP.make_cdf_plot(ax, data, num_bins=num_bins, label=label)
         ax.set_xlabel('3D match error, L2 (cm)')
         ax.set_ylabel('Fraction of images')
         #ax.set_title("3D Norm Diff Best Match")
@@ -1238,8 +1238,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
     @staticmethod
     def make_norm_diff_ground_truth_plot(ax, df, label=None, num_bins=100):
         """
-        Makes a plot of best match accuracy.
-        Drops nans
+        :param ax: axis of a matplotlib plot to plot on
         :param df:
         :type df:
         :param num_bins:
@@ -1251,7 +1250,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
 
         data = df['norm_diff_descriptor_ground_truth']
         
-        plot = DCEP.make_cdf_plot(ax, data, label=label, num_bins=num_bins)
+        plot = DCEP.make_cdf_plot(ax, data, num_bins=num_bins, label=label)
         ax.set_xlabel('Descriptor match error, L2')
         ax.set_ylabel('Fraction of images')
         return plot
@@ -1259,8 +1258,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
     @staticmethod
     def make_fraction_false_positives_plot(ax, df, label=None, num_bins=100):
         """
-        Makes a plot of best match accuracy.
-        Drops nans
+        :param ax: axis of a matplotlib plot to plot on
         :param df:
         :type df:
         :param num_bins:
@@ -1272,7 +1270,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
 
         data = df['fraction_pixels_closer_than_ground_truth']
         
-        plot = DCEP.make_cdf_plot(ax, data, label=label, num_bins=num_bins)
+        plot = DCEP.make_cdf_plot(ax, data, num_bins=num_bins, label=label)
         ax.set_xlabel('Fraction false positives')
         ax.set_ylabel('Fraction of images')
         return plot
@@ -1280,8 +1278,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
     @staticmethod
     def make_average_l2_false_positives_plot(ax, df, label=None, num_bins=100):
         """
-        Makes a plot of best match accuracy.
-        Drops nans
+        :param ax: axis of a matplotlib plot to plot on
         :param df:
         :type df:
         :param num_bins:
@@ -1293,7 +1290,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
 
         data = df['average_l2_distance_for_false_positives']
         
-        plot = DCEP.make_cdf_plot(ax, data, label=label, num_bins=num_bins)
+        plot = DCEP.make_cdf_plot(ax, data, num_bins=num_bins, label=label)
         ax.set_xlabel('Average l2 pixel distance for false positives')
         ax.set_ylabel('Fraction of images')
         return plot
