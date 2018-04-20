@@ -64,7 +64,8 @@ class DCNEvaluationPandaTemplate(PandaDataFrameWrapper):
             'norm_diff_descriptor',
             'norm_diff_ground_truth_3d',
             'norm_diff_pred_3d',
-            'pixel_match_error']
+            'pixel_match_error_l2',
+            'pixel_match_error_l1']
 
     def __init__(self):
         PandaDataFrameWrapper.__init__(self, DCNEvaluationPandaTemplate.columns)
@@ -520,8 +521,8 @@ class DenseCorrespondenceEvaluation(object):
         d['uv_b'] = uv_b
         d['uv_b_pred'] = uv_b_pred
 
-        d['pixel_match_error_l2'] = pixel_match_error_l2
-        d['pixel_match_error_l1'] = pixel_match_error_l1
+        #d['pixel_match_error_l2'] = pixel_match_error_l2
+        #d['pixel_match_error_l1'] = pixel_match_error_l1
 
         d['norm_diff_descriptor'] = best_match_diff
 
@@ -559,7 +560,7 @@ class DenseCorrespondenceEvaluation(object):
         pd_template.set_value('norm_diff_descriptor_ground_truth', norm_diff_ground_truth_3d)
 
         pd_template.set_value('pixel_match_error_l2', pixel_match_error_l2)
-        pd_template.set_value('pixel_match_error_l2', pixel_match_error_l1)
+        pd_template.set_value('pixel_match_error_l1', pixel_match_error_l1)
 
         return d, pd_template
 
