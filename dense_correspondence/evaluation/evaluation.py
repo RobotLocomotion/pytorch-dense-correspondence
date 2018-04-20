@@ -1164,7 +1164,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
         return df
 
     @staticmethod
-    def make_cdf_plot(ax, data, label=None, num_bins):
+    def make_cdf_plot(ax, data, num_bins, label=None):
         """
         Plots the empirical CDF of the data
         :param data:
