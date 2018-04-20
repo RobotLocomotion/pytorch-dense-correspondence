@@ -12,6 +12,9 @@ from dense_correspondence.dataset.spartan_dataset_masked import SpartanDataset, 
 
 sd = SpartanDataset()
 
+def numpy_to_cv2(numpy_img):
+    return numpy_img[:, :, ::-1].copy() # open and convert between BGR and RGB
+
 def pil_image_to_cv2(pil_image):
     return np.array(pil_image)[:, :, ::-1].copy() # open and convert between BGR and RGB
 
