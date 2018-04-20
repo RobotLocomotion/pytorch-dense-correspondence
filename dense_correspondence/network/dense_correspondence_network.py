@@ -11,6 +11,7 @@ import torch
 from torchvision import transforms
 from torch.autograd import Variable
 import pytorch_segmentation_detection.models.resnet_dilated as resnet_dilated
+from dense_correspondence.dataset.spartan_dataset_masked import SpartanDataset
 
 import numpy as np
 
@@ -285,6 +286,19 @@ class DenseCorrespondenceNetwork(object):
         u = min(int(round(uv[0])), self._image_width - 1)
         v = min(int(round(uv[1])), self._image_height - 1)
         return [u, v]
+
+    def load_training_dataset(self):
+        """
+        Loads the dataset that this was trained on
+        :return:
+        :rtype:
+        """
+
+        network_params_folder = self.path_to_network_params_folder
+        network_params_folder = utils.convert_to_absolute_path(network_params_folder)
+        dataset_config_file = os.path.join(network_params_folder, 'dataset.yaml')
+        config = utils.getDictFromYamlFilename(dataset_config_file)
+        return SpartanDataset(config=config)
 
     @staticmethod
     def from_config(config, load_stored_params=True):

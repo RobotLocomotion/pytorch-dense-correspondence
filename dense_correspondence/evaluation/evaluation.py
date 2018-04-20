@@ -101,6 +101,25 @@ class DenseCorrespondenceEvaluation(object):
         network_config = self._config["networks"][name]
         return DenseCorrespondenceNetwork.from_config(network_config)
 
+    def load_dataset_for_network(self, network_name):
+        """
+        Loads a dataset for the network specified in the config file
+        :param network_name: string
+        :type network_name:
+        :return: SpartanDataset
+        :rtype:
+        """
+        if network_name not in self._config["networks"]:
+            raise ValueError("Network %s is not in config file" %(network_name))
+
+        network_folder = os.path.dirname(self._config["networks"][network_name]["path_to_network_params"])
+        network_folder = utils.convert_to_absolute_path(network_folder)
+        dataset_config = utils.getDictFromYamlFilename(os.path.join(network_folder, "dataset.yaml"))
+
+        dataset = SpartanDataset(config=dataset_config)
+        return dataset
+
+
     def load_dataset(self):
         """
         Loads a SpartanDatasetMasked object
@@ -275,7 +294,14 @@ class DenseCorrespondenceEvaluation(object):
         fig, axes = plt.subplots(nrows=nrows, ncols=ncols)
         fig.set_figheight(5)
         fig.set_figwidth(15)
-        res_a_norm = dc_plotting.normalize_descriptor(res_a, descriptor_image_stats['entire_image'])
+
+        if descriptor_image_stats is None:
+            res_a_norm = dc_plotting.normalize_descriptor(res_a)
+            res_b_norm = dc_plotting.normalize_descriptor(res_b)
+        else:
+            res_a_norm = dc_plotting.normalize_descriptor(res_a, descriptor_image_stats['entire_image'])
+            res_b_norm = dc_plotting.normalize_descriptor(res_b, descriptor_image_stats['entire_image'])
+
 
         if plot_masked:
             ax = axes[0,0]
@@ -284,7 +310,6 @@ class DenseCorrespondenceEvaluation(object):
 
         ax.imshow(res_a_norm)
 
-        res_b_norm = dc_plotting.normalize_descriptor(res_b, descriptor_image_stats['entire_image'])
 
         if plot_masked:
             ax = axes[0,1]
@@ -300,8 +325,13 @@ class DenseCorrespondenceEvaluation(object):
             fig.set_figheight(10)
             fig.set_figwidth(15)
 
-            res_a_norm_mask = dc_plotting.normalize_descriptor(res_a, descriptor_image_stats['mask_image'])
-            res_b_norm_mask = dc_plotting.normalize_descriptor(res_b, descriptor_image_stats['mask_image'])
+
+            if descriptor_image_stats is None:
+                res_a_norm_mask = dc_plotting.normalize_descriptor(res_a)
+                res_b_norm_mask = dc_plotting.normalize_descriptor(res_b)
+            else:
+                res_a_norm_mask = dc_plotting.normalize_descriptor(res_a, descriptor_image_stats['mask_image'])
+                res_b_norm_mask = dc_plotting.normalize_descriptor(res_b, descriptor_image_stats['mask_image'])
 
             # pointwise multiplication
             # Need to reshape things to be able to
@@ -677,6 +707,7 @@ class DenseCorrespondenceEvaluation(object):
         dist = 0.01
 
         descriptor_image_stats = dcn.descriptor_image_stats
+        # descriptor_image_stats = None
 
         for i in xrange(0, num_matches):
             # convert to (u,v) format
@@ -1000,17 +1031,9 @@ class DenseCorrespondenceEvaluation(object):
 
 
     @staticmethod
-    def evaluate_network_qualitative(dcn, num_image_pairs=5, randomize=False, dataset=None,
+    def evaluate_network_qualitative(dcn, dataset, num_image_pairs=5, randomize=False,
                                      scene_type="caterpillar"):
 
-        if dataset is None:
-            config_file = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence',
-                                       'dataset',
-                                       'spartan_dataset_masked.yaml')
-
-            config = utils.getDictFromYamlFilename(config_file)
-
-            dataset = SpartanDataset(mode="test", config=config)
 
         # Train Data
         print "\n\n-----------Train Data Evaluation----------------"
