@@ -313,8 +313,9 @@ class DenseCorrespondenceEvaluation(object):
         rgb_a_tensor = dataset.rgb_image_to_tensor(rgb_a)
         rgb_b_tensor = dataset.rgb_image_to_tensor(rgb_b)
 
-        res_a = dcn.forward_on_single_image_tensor(rgb_a_tensor)
-        res_b = dcn.forward_on_single_image_tensor(rgb_b_tensor)
+        # these are Variables holding torch.FloatTensors, first grab the data, then convert to numpy
+        res_a = dcn.forward_single_image_tensor(rgb_a_tensor).data.cpu().numpy()
+        res_b = dcn.forward_single_image_tensor(rgb_b_tensor).data.cpu().numpy()
 
         if camera_intrinsics_matrix is None:
             camera_intrinsics = dataset.get_camera_intrinsics(scene_name)
@@ -614,9 +615,9 @@ class DenseCorrespondenceEvaluation(object):
         rgb_a_tensor = dataset.rgb_image_to_tensor(rgb_a)
         rgb_b_tensor = dataset.rgb_image_to_tensor(rgb_b)
 
-        # these are torch.FloatTensor, convert to numpy
-        res_a = dcn.forward_single_image_tensor(rgb_a_tensor).cpu().data.numpy()
-        res_b = dcn.forward_single_image_tensor(rgb_b_tensor).cpu().data.numpy()
+        # these are Variables holding torch.FloatTensors, first grab the data, then convert to numpy
+        res_a = dcn.forward_single_image_tensor(rgb_a_tensor).data.cpu().numpy()
+        res_b = dcn.forward_single_image_tensor(rgb_b_tensor).data.cpu().numpy()
 
 
         # sample points on img_a. Compute best matches on img_b

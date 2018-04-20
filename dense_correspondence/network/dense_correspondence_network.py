@@ -306,7 +306,7 @@ class DenseCorrespondenceNetwork(object):
         and image_b
 
         :param pixel_a: vector of (u,v) pixel coordinates
-        :param res_a: array of dense descriptors res_a.shape = [W,H,D]
+        :param res_a: array of dense descriptors res_a.shape = [H,W,D]
         :param res_b: array of dense descriptors
         :param pixel_b: Ground truth . . .
         :return: (best_match_uv, best_match_diff, norm_diffs)
@@ -314,11 +314,8 @@ class DenseCorrespondenceNetwork(object):
 
         """
 
-
         descriptor_at_pixel = res_a[pixel_a[1], pixel_a[0]]
         height, width, _ = res_a.shape
-
-
 
         if debug:
             print "height: ", height
