@@ -65,7 +65,8 @@ class DCNEvaluationPandaTemplate(PandaDataFrameWrapper):
             'norm_diff_ground_truth_3d',
             'norm_diff_pred_3d',
             'pixel_match_error_l2',
-            'pixel_match_error_l1']
+            'pixel_match_error_l1',
+            'fraction_pixels_closer_than_ground_truth']
 
     def __init__(self):
         PandaDataFrameWrapper.__init__(self, DCNEvaluationPandaTemplate.columns)
@@ -355,8 +356,8 @@ class DenseCorrespondenceEvaluation(object):
 
 
         for i in match_list:
-            uv_a = [uv_a_vec[0][i], uv_a_vec[1][i]]
-            uv_b_raw = [uv_b_vec[0][i], uv_b_vec[1][i]]
+            uv_a = (uv_a_vec[0][i], uv_a_vec[1][i])
+            uv_b_raw = (uv_b_vec[0][i], uv_b_vec[1][i])
             uv_b = clip_pixel_to_image_size_and_round(uv_b_raw)
 
             d, pd_template = DenseCorrespondenceEvaluation.compute_descriptor_match_statistics(depth_a,
@@ -460,13 +461,16 @@ class DenseCorrespondenceEvaluation(object):
         norm_diff_descriptor_ground_truth = np.linalg.norm(des_a - des_b_ground_truth)
 
 
-        # print "type(depth_a): ", type(depth_a)
-        # # print "depth_a.shape(): ", depth_a.shape()
-        # print "uv_a:", uv_a
-        # print "uv_b: ", uv_b
-        # print "uv_b_pred: ", uv_b_pred
-
-
+        # from Schmidt et al 2017: 
+        """
+        We then determine the number of pixels in the target image that are closer in
+        descriptor space to the source point than the manually-labelled corresponding point.
+        """
+        # compute this
+        (v_indices_better_than_ground_truth, u_indices_better_than_ground_truth) = np.where(norm_diffs < norm_diff_descriptor_ground_truth)
+        num_pixels_closer_than_ground_truth = len(u_indices_better_than_ground_truth) 
+        num_pixels_in_image = res_a.shape[0] * res_a.shape[1]
+        fraction_pixels_closer_than_ground_truth = num_pixels_closer_than_ground_truth*1.0/num_pixels_in_image
 
         # extract depth values, note the indexing order of u,v has to be reversed
         uv_a_depth = depth_a[uv_a[1], uv_a[0]] / DEPTH_IM_SCALE # check if this is not None
@@ -474,9 +478,6 @@ class DenseCorrespondenceEvaluation(object):
         uv_b_pred_depth = depth_b[uv_b_pred[1], uv_b_pred[0]] / DEPTH_IM_SCALE
         uv_b_pred_depth_is_valid = DenseCorrespondenceEvaluation.is_depth_valid(uv_b_pred_depth)
         is_valid = uv_b_pred_depth_is_valid
-
-
-
 
         uv_a_pos = DCE.compute_3d_position(uv_a, uv_a_depth, camera_matrix, pose_a)
         uv_b_pos = DCE.compute_3d_position(uv_b, uv_b_depth, camera_matrix, pose_b)
@@ -521,8 +522,8 @@ class DenseCorrespondenceEvaluation(object):
         d['uv_b'] = uv_b
         d['uv_b_pred'] = uv_b_pred
 
-        #d['pixel_match_error_l2'] = pixel_match_error_l2
-        #d['pixel_match_error_l1'] = pixel_match_error_l1
+        d['pixel_match_error_l2'] = pixel_match_error_l2
+        d['pixel_match_error_l1'] = pixel_match_error_l1
 
         d['norm_diff_descriptor'] = best_match_diff
 
@@ -561,6 +562,8 @@ class DenseCorrespondenceEvaluation(object):
 
         pd_template.set_value('pixel_match_error_l2', pixel_match_error_l2)
         pd_template.set_value('pixel_match_error_l1', pixel_match_error_l1)
+
+        pd_template.set_value('fraction_pixels_closer_than_ground_truth', fraction_pixels_closer_than_ground_truth) 
 
         return d, pd_template
 
