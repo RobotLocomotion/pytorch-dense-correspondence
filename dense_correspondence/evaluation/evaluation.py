@@ -1236,6 +1236,27 @@ class DenseCorrespondenceEvaluationPlotter(object):
         return plot
 
     @staticmethod
+    def make_norm_diff_ground_truth_plot(ax, df, label=None, num_bins=100):
+        """
+        Makes a plot of best match accuracy.
+        Drops nans
+        :param df:
+        :type df:
+        :param num_bins:
+        :type num_bins:
+        :return:
+        :rtype:
+        """
+        DCEP = DenseCorrespondenceEvaluationPlotter
+
+        data = df['norm_diff_descriptor_ground_truth']
+        
+        plot = DCEP.make_cdf_plot(ax, data, label=label, num_bins=num_bins)
+        ax.set_xlabel('Descriptor match error, L2')
+        ax.set_ylabel('Fraction of images')
+        return plot
+
+    @staticmethod
     def make_fraction_false_positives_plot(ax, df, label=None, num_bins=100):
         """
         Makes a plot of best match accuracy.
@@ -1338,7 +1359,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
         df = pd.read_csv(path_to_csv, index_col=0, parse_dates=True)
 
         if previous_fig_axes==None:
-            N = 4
+            N = 5
             fig, axes = plt.subplots(N, figsize=(10,N*5))
         else:
             [fig, axes] = previous_fig_axes
@@ -1358,10 +1379,14 @@ class DenseCorrespondenceEvaluationPlotter(object):
         d = dict()
         d['norm_diff_3d_area_above_curve'] = float(aac)
 
-        # fraction false positives
-        plot = DCEP.make_fraction_false_positives_plot(axes[2], df, label=label)
+        # norm difference of the ground truth match (should be 0)
+        plot = DCEP.make_norm_diff_ground_truth_plot(axes[2], df, label=label)
 
-        plot = DCEP.make_average_l2_false_positives_plot(axes[3], df, label=label)
+        # fraction false positives
+        plot = DCEP.make_fraction_false_positives_plot(axes[3], df, label=label)
+
+        # average l2 false positives
+        plot = DCEP.make_average_l2_false_positives_plot(axes[4], df, label=label)
 
         yaml_file = os.path.join(output_dir, 'stats.yaml')
         utils.saveToYaml(d, yaml_file)
