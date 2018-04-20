@@ -360,7 +360,7 @@ class DenseCorrespondenceEvaluation(object):
             uv_b_raw = (uv_b_vec[0][i], uv_b_vec[1][i])
             uv_b = clip_pixel_to_image_size_and_round(uv_b_raw)
 
-            d, pd_template = DenseCorrespondenceEvaluation.compute_descriptor_match_statistics(depth_a,
+            pd_template = DenseCorrespondenceEvaluation.compute_descriptor_match_statistics(depth_a,
                                                                                   depth_b,
                                                                                   uv_a,
                                                                                   uv_b,
@@ -513,40 +513,6 @@ class DenseCorrespondenceEvaluation(object):
                                                                show=True,
                                                                circ_color='purple')
 
-
-
-        # construct a dict with the return data, which will later be put into a pandas.DataFrame object
-        d = dict()
-
-        d['uv_a'] = uv_a
-        d['uv_b'] = uv_b
-        d['uv_b_pred'] = uv_b_pred
-
-        d['pixel_match_error_l2'] = pixel_match_error_l2
-        d['pixel_match_error_l1'] = pixel_match_error_l1
-
-        d['norm_diff_descriptor'] = best_match_diff
-
-        d['pose_a'] = pose_a
-        d['pose_b'] = pose_b
-
-        d['uv_a_depth'] = uv_a_depth
-        d['uv_b_depth'] = uv_b_depth
-        d['uv_b_pred_depth'] = uv_b_pred_depth
-        d['uv_b_pred_depth_is_valid'] = uv_b_pred_depth_is_valid
-
-        d['is_valid'] = is_valid
-
-        d['uv_a_pos'] = uv_a_pos
-        d['uv_b_pos'] = uv_b_pos
-        d['uv_b_pre_pos'] = uv_b_pred_pos
-
-        d['diff_ground_truth_3d'] = diff_ground_truth_3d
-        d['norm_diff_ground_truth_3d'] = norm_diff_ground_truth_3d
-        d['diff_pred_3d'] = diff_pred_3d
-        d['norm_diff_pred_3d'] = norm_diff_pred_3d
-
-        # dict for making a pandas.DataFrame later
         pd_template = DCNEvaluationPandaTemplate()
         pd_template.set_value('norm_diff_descriptor', best_match_diff)
         pd_template.set_value('is_valid', is_valid)
@@ -565,7 +531,7 @@ class DenseCorrespondenceEvaluation(object):
 
         pd_template.set_value('fraction_pixels_closer_than_ground_truth', fraction_pixels_closer_than_ground_truth) 
 
-        return d, pd_template
+        return pd_template
 
     @staticmethod
     def compute_3d_position(uv, depth, camera_intrinsics_matrix, camera_to_world):
