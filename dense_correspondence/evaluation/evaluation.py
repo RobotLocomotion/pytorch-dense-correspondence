@@ -350,7 +350,7 @@ class DenseCorrespondenceEvaluation(object):
         def clip_pixel_to_image_size_and_round(uv):
             u = min(int(round(uv[0])), image_width - 1)
             v = min(int(round(uv[1])), image_height - 1)
-            return [u,v]
+            return (u,v)
 
 
         for i in match_list:
@@ -447,6 +447,12 @@ class DenseCorrespondenceEvaluation(object):
             DenseCorrespondenceNetwork.find_best_match(uv_a, res_a,
                                                        res_b, debug=debug)
 
+        
+        # compute pixel space difference
+        pixel_match_error_l2 = np.linalg.norm((np.array(uv_b) - np.array(uv_b_pred)), ord=2)
+        pixel_match_error_l1 = np.linalg.norm((np.array(uv_b) - np.array(uv_b_pred)), ord=1)
+
+
         # extract the ground truth descriptors
         des_a = res_a[uv_a[1], uv_a[0], :]
         des_b_ground_truth = res_b[uv_b[1], uv_b[0], :]
@@ -513,6 +519,10 @@ class DenseCorrespondenceEvaluation(object):
         d['uv_a'] = uv_a
         d['uv_b'] = uv_b
         d['uv_b_pred'] = uv_b_pred
+
+        d['pixel_match_error_l2'] = pixel_match_error_l2
+        d['pixel_match_error_l1'] = pixel_match_error_l1
+
         d['norm_diff_descriptor'] = best_match_diff
 
         d['pose_a'] = pose_a
@@ -548,8 +558,8 @@ class DenseCorrespondenceEvaluation(object):
 
         pd_template.set_value('norm_diff_descriptor_ground_truth', norm_diff_ground_truth_3d)
 
-        pixel_match_error = np.linalg.norm((np.array(uv_b) - np.array(uv_b_pred)), ord=1)
-        pd_template.set_value('pixel_match_error', pixel_match_error)
+        pd_template.set_value('pixel_match_error_l2', pixel_match_error_l2)
+        pd_template.set_value('pixel_match_error_l2', pixel_match_error_l1)
 
         return d, pd_template
 
