@@ -1200,7 +1200,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
         return df
 
     @staticmethod
-    def make_cdf_plot(ax, data, label=None, num_bins=30):
+    def make_cdf_plot(ax, data, label=None, num_bins):
         """
         Plots the empirical CDF of the data
         :param data:
@@ -1217,7 +1217,28 @@ class DenseCorrespondenceEvaluationPlotter(object):
         return plot
 
     @staticmethod
-    def make_descriptor_accuracy_plot(ax, df, label=None, num_bins=30):
+    def make_pixel_match_error_plot(ax, df, label=None, num_bins=100):
+        """
+        Makes a plot of best match accuracy.
+        Drops nans
+        :param df:
+        :type df:
+        :param num_bins:
+        :type num_bins:
+        :return:
+        :rtype:
+        """
+        DCEP = DenseCorrespondenceEvaluationPlotter
+
+        data = df['pixel_match_error_l2']
+
+        plot = DCEP.make_cdf_plot(ax, data, label=label, num_bins=num_bins)
+        ax.set_xlabel('Pixel match error, L2 (pixel distance)')
+        ax.set_ylabel('Fraction of images')
+        return plot
+
+    @staticmethod
+    def make_descriptor_accuracy_plot(ax, df, label=None, num_bins=100):
         """
         Makes a plot of best match accuracy.
         Drops nans
@@ -1235,13 +1256,13 @@ class DenseCorrespondenceEvaluationPlotter(object):
         data *= 100 # convert to cm
 
         plot = DCEP.make_cdf_plot(ax, data, label=label, num_bins=num_bins)
-        ax.set_xlabel('error (cm)')
-        ax.set_ylabel('fraction below threshold')
-        ax.set_title("3D Norm Diff Best Match")
+        ax.set_xlabel('3D match error, L2 (cm)')
+        ax.set_ylabel('Fraction of images')
+        #ax.set_title("3D Norm Diff Best Match")
         return plot
 
     @staticmethod
-    def make_fraction_false_positives_plot(ax, df, label=None, num_bins=30):
+    def make_fraction_false_positives_plot(ax, df, label=None, num_bins=100):
         """
         Makes a plot of best match accuracy.
         Drops nans
@@ -1259,7 +1280,6 @@ class DenseCorrespondenceEvaluationPlotter(object):
         plot = DCEP.make_cdf_plot(ax, data, label=label, num_bins=num_bins)
         plt.xlabel('Fraction false positives')
         plt.ylabel('Fraction of images')
-        plt.title("Tanner plot")
         return plot
 
     @staticmethod
@@ -1322,15 +1342,19 @@ class DenseCorrespondenceEvaluationPlotter(object):
 
         df = pd.read_csv(path_to_csv, index_col=0, parse_dates=True)
 
-        
         if previous_fig_axes==None:
-            fig, axes = plt.subplots(2, figsize=(10,10))
+            N = 3
+            fig, axes = plt.subplots(N, figsize=(10,N*5))
         else:
             [fig, axes] = previous_fig_axes
         
-        # norm diff accuracy
-        plot = DCEP.make_descriptor_accuracy_plot(axes[0], df, label=label)
+        
+        # pixel match error
+        plot = DCEP.make_pixel_match_error_plot(axes[0], df, label=label)
         axes[0].legend()
+       
+        # 3D match error
+        plot = DCEP.make_descriptor_accuracy_plot(axes[1], df, label=label)
         if save:
             fig_file = os.path.join(output_dir, "norm_diff_pred_3d.png")
             fig.savefig(fig_file)
@@ -1340,7 +1364,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
         d['norm_diff_3d_area_above_curve'] = float(aac)
 
         # fraction false positives
-
+        plot = DCEP.make_fraction_false_positives_plot(axes[2], df, label=label)
 
         yaml_file = os.path.join(output_dir, 'stats.yaml')
         utils.saveToYaml(d, yaml_file)
