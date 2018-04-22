@@ -385,26 +385,6 @@ class DenseCorrespondenceEvaluation(object):
         v = min(int(round(uv[1])), image_height - 1)
         return (u,v)
 
-    def single_cross_scene_image_pair_qualitative_analysis(dcn, dataset, scene_name_a,
-                                               img_a_idx, scene_name_b, img_b_idx,
-                                               num_matches=10):
-        """
-        Wrapper for single_image_pair_qualitative_analysis, when images are NOT from same scene.
-
-        See that function for remaining documentation.
-
-        :param scene_name: scene name to use
-        :param img_a_idx: index of image_a in the dataset
-        :param img_b_idx: index of image_b in the datset
-
-        :type scene_name: str
-        :type img_a_idx: int
-        :type img_b_idx: int
-
-        :return: the images a and b
-        :rtype: PIL.Image, PIL.Image
-        """
-
     @staticmethod
     def single_cross_scene_image_pair_quantitative_analysis(dcn, dataset, scene_name_a,
                                                img_a_idx, scene_name_b, img_b_idx):
@@ -425,8 +405,6 @@ class DenseCorrespondenceEvaluation(object):
         :type img_a_idx: int
         :param img_b_idx:
         :type img_b_idx: int
-        :param camera_intrinsics_matrix: Optionally set camera intrinsics, otherwise will get it from the dataset
-        :type camera_intrinsics_matrix: 3 x 3 numpy array
         :return: Dict with relevant data
         :rtype:
         """
