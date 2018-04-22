@@ -1241,16 +1241,10 @@ class DenseCorrespondenceEvaluation(object):
             channel_min, _ = res_reshape.min(0) # shape [D]
             channel_max, _ = res_reshape.max(0) # shape [D]
 
-            # print "channel_mean.shape", channel_mean.shape
-            # print "channel_mean.shape", channel_max.shape
-            # print "channel_min.shape", channel_min.shape
-
             # now do the same for the masked image
             mask_flat = mask_tensor.view(-1,1).squeeze(1)
-            # print "mask_flat.shape", mask_flat.shape
 
             mask_indices_flat = torch.nonzero(mask_flat).squeeze(1)
-            # print "mask_indices_flat.shape", mask_indices_flat.shape
 
             res_masked_flat = res_reshape.index_select(0, mask_indices_flat) # shape [mask_size, D]
             mask_channel_mean = res_masked_flat.mean(0)
@@ -1311,13 +1305,6 @@ class DenseCorrespondenceEvaluation(object):
         stats['entire_image'] = {'mean': None, 'max': None, 'min': None}
         stats['mask_image'] = {'mean': None, 'max': None, 'min': None}
 
-
-        # entire_image_stats = {'mean': None, 'max': None, 'min': None}
-        # mask_image_stats = {'mean': None, 'max': None, 'min': None}
-
-
-
-
         for i in xrange(0,num_images):
             rgb, depth, mask, _ = dataset.get_random_rgbd_mask_pose()
             img_tensor = dataset.rgb_image_to_tensor(rgb)
@@ -1330,41 +1317,10 @@ class DenseCorrespondenceEvaluation(object):
             update_stats(stats['mask_image'], mask_image_stats)
 
 
-
-
-
-
-            # if res_min is None:
-            #     res_min = min_temp
-            # else:
-            #     res_min = torch.min(res_min, min_temp)
-            #
-            # if res_max is None:
-            #     res_max = max_temp
-            # else:
-            #     res_max = torch.max(res_max, max_temp)
-            #
-            # if res_mean_sum is None:
-            #     res_mean_sum = mean_temp
-            # else:
-            #     res_mean_sum += mean_temp
-
-
-
         for key, val in stats.iteritems():
             val['mean'] = 1.0/num_images * val['mean']
             for field in val:
                 val[field] = val[field].tolist()
-
-        # res_mean = 1.0/num_images * res_mean_sum
-        #
-        # d = dict()
-        #
-        # d['entire_image'] = dict()
-        # d['entire_image']['min'] = res_min.tolist()
-        # d['entire_image']['max'] = res_max.tolist()
-        # d['entire_image']['mean'] = res_mean.tolist()
-        # d['mask_image']['min'] = res
 
         if save_to_file:
             if filename is None:
