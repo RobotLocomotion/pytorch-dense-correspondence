@@ -673,7 +673,8 @@ class DenseCorrespondenceEvaluation(object):
         :type img_a_idx: int
         :type img_b_idx: int
 
-        :return: None
+        :return: the images a and b
+        :rtype: PIL.Image, PIL.Image
         """
 
         rgb_a, _, mask_a, _ = dataset.get_rgbd_mask_pose(scene_name_a, img_a_idx)
@@ -681,6 +682,7 @@ class DenseCorrespondenceEvaluation(object):
         rgb_b, _, mask_b, _ = dataset.get_rgbd_mask_pose(scene_name_b, img_b_idx)
 
         DenseCorrespondenceEvaluation.single_image_pair_qualitative_analysis(dcn, dataset, rgb_a, rgb_b, mask_a, mask_b, num_matches)
+        return rgb_a, rgb_b
 
     @staticmethod
     def single_image_pair_qualitative_analysis(dcn, dataset, rgb_a, rgb_b, mask_a, mask_b,
@@ -1056,7 +1058,7 @@ class DenseCorrespondenceEvaluation(object):
 
 
     @staticmethod
-    def evaluate_network_qualitative_cross_scene(dcn, dataset):
+    def evaluate_network_qualitative_cross_scene(dcn, dataset, draw_human_annotations=True):
         """
         This will search for the "evaluation_labeled_data_path" in the dataset.yaml,
         and use pairs of images that have been human-labeled across scenes.
@@ -1081,13 +1083,27 @@ class DenseCorrespondenceEvaluation(object):
             image_a_idx = annotated_pair["image_a"]["image_idx"]
             image_b_idx = annotated_pair["image_b"]["image_idx"]
 
-            DenseCorrespondenceEvaluation.single_cross_scene_image_pair_qualitative_analysis(\
+            rgb_a, rgb_b = DenseCorrespondenceEvaluation.single_cross_scene_image_pair_qualitative_analysis(\
                 dcn, dataset, scene_name_a, image_a_idx, scene_name_b, image_b_idx)
 
-            img1_points_picked = annotated_pair["image_a"]["pixels"]
-            img2_points_picked = annotated_pair["image_b"]["pixels"]
 
+            if draw_human_annotations:
+                img_a_points_picked = annotated_pair["image_a"]["pixels"]
+                img_b_points_picked = annotated_pair["image_b"]["pixels"]
 
+                # note here: converting the rgb_a to numpy format, but not inverting
+                # the RGB <--> BGR colors as cv2 would expect, because all I'm going to do is then
+                # plot this as an image in matplotlib, in which case
+                # would just need to switch the colors back.
+                rgb_a = dc_plotting.draw_correspondence_points_cv2(np.asarray(rgb_a), img_a_points_picked)
+                rgb_b = dc_plotting.draw_correspondence_points_cv2(np.asarray(rgb_b), img_b_points_picked)
+
+                fig, axes = plt.subplots(nrows=1, ncols=2)
+                fig.set_figheight(10)
+                fig.set_figwidth(15)
+                axes[0].imshow(rgb_a)
+                axes[1].imshow(rgb_b)
+                plt.show()
 
 
     @staticmethod
