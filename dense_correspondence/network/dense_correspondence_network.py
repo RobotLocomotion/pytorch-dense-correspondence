@@ -290,8 +290,8 @@ class DenseCorrespondenceNetwork(object):
     def load_training_dataset(self):
         """
         Loads the dataset that this was trained on
-        :return:
-        :rtype:
+        :return: a dataset object, loaded with the config as set in the dataset.yaml
+        :rtype: SpartanDataset
         """
 
         network_params_folder = self.path_to_network_params_folder

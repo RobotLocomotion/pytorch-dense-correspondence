@@ -631,38 +631,53 @@ class DenseCorrespondenceEvaluation(object):
         return pos_in_world_frame
 
     @staticmethod
-    def single_image_pair_qualitative_analysis(dcn, dataset, scene_name,
+    def single_same_scene_image_pair_qualitative_analysis(dcn, dataset, scene_name,
                                                img_a_idx, img_b_idx,
                                                num_matches=10):
+        """
+        Wrapper for single_image_pair_qualitative_analysis, when images are from same scene.
+
+        See that function for remaining documentation.
+
+        :param scene_name: scene name to use
+        :param img_a_idx: index of image_a in the dataset
+        :param img_b_idx: index of image_b in the datset
+
+        :type scene_name: str
+        :type img_a_idx: int
+        :type img_b_idx: int
+
+        :return: None
+        """
+
+        rgb_a, _, mask_a, _ = dataset.get_rgbd_mask_pose(scene_name, img_a_idx)
+
+        rgb_b, _, mask_b, _ = dataset.get_rgbd_mask_pose(scene_name, img_b_idx)
+
+        DenseCorrespondenceEvaluation.single_image_pair_qualitative_analysis(dcn, dataset, rgb_a, rgb_b, mask_a, mask_b, num_matches)
+
+    @staticmethod
+    def single_image_pair_qualitative_analysis(dcn, dataset, rgb_a, rgb_b, mask_a, mask_b,
+                                               num_matches):
         """
         Computes qualtitative assessment of DCN performance for a pair of
         images
 
         :param dcn: dense correspondence network to use
-        :param dataset: dataset to un the dataset
+        :param dataset: dataset to use
+        :param rgb_a, rgb_b: two rgb images for which to do matchgin
+        :param mask_a, mask_b: masks of these two images
         :param num_matches: number of matches to generate
-        :param scene_name: scene name to use
-        :param img_a_idx: index of image_a in the dataset
-        :param img_b_idx: index of image_b in the datset
-
-
+        
         :type dcn: DenseCorrespondenceNetwork
         :type dataset: DenseCorrespondenceDataset
-        :type num_matches: int
-        :type scene_name: str
-        :type img_a_idx: int
-        :type img_b_idx: int
+        :type rgb_a, rgb_b: PIL.Images
+        :type mask_a, mask_b: PIL.Images
         :type num_matches: int
 
         :return: None
         """
 
-        rgb_a, depth_a, mask_a, pose_a = dataset.get_rgbd_mask_pose(scene_name, img_a_idx)
-
-        rgb_b, depth_b, mask_b, pose_b = dataset.get_rgbd_mask_pose(scene_name, img_b_idx)
-
-        depth_a = np.asarray(depth_a)
-        depth_b = np.asarray(depth_b)
         mask_a = np.asarray(mask_a)
         mask_b = np.asarray(mask_b)
 
@@ -1028,14 +1043,22 @@ class DenseCorrespondenceEvaluation(object):
             return
 
         cross_scene_data_path = dataset.config["evaluation_labeled_data_path"]
-        print cross_scene_data_path
-
         home = os.path.dirname(utils.getDenseCorrespondenceSourceDir())
         cross_scene_data_full_path = os.path.join(home, cross_scene_data_path)
-        print cross_scene_data_full_path
-
         cross_scene_data = utils.getDictFromYamlFilename(cross_scene_data_full_path)
-        print cross_scene_data
+        
+        for image_pair in cross_scene_data:
+            print "NEXT PAIR"
+            print image_pair
+
+            scene_name_1 = annotated_pair["image_a"]["scene_name"]
+            scene_name_2 = annotated_pair["image_b"]["scene_name"] 
+
+            image_1_idx = annotated_pair["image_a"]["image_idx"]
+            image_2_idx = annotated_pair["image_b"]["image_idx"]
+
+            img1_points_picked = annotated_pair["image_a"]["pixels"]
+            img2_points_picked = annotated_pair["image_b"]["pixels"]
 
 
 
@@ -1068,7 +1091,7 @@ class DenseCorrespondenceEvaluation(object):
 
         for img_pair in img_pairs:
             print "Image pair (%d, %d)" %(img_pair[0], img_pair[1])
-            DenseCorrespondenceEvaluation.single_image_pair_qualitative_analysis(dcn,
+            DenseCorrespondenceEvaluation.single_same_scene_image_pair_qualitative_analysis(dcn,
                                                                                  dataset,
                                                                                  scene_name,
                                                                                  img_pair[0],
@@ -1100,7 +1123,7 @@ class DenseCorrespondenceEvaluation(object):
 
         for img_pair in img_pairs:
             print "Image pair (%d, %d)" %(img_pair[0], img_pair[1])
-            DenseCorrespondenceEvaluation.single_image_pair_qualitative_analysis(dcn,
+            DenseCorrespondenceEvaluation.single_same_scene_image_pair_qualitative_analysis(dcn,
                                                                                  dataset,
                                                                                  scene_name,
                                                                                  img_pair[0],
@@ -1122,7 +1145,7 @@ class DenseCorrespondenceEvaluation(object):
 
             for img_pair in img_pairs:
                 print "Image pair (%d, %d)" %(img_pair[0], img_pair[1])
-                DenseCorrespondenceEvaluation.single_image_pair_qualitative_analysis(dcn,
+                DenseCorrespondenceEvaluation.single_same_scene_image_pair_qualitative_analysis(dcn,
                                                                                  dataset,
                                                                                  scene_name,
                                                                                  img_pair[0],
@@ -1367,7 +1390,7 @@ class DenseCorrespondenceEvaluation(object):
         img_idx_a = utils.getPaddedString(0)
         img_idx_b = utils.getPaddedString(737)
 
-        DenseCorrespondenceEvaluation.single_image_pair_qualitative_analysis(dcn, dataset,
+        DenseCorrespondenceEvaluation.single_same_scene_image_pair_qualitative_analysis(dcn, dataset,
                                                                              scene_name, img_idx_a,
                                                                              img_idx_b)
 
