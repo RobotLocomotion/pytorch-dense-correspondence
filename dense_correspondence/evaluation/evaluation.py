@@ -296,8 +296,7 @@ class DenseCorrespondenceEvaluation(object):
         fig.set_figwidth(15)
 
         if descriptor_image_stats is None:
-            res_a_norm = dc_plotting.normalize_descriptor(res_a)
-            res_b_norm = dc_plotting.normalize_descriptor(res_b)
+            res_a_norm, res_b_norm = dc_plotting.normalize_descriptor_pair(res_a, res_b)
         else:
             res_a_norm = dc_plotting.normalize_descriptor(res_a, descriptor_image_stats['entire_image'])
             res_b_norm = dc_plotting.normalize_descriptor(res_b, descriptor_image_stats['entire_image'])
@@ -325,25 +324,20 @@ class DenseCorrespondenceEvaluation(object):
             fig.set_figheight(10)
             fig.set_figwidth(15)
 
-
-            if descriptor_image_stats is None:
-                res_a_norm_mask = dc_plotting.normalize_descriptor(res_a)
-                res_b_norm_mask = dc_plotting.normalize_descriptor(res_b)
-            else:
-                res_a_norm_mask = dc_plotting.normalize_descriptor(res_a, descriptor_image_stats['mask_image'])
-                res_b_norm_mask = dc_plotting.normalize_descriptor(res_b, descriptor_image_stats['mask_image'])
-
-            # pointwise multiplication
-            # Need to reshape things to be able to
-
             D = np.shape(res_a)[2]
             mask_a_repeat = np.repeat(mask_a[:,:,np.newaxis], D, axis=2)
             mask_b_repeat = np.repeat(mask_b[:,:,np.newaxis], D, axis=2)
-            res_a_mask = res_a_norm_mask * mask_a_repeat
-            res_b_mask = res_b_norm_mask * mask_b_repeat
+            res_a_mask = mask_a_repeat * res_a
+            res_b_mask = mask_b_repeat * res_b 
 
-            axes[1,0].imshow(res_a_mask)
-            axes[1,1].imshow(res_b_mask)
+            if descriptor_image_stats is None:
+                res_a_norm_mask, res_b_norm_mask = dc_plotting.normalize_descriptor_pair(res_a_mask, res_b_mask)
+            else:
+                res_a_norm_mask = dc_plotting.normalize_descriptor(res_a_mask, descriptor_image_stats['mask_image'])
+                res_b_norm_mask = dc_plotting.normalize_descriptor(res_b_mask, descriptor_image_stats['mask_image'])
+
+            axes[1,0].imshow(res_a_norm_mask)
+            axes[1,1].imshow(res_b_norm_mask)
 
     @staticmethod
     def single_image_pair_quantitative_analysis(dcn, dataset, scene_name,
@@ -706,8 +700,12 @@ class DenseCorrespondenceEvaluation(object):
         diam = 0.01
         dist = 0.01
 
-        descriptor_image_stats = dcn.descriptor_image_stats
-        # descriptor_image_stats = None
+        try:
+            descriptor_image_stats = dcn.descriptor_image_stats
+        except:
+            print "Could not find descriptor image stats..."
+            print "Only normalizing pairs of images!" 
+            descriptor_image_stats = None
 
         for i in xrange(0, num_matches):
             # convert to (u,v) format

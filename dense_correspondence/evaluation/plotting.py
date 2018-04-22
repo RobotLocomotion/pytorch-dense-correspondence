@@ -23,3 +23,20 @@ def normalize_descriptor(res, stats=None):
     normed_res = (res - res_min) / scale
     return normed_res
 
+def normalize_descriptor_pair(res_a, res_b):
+    """
+    Normalizes the descriptor into RGB color space
+    :param res_a, res_b: numpy.array [H,W,D]
+        Two outputs of the network, per-pixel dense descriptor
+    :return: numpy.array, numpy.array
+        normalized descriptors
+    """
+    both_min = min(np.min(res_a), np.min(res_b))
+    normed_res_a = res_a - both_min
+    normed_res_b = res_b - both_min
+
+    both_max = max(np.max(normed_res_a), np.max(normed_res_b))
+    normed_res_a = normed_res_a / both_max
+    normed_res_b = normed_res_b / both_max
+
+    return normed_res_a, normed_res_b
