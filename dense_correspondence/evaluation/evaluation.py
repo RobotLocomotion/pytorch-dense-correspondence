@@ -248,11 +248,12 @@ class DenseCorrespondenceEvaluation(object):
             image_a_idx = annotated_pair["image_a"]["image_idx"]
             image_b_idx = annotated_pair["image_b"]["image_idx"]
 
-            img_a_points_picked = annotated_pair["image_a"]["pixels"]
-            img_b_points_picked = annotated_pair["image_b"]["pixels"]
+            img_a_pixels = annotated_pair["image_a"]["pixels"]
+            img_b_pixels = annotated_pair["image_b"]["pixels"]
 
             DenseCorrespondenceEvaluation.single_cross_scene_image_pair_quantitative_analysis(\
-                dcn, dataset, scene_name_a, image_a_idx, scene_name_b, image_b_idx)
+                dcn, dataset, scene_name_a, image_a_idx, scene_name_b, image_b_idx,
+                img_a_pixels, img_b_pixels)
 
 
         return
@@ -387,7 +388,8 @@ class DenseCorrespondenceEvaluation(object):
 
     @staticmethod
     def single_cross_scene_image_pair_quantitative_analysis(dcn, dataset, scene_name_a,
-                                               img_a_idx, scene_name_b, img_b_idx):
+                                               img_a_idx, scene_name_b, img_b_idx,
+                                               img_a_pixels, img_b_pixels):
         """
         Quantitative analsys of a dcn on a pair of images from different scenes (requires human labeling).
 
@@ -405,9 +407,12 @@ class DenseCorrespondenceEvaluation(object):
         :type img_a_idx: int
         :param img_b_idx:
         :type img_b_idx: int
+        :param img_a_pixels, img_b_pixels: lists of dicts, where each dict contains keys for "u" and "v"
+                the lists should be the same length and index i from each list constitutes a match pair
         :return: Dict with relevant data
         :rtype:
         """
+
         rgb_a, depth_a, mask_a, pose_a = dataset.get_rgbd_mask_pose(scene_name_a, img_a_idx)
 
         rgb_b, depth_b, mask_b, pose_b = dataset.get_rgbd_mask_pose(scene_name_b, img_b_idx)
@@ -433,6 +438,21 @@ class DenseCorrespondenceEvaluation(object):
         camera_intrinsics_matrix = camera_intrinsics_a.K
 
         print "got through with no errors so far"
+
+        assert len(img_a_pixels) == len(img_b_pixels)
+
+        print "Expanding amount of matches between:"
+        print "scene_name_a", scene_name_a
+        print "scene_name_b", scene_name_b
+        print "originally had", len(img_a_pixels), "matches"
+        
+        for i in range(len(img_a_pixels)):
+            print "now, index of pixel match:", i
+            uv_a = (img_a_pixels[i]["u"], img_a_pixels[i]["v"])
+            uv_b = (img_b_pixels[i]["u"], img_b_pixels[i]["v"])
+            print uv_a
+            print uv_b
+
         return
 
     @staticmethod
