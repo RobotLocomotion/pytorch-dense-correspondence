@@ -224,6 +224,18 @@ class DenseCorrespondenceDataset(data.Dataset):
 
         return rgb, depth, mask, pose
 
+    def get_random_rgbd_mask_pose(self):
+        """
+        Simple wrapper method for `get_rgbd_mask_pose`.
+        Returns rgb image, depth image, mask and pose.
+        :return: rgb, depth, mask, pose
+        :rtype: PIL.Image.Image, PIL.Image.Image, PIL.Image.Image, a 4x4 numpy array
+        """
+        scene_name = self.get_random_scene_name()
+        img_idx = self.get_random_image_index(scene_name)
+        return self.get_rgbd_mask_pose(scene_name, img_idx)
+
+
     def get_img_idx_with_different_pose(self, scene_name, pose_a, threshold=0.2, angle_threshold=20, num_attempts=10):
         """
         Try to get an image with a different pose to the one passed in. If one can't be found

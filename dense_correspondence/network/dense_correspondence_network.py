@@ -11,6 +11,7 @@ import torch
 from torchvision import transforms
 from torch.autograd import Variable
 import pytorch_segmentation_detection.models.resnet_dilated as resnet_dilated
+from dense_correspondence.dataset.spartan_dataset_masked import SpartanDataset
 
 import numpy as np
 
@@ -38,6 +39,7 @@ class DenseCorrespondenceNetwork(object):
         self.mode = NetworkMode.TRAIN
         self.config = dict()
 
+        self._descriptor_image_stats = None
 
     @property
     def fcn(self):
@@ -115,6 +117,34 @@ class DenseCorrespondenceNetwork(object):
     def mode(self, value):
         assert value in [NetworkMode.TRAIN, NetworkMode.TEST]
         self._mode = value
+
+
+    @property
+    def path_to_network_params_folder(self):
+        if not 'path_to_network_params_folder' in self.config:
+            raise ValueError("DenseCorrespondenceNetwork: Config doesn't have a `path_to_network_params_folder`"
+                             "entry")
+
+        return self.config['path_to_network_params_folder']
+
+    @property
+    def descriptor_image_stats(self):
+        """
+        Returns the descriptor normalization parameters, if possible.
+        If they have not yet been loaded then it loads them
+        :return:
+        :rtype:
+        """
+
+        # if it isn't already set, then attempt to load it
+        if self._descriptor_image_stats is None:
+            path_to_params = utils.convert_to_absolute_path(self.path_to_network_params_folder)
+            descriptor_stats_file = os.path.join(path_to_params, "descriptor_statistics.yaml")
+            self._descriptor_image_stats = utils.getDictFromYamlFilename(descriptor_stats_file)
+
+
+        return self._descriptor_image_stats
+
 
     def _update_normalize_tensor_transform(self):
         """
@@ -257,6 +287,19 @@ class DenseCorrespondenceNetwork(object):
         v = min(int(round(uv[1])), self._image_height - 1)
         return [u, v]
 
+    def load_training_dataset(self):
+        """
+        Loads the dataset that this was trained on
+        :return:
+        :rtype:
+        """
+
+        network_params_folder = self.path_to_network_params_folder
+        network_params_folder = utils.convert_to_absolute_path(network_params_folder)
+        dataset_config_file = os.path.join(network_params_folder, 'dataset.yaml')
+        config = utils.getDictFromYamlFilename(dataset_config_file)
+        return SpartanDataset(config=config)
+
     @staticmethod
     def from_config(config, load_stored_params=True):
         """
@@ -283,6 +326,7 @@ class DenseCorrespondenceNetwork(object):
 
         if load_stored_params:
             path_to_network_params = utils.convert_to_absolute_path(config['path_to_network_params'])
+            config['path_to_network_params_folder'] = os.path.dirname(config['path_to_network_params'])
             fcn.load_state_dict(torch.load(path_to_network_params))
             fcn.cuda()
             fcn.eval()

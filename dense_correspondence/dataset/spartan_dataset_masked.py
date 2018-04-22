@@ -206,6 +206,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         :rtype:
         """
         return self.config["image_normalization"]["mean"]
+        return self.config["image_normalization"]["std_dev"]
 
     def rgb_image_to_tensor(self, img):
         """

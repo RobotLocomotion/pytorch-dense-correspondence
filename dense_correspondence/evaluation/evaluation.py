@@ -12,8 +12,9 @@ import pandas as pd
 import random
 import scipy.stats as ss
 
+import torch
 from torch.autograd import Variable
-
+from torchvision import transforms
 
 
 from dense_correspondence_manipulation.utils.constants import *
@@ -102,6 +103,25 @@ class DenseCorrespondenceEvaluation(object):
 
         network_config = self._config["networks"][name]
         return DenseCorrespondenceNetwork.from_config(network_config)
+
+    def load_dataset_for_network(self, network_name):
+        """
+        Loads a dataset for the network specified in the config file
+        :param network_name: string
+        :type network_name:
+        :return: SpartanDataset
+        :rtype:
+        """
+        if network_name not in self._config["networks"]:
+            raise ValueError("Network %s is not in config file" %(network_name))
+
+        network_folder = os.path.dirname(self._config["networks"][network_name]["path_to_network_params"])
+        network_folder = utils.convert_to_absolute_path(network_folder)
+        dataset_config = utils.getDictFromYamlFilename(os.path.join(network_folder, "dataset.yaml"))
+
+        dataset = SpartanDataset(config=dataset_config)
+        return dataset
+
 
     def load_dataset(self):
         """
@@ -255,7 +275,8 @@ class DenseCorrespondenceEvaluation(object):
         return pd_dataframe_list, df
 
     @staticmethod
-    def plot_descriptor_colormaps(res_a, res_b):
+    def plot_descriptor_colormaps(res_a, res_b, descriptor_image_stats=None,
+                                  mask_a=None, mask_b=None, plot_masked=False):
         """
         Plots the colormaps of descriptors for a pair of images
         :param res_a: descriptors for img_a
@@ -266,14 +287,60 @@ class DenseCorrespondenceEvaluation(object):
         :rtype: None
         """
 
-        fig, axes = plt.subplots(nrows=1, ncols=2)
+        if plot_masked:
+            nrows = 2
+            ncols = 2
+        else:
+            nrows = 1
+            ncols = 2
+
+        fig, axes = plt.subplots(nrows=nrows, ncols=ncols)
         fig.set_figheight(5)
         fig.set_figwidth(15)
-        res_a_norm = dc_plotting.normalize_descriptor(res_a)
-        axes[0].imshow(res_a_norm)
 
-        res_b_norm = dc_plotting.normalize_descriptor(res_b)
-        axes[1].imshow(res_b_norm)
+        if descriptor_image_stats is None:
+            res_a_norm, res_b_norm = dc_plotting.normalize_descriptor_pair(res_a, res_b)
+        else:
+            res_a_norm = dc_plotting.normalize_descriptor(res_a, descriptor_image_stats['entire_image'])
+            res_b_norm = dc_plotting.normalize_descriptor(res_b, descriptor_image_stats['entire_image'])
+
+
+        if plot_masked:
+            ax = axes[0,0]
+        else:
+            ax = axes[0]
+
+        ax.imshow(res_a_norm)
+
+
+        if plot_masked:
+            ax = axes[0,1]
+        else:
+            ax = axes[1]
+
+        ax.imshow(res_b_norm)
+
+        if plot_masked:
+            assert mask_a is not None
+            assert mask_b is not None
+
+            fig.set_figheight(10)
+            fig.set_figwidth(15)
+
+            D = np.shape(res_a)[2]
+            mask_a_repeat = np.repeat(mask_a[:,:,np.newaxis], D, axis=2)
+            mask_b_repeat = np.repeat(mask_b[:,:,np.newaxis], D, axis=2)
+            res_a_mask = mask_a_repeat * res_a
+            res_b_mask = mask_b_repeat * res_b 
+
+            if descriptor_image_stats is None:
+                res_a_norm_mask, res_b_norm_mask = dc_plotting.normalize_descriptor_pair(res_a_mask, res_b_mask)
+            else:
+                res_a_norm_mask = dc_plotting.normalize_descriptor(res_a_mask, descriptor_image_stats['mask_image'])
+                res_b_norm_mask = dc_plotting.normalize_descriptor(res_b_mask, descriptor_image_stats['mask_image'])
+
+            axes[1,0].imshow(res_a_norm_mask)
+            axes[1,1].imshow(res_b_norm_mask)
 
     @staticmethod
     def single_image_pair_quantitative_analysis(dcn, dataset, scene_name,
@@ -621,6 +688,13 @@ class DenseCorrespondenceEvaluation(object):
         diam = 0.01
         dist = 0.01
 
+        try:
+            descriptor_image_stats = dcn.descriptor_image_stats
+        except:
+            print "Could not find descriptor image stats..."
+            print "Only normalizing pairs of images!" 
+            descriptor_image_stats = None
+
         for i in xrange(0, num_matches):
             # convert to (u,v) format
             pixel_a = [sampled_idx_list[1][i], sampled_idx_list[0][i]]
@@ -643,7 +717,11 @@ class DenseCorrespondenceEvaluation(object):
 
         # show colormap if possible (i.e. if descriptor dimension is 1 or 3)
         if dcn.descriptor_dimension in [1,3]:
-            DenseCorrespondenceEvaluation.plot_descriptor_colormaps(res_a, res_b)
+            DenseCorrespondenceEvaluation.plot_descriptor_colormaps(res_a, res_b,
+                                                                    descriptor_image_stats=descriptor_image_stats,
+                                                                    mask_a=mask_a,
+                                                                    mask_b=mask_b,
+                                                                    plot_masked=True)
 
         plt.show()
 
@@ -938,20 +1016,10 @@ class DenseCorrespondenceEvaluation(object):
 
 
 
-
-
     @staticmethod
-    def evaluate_network_qualitative(dcn, num_image_pairs=5, randomize=False, dataset=None,
+    def evaluate_network_qualitative(dcn, dataset, num_image_pairs=5, randomize=False,
                                      scene_type="caterpillar"):
 
-        if dataset is None:
-            config_file = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence',
-                                       'dataset',
-                                       'spartan_dataset_masked.yaml')
-
-            config = utils.getDictFromYamlFilename(config_file)
-
-            dataset = SpartanDataset(mode="test", config=config)
 
         # Train Data
         print "\n\n-----------Train Data Evaluation----------------"
@@ -1118,6 +1186,142 @@ class DenseCorrespondenceEvaluation(object):
         non_match_loss = np.average(non_match_loss_vec)
 
         return loss, match_loss, non_match_loss
+
+
+
+    @staticmethod
+    def compute_descriptor_statistics_on_dataset(dcn, dataset, num_images=100,
+                                                 save_to_file=True, filename=None):
+        """
+        Computes the statistics of the descriptors on the dataset
+        :param dcn:
+        :type dcn:
+        :param dataset:
+        :type dataset:
+        :param save_to_file:
+        :type save_to_file:
+        :return:
+        :rtype:
+        """
+
+        to_tensor = transforms.ToTensor()
+
+        # compute the per-channel mean
+        def compute_descriptor_statistics(res, mask_tensor):
+            """
+            Computes
+            :param res: The output of the DCN
+            :type res: torch.FloatTensor with shape [H,W,D]
+            :return: min, max, mean
+            :rtype: each is torch.FloatTensor of shape [D]
+            """
+            # convert to [W*H, D]
+            D = res.shape[2]
+
+            # convert to torch.FloatTensor instead of variable
+            if isinstance(res, torch.autograd.Variable):
+                res = res.data
+
+            res_reshape = res.contiguous().view(-1,D)
+            channel_mean = res_reshape.mean(0) # shape [D]
+            channel_min, _ = res_reshape.min(0) # shape [D]
+            channel_max, _ = res_reshape.max(0) # shape [D]
+
+            # now do the same for the masked image
+            mask_flat = mask_tensor.view(-1,1).squeeze(1)
+
+            mask_indices_flat = torch.nonzero(mask_flat).squeeze(1)
+
+            res_masked_flat = res_reshape.index_select(0, mask_indices_flat) # shape [mask_size, D]
+            mask_channel_mean = res_masked_flat.mean(0)
+            mask_channel_min, _ = res_masked_flat.min(0)
+            mask_channel_max, _ = res_masked_flat.max(0)
+
+
+            entire_image_stats = (channel_min, channel_max, channel_mean)
+            mask_image_stats = (mask_channel_min, mask_channel_max, mask_channel_mean)
+            return entire_image_stats, mask_image_stats
+
+        def compute_descriptor_std_dev(res, channel_mean):
+            """
+            Computes the std deviation of a descriptor image, given a channel mean
+            :param res:
+            :type res:
+            :param channel_mean:
+            :type channel_mean:
+            :return:
+            :rtype:
+            """
+            D = res.shape[2]
+            res_reshape = res.view(-1, D) # shape [W*H,D]
+            v = res - channel_mean
+            std_dev = torch.std(v, 0) # shape [D]
+            return std_dev
+
+        def update_stats(stats_dict, single_img_stats):
+            """
+            Update the running mean, min and max
+            :param stats_dict:
+            :type stats_dict:
+            :param single_img_stats:
+            :type single_img_stats:
+            :return:
+            :rtype:
+            """
+
+            min_temp, max_temp, mean_temp = single_img_stats
+
+            if stats_dict['min'] is None:
+                stats_dict['min'] = min_temp
+            else:
+                stats_dict['min'] = torch.min(stats_dict['min'], min_temp)
+
+            if stats_dict['max'] is None:
+                stats_dict['max'] = max_temp
+            else:
+                stats_dict['max'] = torch.max(stats_dict['max'], max_temp)
+
+            if stats_dict['mean'] is None:
+                stats_dict['mean'] = mean_temp
+            else:
+                stats_dict['mean'] += mean_temp
+
+
+        stats = dict()
+        stats['entire_image'] = {'mean': None, 'max': None, 'min': None}
+        stats['mask_image'] = {'mean': None, 'max': None, 'min': None}
+
+        for i in xrange(0,num_images):
+            rgb, depth, mask, _ = dataset.get_random_rgbd_mask_pose()
+            img_tensor = dataset.rgb_image_to_tensor(rgb)
+            res = dcn.forward_single_image_tensor(img_tensor)  # [H, W, D]
+
+            mask_tensor = to_tensor(mask).cuda()
+            entire_image_stats, mask_image_stats = compute_descriptor_statistics(res, mask_tensor)
+
+            update_stats(stats['entire_image'], entire_image_stats)
+            update_stats(stats['mask_image'], mask_image_stats)
+
+
+        for key, val in stats.iteritems():
+            val['mean'] = 1.0/num_images * val['mean']
+            for field in val:
+                val[field] = val[field].tolist()
+
+        if save_to_file:
+            if filename is None:
+                path_to_params_folder = dcn.config['path_to_network_params_folder']
+                path_to_params_folder = utils.convert_to_absolute_path(path_to_params_folder)
+                filename = os.path.join(path_to_params_folder, 'descriptor_statistics.yaml')
+
+            utils.saveToYaml(stats, filename)
+
+
+
+        return stats
+
+
+
 
     @staticmethod
     def make_default():
