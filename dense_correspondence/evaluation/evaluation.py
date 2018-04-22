@@ -657,6 +657,32 @@ class DenseCorrespondenceEvaluation(object):
         DenseCorrespondenceEvaluation.single_image_pair_qualitative_analysis(dcn, dataset, rgb_a, rgb_b, mask_a, mask_b, num_matches)
 
     @staticmethod
+    def single_cross_scene_image_pair_qualitative_analysis(dcn, dataset, scene_name_a,
+                                               img_a_idx, scene_name_b, img_b_idx,
+                                               num_matches=10):
+        """
+        Wrapper for single_image_pair_qualitative_analysis, when images are NOT from same scene.
+
+        See that function for remaining documentation.
+
+        :param scene_name: scene name to use
+        :param img_a_idx: index of image_a in the dataset
+        :param img_b_idx: index of image_b in the datset
+
+        :type scene_name: str
+        :type img_a_idx: int
+        :type img_b_idx: int
+
+        :return: None
+        """
+
+        rgb_a, _, mask_a, _ = dataset.get_rgbd_mask_pose(scene_name_a, img_a_idx)
+
+        rgb_b, _, mask_b, _ = dataset.get_rgbd_mask_pose(scene_name_b, img_b_idx)
+
+        DenseCorrespondenceEvaluation.single_image_pair_qualitative_analysis(dcn, dataset, rgb_a, rgb_b, mask_a, mask_b, num_matches)
+
+    @staticmethod
     def single_image_pair_qualitative_analysis(dcn, dataset, rgb_a, rgb_b, mask_a, mask_b,
                                                num_matches):
         """
@@ -1047,18 +1073,20 @@ class DenseCorrespondenceEvaluation(object):
         cross_scene_data_full_path = os.path.join(home, cross_scene_data_path)
         cross_scene_data = utils.getDictFromYamlFilename(cross_scene_data_full_path)
         
-        for image_pair in cross_scene_data:
-            print "NEXT PAIR"
-            print image_pair
+        for annotated_pair in cross_scene_data:
 
-            scene_name_1 = annotated_pair["image_a"]["scene_name"]
-            scene_name_2 = annotated_pair["image_b"]["scene_name"] 
+            scene_name_a = annotated_pair["image_a"]["scene_name"]
+            scene_name_b = annotated_pair["image_b"]["scene_name"] 
 
-            image_1_idx = annotated_pair["image_a"]["image_idx"]
-            image_2_idx = annotated_pair["image_b"]["image_idx"]
+            image_a_idx = annotated_pair["image_a"]["image_idx"]
+            image_b_idx = annotated_pair["image_b"]["image_idx"]
+
+            DenseCorrespondenceEvaluation.single_cross_scene_image_pair_qualitative_analysis(\
+                dcn, dataset, scene_name_a, image_a_idx, scene_name_b, image_b_idx)
 
             img1_points_picked = annotated_pair["image_a"]["pixels"]
             img2_points_picked = annotated_pair["image_b"]["pixels"]
+            
 
 
 
