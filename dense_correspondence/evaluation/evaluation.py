@@ -235,7 +235,26 @@ class DenseCorrespondenceEvaluation(object):
             print "this network is loaded from."
             return
 
-        print dataset.config["evaluation_labeled_data_path"]
+        cross_scene_data_path = dataset.config["evaluation_labeled_data_path"]
+        home = os.path.dirname(utils.getDenseCorrespondenceSourceDir())
+        cross_scene_data_full_path = os.path.join(home, cross_scene_data_path)
+        cross_scene_data = utils.getDictFromYamlFilename(cross_scene_data_full_path)
+        
+        for annotated_pair in cross_scene_data:
+
+            scene_name_a = annotated_pair["image_a"]["scene_name"]
+            scene_name_b = annotated_pair["image_b"]["scene_name"] 
+
+            image_a_idx = annotated_pair["image_a"]["image_idx"]
+            image_b_idx = annotated_pair["image_b"]["image_idx"]
+
+            img_a_points_picked = annotated_pair["image_a"]["pixels"]
+            img_b_points_picked = annotated_pair["image_b"]["pixels"]
+
+            DenseCorrespondenceEvaluation.single_cross_scene_image_pair_quantitative_analysis(\
+                dcn, dataset, scene_name_a, image_a_idx, scene_name_b, image_b_idx)
+
+
         return
 
         
@@ -275,7 +294,7 @@ class DenseCorrespondenceEvaluation(object):
             img_idx_a, img_idx_b = idx_pair
 
             dataframe_list_temp =\
-                DCE.single_image_pair_quantitative_analysis(dcn, dataset, scene_name,
+                DCE.single_same_scene_image_pair_quantitative_analysis(dcn, dataset, scene_name,
                                                             img_idx_a,
                                                             img_idx_b,
                                                             num_matches=num_matches_per_image_pair,
@@ -361,27 +380,102 @@ class DenseCorrespondenceEvaluation(object):
             axes[1,1].imshow(res_b_norm_mask)
 
     @staticmethod
-    def single_image_pair_quantitative_analysis(dcn, dataset, scene_name,
+    def clip_pixel_to_image_size_and_round(uv, image_width, image_height):
+        u = min(int(round(uv[0])), image_width - 1)
+        v = min(int(round(uv[1])), image_height - 1)
+        return (u,v)
+
+    def single_cross_scene_image_pair_qualitative_analysis(dcn, dataset, scene_name_a,
+                                               img_a_idx, scene_name_b, img_b_idx,
+                                               num_matches=10):
+        """
+        Wrapper for single_image_pair_qualitative_analysis, when images are NOT from same scene.
+
+        See that function for remaining documentation.
+
+        :param scene_name: scene name to use
+        :param img_a_idx: index of image_a in the dataset
+        :param img_b_idx: index of image_b in the datset
+
+        :type scene_name: str
+        :type img_a_idx: int
+        :type img_b_idx: int
+
+        :return: the images a and b
+        :rtype: PIL.Image, PIL.Image
+        """
+
+    @staticmethod
+    def single_cross_scene_image_pair_quantitative_analysis(dcn, dataset, scene_name_a,
+                                               img_a_idx, scene_name_b, img_b_idx):
+        """
+        Quantitative analsys of a dcn on a pair of images from different scenes (requires human labeling).
+
+        There is a bit of code copy from single_same_scene_image_pair_quantitative_analysis, but 
+        it's a bit of a different structure, since matches are passed in and we need to try to generate more
+        views of these sparse human labeled pixel matches.
+
+        :param dcn: 
+        :type dcn: DenseCorrespondenceNetwork
+        :param dataset:
+        :type dataset: SpartanDataset
+        :param scene_name:
+        :type scene_name: str
+        :param img_a_idx:
+        :type img_a_idx: int
+        :param img_b_idx:
+        :type img_b_idx: int
+        :param camera_intrinsics_matrix: Optionally set camera intrinsics, otherwise will get it from the dataset
+        :type camera_intrinsics_matrix: 3 x 3 numpy array
+        :return: Dict with relevant data
+        :rtype:
+        """
+        rgb_a, depth_a, mask_a, pose_a = dataset.get_rgbd_mask_pose(scene_name_a, img_a_idx)
+
+        rgb_b, depth_b, mask_b, pose_b = dataset.get_rgbd_mask_pose(scene_name_b, img_b_idx)
+
+        depth_a = np.asarray(depth_a)
+        depth_b = np.asarray(depth_b)
+        mask_a = np.asarray(mask_a)
+        mask_b = np.asarray(mask_b)
+
+        # compute dense descriptors
+        rgb_a_tensor = dataset.rgb_image_to_tensor(rgb_a)
+        rgb_b_tensor = dataset.rgb_image_to_tensor(rgb_b)
+
+        # these are Variables holding torch.FloatTensors, first grab the data, then convert to numpy
+        res_a = dcn.forward_single_image_tensor(rgb_a_tensor).data.cpu().numpy()
+        res_b = dcn.forward_single_image_tensor(rgb_b_tensor).data.cpu().numpy()
+
+        camera_intrinsics_a = dataset.get_camera_intrinsics(scene_name_a)
+        camera_intrinsics_b = dataset.get_camera_intrinsics(scene_name_b)
+        if not np.allclose(camera_intrinsics_a.K, camera_intrinsics_b.K):
+            print "Currently cannot handle two different camera K matrices in different scenes!"
+            print "But you could add this..."
+        camera_intrinsics_matrix = camera_intrinsics_a.K
+
+        print "got through with no errors so far"
+        return
+
+    @staticmethod
+    def single_same_scene_image_pair_quantitative_analysis(dcn, dataset, scene_name,
                                                 img_a_idx, img_b_idx,
-                                                params=None,
                                                 camera_intrinsics_matrix=None,
                                                 num_matches=100,
                                                 debug=False):
         """
+        Quantitative analysis of a dcn on a pair of images from the same scene.
 
-
-        :param dcn:
-        :type dcn:
+        :param dcn: 
+        :type dcn: DenseCorrespondenceNetwork
         :param dataset:
-        :type dataset:
+        :type dataset: SpartanDataset
         :param scene_name:
-        :type scene_name:
+        :type scene_name: str
         :param img_a_idx:
-        :type img_a_idx:
+        :type img_a_idx: int
         :param img_b_idx:
-        :type img_b_idx:
-        :param params:
-        :type params:
+        :type img_b_idx: int
         :param camera_intrinsics_matrix: Optionally set camera intrinsics, otherwise will get it from the dataset
         :type camera_intrinsics_matrix: 3 x 3 numpy array
         :return: Dict with relevant data
@@ -409,12 +503,9 @@ class DenseCorrespondenceEvaluation(object):
             camera_intrinsics = dataset.get_camera_intrinsics(scene_name)
             camera_intrinsics_matrix = camera_intrinsics.K
 
-
         # find correspondences
-        # what type does img_a_depth need to be?
         (uv_a_vec, uv_b_vec) = correspondence_finder.batch_find_pixel_correspondences(depth_a, pose_a, depth_b, pose_b,
                                                                device='CPU', img_a_mask=mask_a)
-
 
         if uv_a_vec is None:
             print "no matches found, returning"
@@ -423,8 +514,6 @@ class DenseCorrespondenceEvaluation(object):
         # container to hold a list of pandas dataframe
         # will eventually combine them all with concat
         dataframe_list = []
-        dataframe_list = []
-
 
         total_num_matches = len(uv_a_vec[0])
         match_list = random.sample(range(0, total_num_matches), num_matches)
@@ -435,42 +524,32 @@ class DenseCorrespondenceEvaluation(object):
         logging_rate = 100
 
         image_height, image_width = dcn.image_shape
-        def clip_pixel_to_image_size_and_round(uv):
-            u = min(int(round(uv[0])), image_width - 1)
-            v = min(int(round(uv[1])), image_height - 1)
-            return (u,v)
 
+        DCE = DenseCorrespondenceEvaluation
 
         for i in match_list:
             uv_a = (uv_a_vec[0][i], uv_a_vec[1][i])
             uv_b_raw = (uv_b_vec[0][i], uv_b_vec[1][i])
-            uv_b = clip_pixel_to_image_size_and_round(uv_b_raw)
+            uv_b = DCE.clip_pixel_to_image_size_and_round(uv_b_raw, image_width, image_height)
 
-            pd_template = DenseCorrespondenceEvaluation.compute_descriptor_match_statistics(depth_a,
-                                                                                  depth_b,
-                                                                                  uv_a,
-                                                                                  uv_b,
-                                                                                  pose_a,
-                                                                                  pose_b,
-                                                                                  res_a,
-                                                                                  res_b,
-                                                                                  camera_intrinsics_matrix,
-                                                                                  rgb_a=rgb_a,
-                                                                                  rgb_b=rgb_b,
-                                                                                  debug=debug)
+            pd_template = DCE.compute_descriptor_match_statistics(depth_a,
+                                                                  depth_b,
+                                                                  uv_a,
+                                                                  uv_b,
+                                                                  pose_a,
+                                                                  pose_b,
+                                                                  res_a,
+                                                                  res_b,
+                                                                  camera_intrinsics_matrix,
+                                                                  rgb_a=rgb_a,
+                                                                  rgb_b=rgb_b,
+                                                                  debug=debug)
 
             pd_template.set_value('scene_name', scene_name)
-            pd_template.set_value('img_a_idx',  int(img_a_idx))
+            pd_template.set_value('img_a_idx', int(img_a_idx))
             pd_template.set_value('img_b_idx', int(img_b_idx))
 
-
             dataframe_list.append(pd_template.dataframe)
-
-
-            # if i % logging_rate == 0:
-            #     print "computing statistics for match %d of %d" %(i, num_matches)
-            # if i > 10:
-            #     break
 
         return dataframe_list
 
