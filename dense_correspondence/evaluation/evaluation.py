@@ -691,7 +691,7 @@ class DenseCorrespondenceEvaluation(object):
 
         :param dcn: dense correspondence network to use
         :param dataset: dataset to use
-        :param rgb_a, rgb_b: two rgb images for which to do matchgin
+        :param rgb_a, rgb_b: two rgb images for which to do matching
         :param mask_a, mask_b: masks of these two images
         :param num_matches: number of matches to generate
         
@@ -1086,7 +1086,7 @@ class DenseCorrespondenceEvaluation(object):
 
             img1_points_picked = annotated_pair["image_a"]["pixels"]
             img2_points_picked = annotated_pair["image_b"]["pixels"]
-            
+
 
 
 
