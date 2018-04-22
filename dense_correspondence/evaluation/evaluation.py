@@ -240,6 +240,7 @@ class DenseCorrespondenceEvaluation(object):
         cross_scene_data_full_path = os.path.join(home, cross_scene_data_path)
         cross_scene_data = utils.getDictFromYamlFilename(cross_scene_data_full_path)
         
+        pd_dataframe_list = []
         for annotated_pair in cross_scene_data:
 
             scene_name_a = annotated_pair["image_a"]["scene_name"]
@@ -251,14 +252,27 @@ class DenseCorrespondenceEvaluation(object):
             img_a_pixels = annotated_pair["image_a"]["pixels"]
             img_b_pixels = annotated_pair["image_b"]["pixels"]
 
-            DenseCorrespondenceEvaluation.single_cross_scene_image_pair_quantitative_analysis(\
-                dcn, dataset, scene_name_a, image_a_idx, scene_name_b, image_b_idx,
+            dataframe_list_temp =\
+                DenseCorrespondenceEvaluation.single_cross_scene_image_pair_quantitative_analysis(dcn,
+                dataset, scene_name_a, image_a_idx, scene_name_b, image_b_idx,
                 img_a_pixels, img_b_pixels)
 
+            assert dataframe_list_temp is not None
 
-        return
+            import copy
+            pd_dataframe_list += copy.copy(dataframe_list_temp)
 
-        
+
+        df = pd.concat(pd_dataframe_list)
+        # save pandas.DataFrame to csv
+        if save:
+            output_dir = os.path.join(self.get_output_dir(), network_name, "cross-scene")
+            data_file = os.path.join(output_dir, "data.csv")
+            if not os.path.isdir(output_dir):
+                os.makedirs(output_dir)
+
+            df.to_csv(data_file)
+
 
     @staticmethod
     def evaluate_network(dcn, dataset, num_image_pairs=25, num_matches_per_image_pair=100):
@@ -437,8 +451,6 @@ class DenseCorrespondenceEvaluation(object):
             print "But you could add this..."
         camera_intrinsics_matrix = camera_intrinsics_a.K
 
-        print "got through with no errors so far"
-
         assert len(img_a_pixels) == len(img_b_pixels)
 
         print "Expanding amount of matches between:"
@@ -446,14 +458,38 @@ class DenseCorrespondenceEvaluation(object):
         print "scene_name_b", scene_name_b
         print "originally had", len(img_a_pixels), "matches"
         
+        image_height, image_width = dcn.image_shape
+        DCE = DenseCorrespondenceEvaluation
+
+        dataframe_list = []
+
         for i in range(len(img_a_pixels)):
             print "now, index of pixel match:", i
             uv_a = (img_a_pixels[i]["u"], img_a_pixels[i]["v"])
             uv_b = (img_b_pixels[i]["u"], img_b_pixels[i]["v"])
+            uv_a = DCE.clip_pixel_to_image_size_and_round(uv_a, image_width, image_height)
+            uv_b = DCE.clip_pixel_to_image_size_and_round(uv_b, image_width, image_height)
             print uv_a
             print uv_b
+            pd_template = DenseCorrespondenceEvaluation.compute_descriptor_match_statistics(depth_a,
+                                                                      depth_b,
+                                                                      uv_a,
+                                                                      uv_b,
+                                                                      pose_a,
+                                                                      pose_b,
+                                                                      res_a,
+                                                                      res_b,
+                                                                      camera_intrinsics_matrix,
+                                                                      rgb_a=rgb_a,
+                                                                      rgb_b=rgb_b,
+                                                                      debug=False)
+            pd_template.set_value('scene_name', scene_name_a+"+"+scene_name_b)
+            pd_template.set_value('img_a_idx', int(img_a_idx))
+            pd_template.set_value('img_b_idx', int(img_b_idx))
 
-        return
+            dataframe_list.append(pd_template.dataframe)
+
+        return dataframe_list
 
     @staticmethod
     def single_same_scene_image_pair_quantitative_analysis(dcn, dataset, scene_name,
@@ -573,10 +609,10 @@ class DenseCorrespondenceEvaluation(object):
         """
         Computes statistics of descriptor pixelwise match.
 
-        :param uv_a:
-        :type uv_a:
-        :param uv_b:
-        :type uv_b:
+        :param uv_a: a single pixel index in (u,v) coordinates, from image a
+        :type uv_a: tuple of 2 ints
+        :param uv_b: a single pixel index in (u,v) coordinates, from image b
+        :type uv_b: tuple of 2 ints
         :param camera_matrix: camera intrinsics matrix
         :type camera_matrix: 3 x 3 numpy array
         :param rgb_a:
@@ -591,10 +627,10 @@ class DenseCorrespondenceEvaluation(object):
         :type pose_a: 4 x 4 numpy array
         :param pose_b:
         :type pose_b:
-        :param res_a:
-        :type res_a:
-        :param res_b:
-        :type res_b:
+        :param res_a: descriptor for image a, of shape (H,W,D)
+        :type res_a: numpy array
+        :param res_b: descriptor for image b, of shape (H,W,D)
+        :type res_b: numpy array
         :param params:
         :type params:
         :param debug: whether or not to print visualization
@@ -620,7 +656,6 @@ class DenseCorrespondenceEvaluation(object):
         des_a = res_a[uv_a[1], uv_a[0], :]
         des_b_ground_truth = res_b[uv_b[1], uv_b[0], :]
         norm_diff_descriptor_ground_truth = np.linalg.norm(des_a - des_b_ground_truth)
-
 
         # from Schmidt et al 2017: 
         """
@@ -692,7 +727,7 @@ class DenseCorrespondenceEvaluation(object):
         else:
             pd_template.set_value('norm_diff_pred_3d', np.nan)
 
-        pd_template.set_value('norm_diff_descriptor_ground_truth', norm_diff_ground_truth_3d)
+        pd_template.set_value('norm_diff_descriptor_ground_truth', norm_diff_descriptor_ground_truth)
 
         pd_template.set_value('pixel_match_error_l2', pixel_match_error_l2)
         pd_template.set_value('pixel_match_error_l1', pixel_match_error_l1)
