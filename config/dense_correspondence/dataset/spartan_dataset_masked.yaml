@@ -26,3 +26,5 @@ test:
 image_normalization:
   mean: [0.5512, 0.3818, 0.3821]
   std_dev: [0.2303, 0.2753, 0.2867]
+
+evaluation_labeled_data_path: code/data_volume/pdc/evaluation_labeled_data/caterpillar_cross_scene_labels.yaml
