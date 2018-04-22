@@ -220,7 +220,25 @@ class DenseCorrespondenceEvaluation(object):
             df.to_csv(data_file)
 
 
+    def evaluate_single_network_cross_scene(self, network_name, save=True):
+        """
+        This will search for the "evaluation_labeled_data_path" in the dataset.yaml,
+        and use pairs of images that have been human-labeled across scenes.
+        """
 
+        dcn = self.load_network_from_config(network_name)
+        dataset = dcn.load_training_dataset()
+
+        if "evaluation_labeled_data_path" not in dataset.config:
+            print "Could not find labeled cross scene data for this dataset."
+            print "It needs to be set in the dataset.yaml of the folder from which"
+            print "this network is loaded from."
+            return
+
+        print dataset.config["evaluation_labeled_data_path"]
+        return
+
+        
 
     @staticmethod
     def evaluate_network(dcn, dataset, num_image_pairs=25, num_matches_per_image_pair=100):
