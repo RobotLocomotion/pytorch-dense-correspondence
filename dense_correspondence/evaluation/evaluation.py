@@ -471,6 +471,8 @@ class DenseCorrespondenceEvaluation(object):
             uv_b = DCE.clip_pixel_to_image_size_and_round(uv_b, image_width, image_height)
             print uv_a
             print uv_b
+
+            # Reminder: this function wants only a single uv_a, uv_b
             pd_template = DenseCorrespondenceEvaluation.compute_descriptor_match_statistics(depth_a,
                                                                       depth_b,
                                                                       uv_a,
@@ -1697,6 +1699,8 @@ class DenseCorrespondenceEvaluationPlotter(object):
         plot = DCEP.make_cdf_plot(ax, data, num_bins=num_bins, label=label)
         ax.set_xlabel('Fraction false positives')
         ax.set_ylabel('Fraction of images')
+        ax.set_xlim([0, 1])
+        ax.set_ylim([0, 1])
         return plot
 
     @staticmethod
