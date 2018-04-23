@@ -38,4 +38,33 @@ The quick version of raw data collection currently is:
 3. In Director terminal (f8), enter: `graspSupervisor.testInteractionLoop()`
 
 ## 3D vision processing
-   
+
+Some of the 3D vision processing lives in Spartan, some lives in pytorch-dense-correspondence.
+
+#### In Spartan
+When done collecting raw data, just run `./batch_extract_and_fuse_all_scenes.py`.
+
+This will run all TSDF fusion and mesh generation.
+
+#### In pytorch-dense-correspondence
+Start docker container (`cd docker && ./docker_run.py`), navigate to `pdc/logs_proto`, then:
+```
+use_pytorch_dense_correspondence
+use_director
+run_change_detection_pipeline.py
+```
+This will run all change detection, masking, and synthetic depth rendering.
+
+## Training
+
+1. Start by grabbing data (use `pdc-scripts` repo for internal users to transfer data)
+2. Make a `config/dense_correspondence/dataset/your_dataset.yaml`
+3. Start (or use already open) docker container (`cd docker && ./docker_run.py`)
+4. Open jupyter notebook, which is used for various visualizations (`./start_notebook.py`), then open a browser window with the token it spews out.
+5. Recommend checking this dataset out by running `datset/simple_datasets_test.ipynb` and looking at debug visuals
+6. Compute the mean of this dataset
+7. Make choices in `config/dense_correspondence/training/training.yaml`
+8. Run training via `dense_correspondence/training/training.ipynb`.  Note may want to choose your `cuda_visible_devices` in this notebook, or set a global flag for this in `config/defaults.yaml`.
+9. Open and view visdom via navigating a browser window to `0.0.0.0:8097` (this will be live after training begins)
+
+All outputs from training will be saved in `pdc/trained_models` in a folder particular to this training.  Unless you specify differently in `training.yaml`, this will save to `pdc/trained_models/test/` folder.
