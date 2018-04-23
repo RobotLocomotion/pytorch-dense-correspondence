@@ -44,3 +44,22 @@ the click point, not a finger or the top.
 
 Easiest to super zoom in before clicking on a pixel.
 
+### Re-visualizing your labeled correspondences
+
+Want to look back at the correspondences you just labeled?
+
+`python visualize_correspondences.py`
+
+### Managing saved data
+
+The saved data will be saved out as `new_annotated_pairs.yaml`.  For internal team use we want to put this somewhere in `pdc/evaluation_labeled_data/` and then add a pointer to this file in the `dataset.yaml`.
+
+### Merging saved data
+
+If you save out two different sessions of annotated data and want to merge them, `cat` has us covered:
+
+```
+cat new_annotated_pairs.yaml >> old_annotated_pairs.yaml
+```
+
+Which will append the new pairs onto the end of the old pairs yaml.
