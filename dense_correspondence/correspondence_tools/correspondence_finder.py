@@ -333,8 +333,6 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
 
     if img_a_mask is None:
         uv_a_vec = (torch.ones(num_attempts).type(dtype_long)*uv_a[0],torch.ones(num_attempts).type(dtype_long)*uv_a[1])
-        print uv_a_vec[0].shape
-        print "unmasked shape"
         uv_a_vec_flattened = uv_a_vec[1]*640+uv_a_vec[0]
     else:
         img_a_mask = torch.from_numpy(img_a_mask).type(dtype_float)  
