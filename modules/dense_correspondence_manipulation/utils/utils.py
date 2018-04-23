@@ -86,7 +86,7 @@ def set_cuda_visible_devices(gpu_list):
     os.environ["CUDA_VISIBLE_DEVICES"] = cuda_visible_devices
 
 def set_default_cuda_visible_devices():
-    config = utils.get_defaults_config()
+    config = get_defaults_config()
     host_name = socket.gethostname()
     user_name = getpass.getuser()
     gpu_list = config[host_name][user_name]
