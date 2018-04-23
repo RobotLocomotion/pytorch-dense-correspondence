@@ -690,14 +690,14 @@ class DenseCorrespondenceEvaluation(object):
 
         diff_ground_truth_3d = uv_b_pos - uv_a_pos
 
-        diff_pred_3d = uv_a_pos - uv_b_pred_pos
+        diff_pred_3d = uv_b_pos - uv_b_pred_pos
 
         if DCE.is_depth_valid(uv_b_depth):
             norm_diff_ground_truth_3d = np.linalg.norm(diff_ground_truth_3d)
         else:
             norm_diff_ground_truth_3d = np.nan
 
-        if is_valid:
+        if DCE.is_depth_valid(uv_b_depth) and DCE.is_depth_valid(uv_b_pred_depth):
             norm_diff_pred_3d = np.linalg.norm(diff_pred_3d)
         else:
             norm_diff_pred_3d = np.nan
