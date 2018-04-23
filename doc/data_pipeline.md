@@ -68,3 +68,13 @@ This will run all change detection, masking, and synthetic depth rendering.
 9. Open and view visdom via navigating a browser window to `0.0.0.0:8097` (this will be live after training begins)
 
 All outputs from training will be saved in `pdc/trained_models` in a folder particular to this training.  Unless you specify differently in `training.yaml`, this will save to `pdc/trained_models/test/` folder.
+
+## Evaluation
+
+1. Run a qualitative eval (see `evaluation_plots_example.ipynb`)
+2. Run a quantitative eval (see `evaluation_quantitative.ipynb`)
+3. Plot the results of quantitative eval (see `evaluation_quantitative_plots.ipynb`)
+4. If looking ready for a cross-scene evaluation, then label cross-scene data with `simple-pixel-correspondence-labeler`
+5. Run cross-scene qualitative eval (see `evaluation_plots_cross_scene.ipynb`)
+6. Run cross-scene quantitative eval (see `evaluation_quantitative_cross_scene.ipynb`)
+7. Plot the results of quantitative eval, can do both same-scene and cross-scene together (see `evaluation_quantitative_plots.ipynb`)
