@@ -259,8 +259,7 @@ class DenseCorrespondenceEvaluation(object):
 
             assert dataframe_list_temp is not None
 
-            import copy
-            pd_dataframe_list += copy.copy(dataframe_list_temp)
+            pd_dataframe_list += dataframe_list_temp
 
 
         df = pd.concat(pd_dataframe_list)
