@@ -480,7 +480,7 @@ class DenseCorrespondenceTraining(object):
         steps_between_learning_rate_decay = self._config['training']['steps_between_learning_rate_decay']
         if iteration % steps_between_learning_rate_decay == 0:
             for param_group in optimizer.param_groups:
-                param_group['lr'] = param_group['lr'] * 0.9
+                param_group['lr'] = param_group['lr'] * self._config["training"]["learning_rate_decay"]
 
     @staticmethod
     def get_learning_rate(optimizer):
