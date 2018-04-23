@@ -1303,15 +1303,41 @@ class DenseCorrespondenceEvaluation(object):
                 plt.show()
 
 
+    @staticmethod 
+    def get_random_image_pairs(dataset):
+        """
+        Given a dataset, chose a random scene, and a handful of image pairs from
+        that scene.
+
+        :param dataset: dataset from which to draw a scene and image pairs
+        :type dataset: SpartanDataset
+
+        :return: scene_name, img_pairs
+        :rtype: str, list of lists, where each of the lists are [img_a_idx, img_b_idx], for example:
+            [[113,220],
+             [114,225]]
+        """
+        scene_name = dataset.get_random_scene_name()
+        img_pairs = []
+        for _ in range(5):
+            img_a_idx  = dataset.get_random_image_index(scene_name)
+            pose_a     = dataset.get_pose_from_scene_name_and_idx(scene_name, img_a_idx)
+            img_b_idx  = dataset.get_img_idx_with_different_pose(scene_name, pose_a, num_attempts=100)
+            if img_b_idx is None:
+                continue
+            img_pairs.append([img_a_idx, img_b_idx])
+        return scene_name, img_pairs
+
+
     @staticmethod
     def evaluate_network_qualitative(dcn, dataset, num_image_pairs=5, randomize=False,
-                                     scene_type="caterpillar"):
+                                     scene_type=None):
 
 
         # Train Data
         print "\n\n-----------Train Data Evaluation----------------"
         if randomize:
-            raise NotImplementedError("not yet implemented")
+            scene_name, img_pairs = DenseCorrespondenceEvaluation.get_random_image_pairs(dataset)
         else:
             if scene_type == "caterpillar":
                 scene_name = '2018-04-10-16-06-26'
@@ -1342,7 +1368,7 @@ class DenseCorrespondenceEvaluation(object):
         print "\n\n-----------Test Data Evaluation----------------"
         dataset.set_test_mode()
         if randomize:
-            raise NotImplementedError("not yet implemented")
+            scene_name, img_pairs = DenseCorrespondenceEvaluation.get_random_image_pairs(dataset)
         else:
             if scene_type == "caterpillar":
                 scene_name = '2018-04-10-16-08-46'
@@ -1374,7 +1400,7 @@ class DenseCorrespondenceEvaluation(object):
             # Train Data
             print "\n\n-----------More Test Data Evaluation----------------"
             if randomize:
-                raise NotImplementedError("not yet implemented")
+                scene_name, img_pairs = DenseCorrespondenceEvaluation.get_random_image_pairs(dataset)
             else:
 
                 scene_name = '2018-04-16-14-25-19'
