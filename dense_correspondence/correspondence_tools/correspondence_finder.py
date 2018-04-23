@@ -192,20 +192,24 @@ def create_non_correspondences(uv_b_matches, img_b_shape, num_non_matches_per_ma
 
     num_matches = len(uv_b_matches[0])
 
+    def get_random_uv_b_non_matches():
+        return pytorch_rand_select_pixel(width=image_width,height=image_height, 
+            num_samples=num_matches*num_non_matches_per_match)
+
     if img_b_mask is not None:
         img_b_mask_flat = img_b_mask.view(-1,1).squeeze(1)
         mask_b_indices_flat = torch.nonzero(img_b_mask_flat)
         if len(mask_b_indices_flat) == 0:
             print "warning, empty mask b"
-            exit(0)
-        num_samples = num_matches*num_non_matches_per_match
-        rand_numbers_b = torch.rand(num_samples)*len(mask_b_indices_flat)
-        rand_indices_b = torch.floor(rand_numbers_b).long()
-        randomized_mask_b_indices_flat = torch.index_select(mask_b_indices_flat, 0, rand_indices_b).squeeze(1)
-        uv_b_non_matches = (randomized_mask_b_indices_flat%image_width, randomized_mask_b_indices_flat/image_width)
+            uv_b_non_matches = get_random_uv_b_non_matches()
+        else:
+            num_samples = num_matches*num_non_matches_per_match
+            rand_numbers_b = torch.rand(num_samples)*len(mask_b_indices_flat)
+            rand_indices_b = torch.floor(rand_numbers_b).long()
+            randomized_mask_b_indices_flat = torch.index_select(mask_b_indices_flat, 0, rand_indices_b).squeeze(1)
+            uv_b_non_matches = (randomized_mask_b_indices_flat%image_width, randomized_mask_b_indices_flat/image_width)
     else:
-        uv_b_non_matches = pytorch_rand_select_pixel(width=image_width,height=image_height, 
-            num_samples=num_matches*num_non_matches_per_match)
+        uv_b_non_matches = get_random_uv_b_non_matches()
     
     # for each in uv_a, we want non-matches
     # first just randomly sample "non_matches"
