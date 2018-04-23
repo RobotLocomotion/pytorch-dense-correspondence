@@ -4,6 +4,8 @@ import numpy as np
 import os
 import sys
 import time
+import socket
+import getpass
 
 import dense_correspondence_manipulation.utils.transformations as transformations
 
@@ -73,6 +75,7 @@ def set_cuda_visible_devices(gpu_list):
     """
 
     if len(gpu_list) == 0:
+        print "using all CUDA gpus"
         return
 
     cuda_visible_devices = ""
@@ -81,6 +84,13 @@ def set_cuda_visible_devices(gpu_list):
 
     print "setting CUDA_VISIBLE_DEVICES = ", cuda_visible_devices
     os.environ["CUDA_VISIBLE_DEVICES"] = cuda_visible_devices
+
+def set_default_cuda_visible_devices():
+    config = get_defaults_config()
+    host_name = socket.gethostname()
+    user_name = getpass.getuser()
+    gpu_list = config[host_name][user_name]["cuda_visible_devices"]
+    set_cuda_visible_devices(gpu_list)
 
 def get_defaults_config():
     dc_source_dir = getDenseCorrespondenceSourceDir()

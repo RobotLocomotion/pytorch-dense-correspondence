@@ -1,1 +1,14 @@
 cuda_visible_devices: [0] # set this to which cuda devices you want to use
+
+peteflo-i7gtx:
+  peteflo:
+    cuda_visible_devices: [0]
+
+paladin-23:
+  manuelli:
+    cuda_visible_devices: [0]
+
+iiwa-2:
+  manuelli:
+    cuda_visible_devices: [] # this means use all gpus
+
