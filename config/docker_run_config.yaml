@@ -1,5 +1,11 @@
-peteflo:
-  path_to_data_directory: '/media/peteflo/3TBbackup/dense_correspondence'
+peteflo-i7gtx:
+  peteflo:
+    path_to_data_directory: '/media/peteflo/3TBbackup/dense_correspondence'
 
-manuelli:
-  path_to_data_directory: '/home/manuelli/data'
+paladin-23:
+  manuelli:
+    path_to_data_directory: '/home/manuelli/data'
+
+iiwa-2:
+  manuelli:
+    path_to_data_directory: '/home/manuelli/data'
