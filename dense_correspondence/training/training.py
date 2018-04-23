@@ -229,7 +229,7 @@ class DenseCorrespondenceTraining(object):
         optimizer = self._optimizer
         batch_size = self._data_loader.batch_size
 
-        pixelwise_contrastive_loss = PixelwiseContrastiveLoss(config=self._config['loss_function'])
+        pixelwise_contrastive_loss = PixelwiseContrastiveLoss(config=self._config['loss_function'], image_shape=dcn.image_shape)
         pixelwise_contrastive_loss.debug = True
 
         loss = match_loss = non_match_loss = 0
