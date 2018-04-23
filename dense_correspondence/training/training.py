@@ -16,6 +16,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 import visdom
+import tensorboard_logger
 from torchnet.logger import VisdomPlotLogger, VisdomLogger
 
 
@@ -62,6 +63,7 @@ class DenseCorrespondenceTraining(object):
         self.load_dataset()
         self.setup_logging_dir()
         self.setup_visdom()
+        self.setup_tensorboard()
 
 
     @property
@@ -313,6 +315,8 @@ class DenseCorrespondenceTraining(object):
                     :return:
                     :rtype:
                     """
+
+                    # visdom
                     self._logging_dict['train']['iteration'].append(loss_current_iteration)
                     self._logging_dict['train']['loss'].append(loss.data[0])
                     self._logging_dict['train']['match_loss'].append(match_loss.data[0])
@@ -328,6 +332,13 @@ class DenseCorrespondenceTraining(object):
 
                     self._visdom_plots['learning_rate'].log(loss_current_iteration, learning_rate)
 
+                    # tensorboard
+                    tensorboard_logger.log_value('train loss', loss.data[0], loss_current_iteration)
+                    tensorboard_logger.log_value("train match loss", match_loss.data[0], loss_current_iteration)
+                    tensorboard_logger.log_value("train non match loss", non_match_loss.data[0], loss_current_iteration)
+                    tensorboard_logger.log_value("learning rate", learning_rate, loss_current_iteration)
+                    tensorboard_logger.log_value("train_match_loss", match_loss.data[0], loss_current_iteration)
+
 
                     non_match_type = metadata['non_match_type'][0]
                     fraction_hard_negatives = pixelwise_contrastive_loss.debug_data['fraction_hard_negatives']
@@ -335,11 +346,18 @@ class DenseCorrespondenceTraining(object):
                     if pixelwise_contrastive_loss.debug:
                         if non_match_type == "masked":
                             self._visdom_plots['masked_hard_negative_rate'].log(loss_current_iteration, fraction_hard_negatives)
+                            tensorboard_logger.log_value("masked hard negative rate", fraction_hard_negatives, loss_current_iteration)
                         elif non_match_type == "non_masked":
                             self._visdom_plots['non_masked_hard_negative_rate'].log(loss_current_iteration,
                                                                                 fraction_hard_negatives)
+
+                            tensorboard_logger.log_value("non-masked hard negative rate", fraction_hard_negatives,
+                                                         loss_current_iteration)
                         else:
                             raise ValueError("uknown non_match_type %s" %(non_match_type))
+
+
+
 
 
 
@@ -427,6 +445,11 @@ class DenseCorrespondenceTraining(object):
 
         if not os.path.isdir(self._logging_dir):
             os.makedirs(self._logging_dir)
+
+        # make the tensorboard log directory
+        self._tensorboard_log_dir = os.path.join(self._logging_dir, "tensorboard")
+        if not os.path.isdir(self._tensorboard_log_dir):
+            os.makedirs(self._tensorboard_log_dir)
 
         return self._logging_dir
 
@@ -532,6 +555,22 @@ class DenseCorrespondenceTraining(object):
 
         self._visdom_plots['non_masked_hard_negative_rate'] = VisdomPlotLogger(
             'line', port=self._port, opts={'title': 'Non-Masked Hard Negative Rate'}, env=self._visdom_env)
+
+    def setup_tensorboard(self):
+        """
+        Starts the tensorboard server and sets up the plotting
+        :return:
+        :rtype:
+        """
+
+        # start tensorboard
+        # cmd = "python -m tensorboard.main"
+        logging.info("starting tensorboard")
+        cmd = "tensorboard --logdir=%s" %(self._tensorboard_log_dir)
+        subprocess.Popen(["tensorboard", "--logdir=" + self._tensorboard_log_dir])
+        os.system(cmd)
+        tensorboard_logger.configure(self._tensorboard_log_dir)
+        logging.info("tensorboard started")
 
 
     @staticmethod
