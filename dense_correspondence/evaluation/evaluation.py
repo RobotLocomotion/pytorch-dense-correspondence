@@ -463,6 +463,8 @@ class DenseCorrespondenceEvaluation(object):
 
         dataframe_list = []
 
+        # Loop over the labeled pixel matches once, before using different views
+        # This lets us keep depth_a, depth_b, res_a, res_b without reloading
         for i in range(len(img_a_pixels)):
             print "now, index of pixel match:", i
             uv_a = (img_a_pixels[i]["u"], img_a_pixels[i]["v"])
@@ -474,22 +476,91 @@ class DenseCorrespondenceEvaluation(object):
 
             # Reminder: this function wants only a single uv_a, uv_b
             pd_template = DenseCorrespondenceEvaluation.compute_descriptor_match_statistics(depth_a,
-                                                                      depth_b,
-                                                                      uv_a,
-                                                                      uv_b,
-                                                                      pose_a,
-                                                                      pose_b,
-                                                                      res_a,
-                                                                      res_b,
-                                                                      camera_intrinsics_matrix,
-                                                                      rgb_a=rgb_a,
-                                                                      rgb_b=rgb_b,
-                                                                      debug=False)
+                                                        depth_b, uv_a, uv_b, pose_a,pose_b, res_a,
+                                                        res_b, camera_intrinsics_matrix,
+                                                        rgb_a=rgb_a, rgb_b=rgb_b, debug=False)
             pd_template.set_value('scene_name', scene_name_a+"+"+scene_name_b)
             pd_template.set_value('img_a_idx', int(img_a_idx))
             pd_template.set_value('img_b_idx', int(img_b_idx))
 
             dataframe_list.append(pd_template.dataframe)
+
+        # Loop a second time over the labeled pixel matches
+        # But this time try, 
+        #  for each I labeled pixel match pairs,
+        #       for each J different views for image a, and
+        #       for each K different views for image b
+        # This will lead to I*J+I*K attempts at new pairs!
+        # Could also do the cubic version...
+        J = 10
+        K = 10
+        
+        # Loop over labeled pixel matches
+        for i in range(len(img_a_pixels)):
+            uv_a = (img_a_pixels[i]["u"], img_a_pixels[i]["v"])
+            uv_b = (img_b_pixels[i]["u"], img_b_pixels[i]["v"])
+            uv_a = DCE.clip_pixel_to_image_size_and_round(uv_a, image_width, image_height)
+            uv_b = DCE.clip_pixel_to_image_size_and_round(uv_b, image_width, image_height)
+
+            # Loop over J different views for image a
+            for j in range(J):
+                different_view_a_idx = dataset.get_img_idx_with_different_pose(scene_name_a, pose_a, num_attempts=50)
+                if different_view_a_idx is None:
+                    logging.info("no frame with sufficiently different pose found, continuing")
+                    continue
+                diff_rgb_a, diff_depth_a, diff_mask_a, diff_pose_a = dataset.get_rgbd_mask_pose(scene_name_a, different_view_a_idx)
+                diff_depth_a = np.asarray(diff_depth_a)
+                (uv_a_vec, diff_uv_a_vec) = correspondence_finder.batch_find_pixel_correspondences(depth_a, pose_a, diff_depth_a, diff_pose_a,
+                                                               uv_a=uv_a)
+                if uv_a_vec is None:
+                    logging.info("no matches found, continuing")
+                    continue
+
+                diff_rgb_a_tensor = dataset.rgb_image_to_tensor(diff_rgb_a)
+                diff_res_a = dcn.forward_single_image_tensor(diff_rgb_a_tensor).data.cpu().numpy()
+
+                diff_uv_a = (diff_uv_a_vec[0][0], diff_uv_a_vec[1][0])
+                diff_uv_a = DCE.clip_pixel_to_image_size_and_round(diff_uv_a, image_width, image_height)
+
+                pd_template = DenseCorrespondenceEvaluation.compute_descriptor_match_statistics(diff_depth_a,
+                                                        depth_b, diff_uv_a, uv_b, diff_pose_a, pose_b, 
+                                                        diff_res_a, res_b, camera_intrinsics_matrix,
+                                                        rgb_a=diff_rgb_a, rgb_b=rgb_b, debug=False)
+                pd_template.set_value('scene_name', scene_name_a+"+"+scene_name_b)
+                pd_template.set_value('img_a_idx', int(different_view_a_idx))
+                pd_template.set_value('img_b_idx', int(img_b_idx))
+
+                dataframe_list.append(pd_template.dataframe)
+
+            # Loop over K different views for image b
+            for k in range(K):
+                different_view_b_idx = dataset.get_img_idx_with_different_pose(scene_name_b, pose_b, num_attempts=50)
+                if different_view_b_idx is None:
+                    logging.info("no frame with sufficiently different pose found, continuing")
+                    continue
+                diff_rgb_b, diff_depth_b, diff_mask_b, diff_pose_b = dataset.get_rgbd_mask_pose(scene_name_b, different_view_b_idx)
+                diff_depth_b = np.asarray(diff_depth_b)
+                (uv_b_vec, diff_uv_b_vec) = correspondence_finder.batch_find_pixel_correspondences(depth_b, pose_b, diff_depth_b, diff_pose_b,
+                                                               uv_a=uv_b)
+                if uv_b_vec is None:
+                    logging.info("no matches found, continuing")
+                    continue
+
+                diff_rgb_b_tensor = dataset.rgb_image_to_tensor(diff_rgb_b)
+                diff_res_b = dcn.forward_single_image_tensor(diff_rgb_b_tensor).data.cpu().numpy()
+
+                diff_uv_b = (diff_uv_b_vec[0][0], diff_uv_b_vec[1][0])
+                diff_uv_b = DCE.clip_pixel_to_image_size_and_round(diff_uv_b, image_width, image_height)
+
+                pd_template = DenseCorrespondenceEvaluation.compute_descriptor_match_statistics(depth_a,
+                                                        diff_depth_b, uv_a, diff_uv_b, pose_a, diff_pose_b, 
+                                                        res_a, diff_res_b, camera_intrinsics_matrix,
+                                                        rgb_a=rgb_a, rgb_b=diff_rgb_b, debug=False)
+                pd_template.set_value('scene_name', scene_name_a+"+"+scene_name_b)
+                pd_template.set_value('img_a_idx', int(img_a_idx))
+                pd_template.set_value('img_b_idx', int(different_view_b_idx))
+
+                dataframe_list.append(pd_template.dataframe)
 
         return dataframe_list
 
@@ -703,11 +774,6 @@ class DenseCorrespondenceEvaluation(object):
             norm_diff_pred_3d = np.nan
 
         if debug:
-
-            print "uv_b_pred_depth is valid: "
-            print "uv_a_pos: ", uv_a_pos
-            print "uv_b_pos: ", uv_b_pos
-            print "uv_b_pred_pos ", uv_b_pred_pos
 
             fig, axes = correspondence_plotter.plot_correspondences_direct(rgb_a, depth_a, rgb_b, depth_b,
                                                                uv_a, uv_b, show=False)
