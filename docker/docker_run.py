@@ -3,6 +3,7 @@ from __future__ import print_function
 
 import argparse
 import os
+import socket
 import getpass
 import yaml
 
@@ -47,7 +48,8 @@ if __name__=="__main__":
 
     # uncomment below to mount your data volume
     config_yaml = yaml.load(file(config_file))
-    cmd += " -v %s:%s/data_volume " %(config_yaml[user_name]['path_to_data_directory'], dense_correspondence_source_dir)
+    host_name = socket.gethostname()
+    cmd += " -v %s:%s/data_volume " %(config_yaml[host_name][user_name]['path_to_data_directory'], dense_correspondence_source_dir)
 
     # expose UDP ports
     cmd += " -p 8888:8888 "
