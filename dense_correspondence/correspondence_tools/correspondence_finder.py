@@ -154,7 +154,7 @@ def where(cond, x_1, x_2):
     cond = cond.type(dtype_float)    
     return (cond * x_1) + ((1-cond) * x_2)
 
-def create_non_correspondences(uv_b_matches, num_non_matches_per_match=100, img_b_mask=None):
+def create_non_correspondences(uv_b_matches, img_b_shape, num_non_matches_per_match=100, img_b_mask=None):
     """
     Takes in pixel matches (uv_b_matches) that correspond to matches in another image, and generates non-matches by just sampling in image space.
 
@@ -169,6 +169,8 @@ def create_non_correspondences(uv_b_matches, num_non_matches_per_match=100, img_
     :param uv_b_matches: tuple of torch.FloatTensors, where each FloatTensor is length n, i.e.:
         (torch.FloatTensor, torch.FloatTensor)
 
+    :param img_b_shape: tuple of (H,W) which is the shape of the image
+
     (optional)
     :param num_non_matches_per_match: int
 
@@ -182,6 +184,8 @@ def create_non_correspondences(uv_b_matches, num_non_matches_per_match=100, img_
         - Each torch.FloatTensor is of shape torch.Shape([num_matches, non_matches_per_match])
         - This shape makes it so that each row of the non-matches corresponds to the row for the match in uv_a
     """
+    image_width  = img_b_shape[1]
+    image_height = img_b_shape[0]
 
     if uv_b_matches == None:
         return None
@@ -198,9 +202,10 @@ def create_non_correspondences(uv_b_matches, num_non_matches_per_match=100, img_
         rand_numbers_b = torch.rand(num_samples)*len(mask_b_indices_flat)
         rand_indices_b = torch.floor(rand_numbers_b).long()
         randomized_mask_b_indices_flat = torch.index_select(mask_b_indices_flat, 0, rand_indices_b).squeeze(1)
-        uv_b_non_matches = (randomized_mask_b_indices_flat%640, randomized_mask_b_indices_flat/640)
+        uv_b_non_matches = (randomized_mask_b_indices_flat%image_width, randomized_mask_b_indices_flat/image_width)
     else:
-        uv_b_non_matches = pytorch_rand_select_pixel(width=640,height=480,num_samples=num_matches*num_non_matches_per_match)
+        uv_b_non_matches = pytorch_rand_select_pixel(width=image_width,height=image_height, 
+            num_samples=num_matches*num_non_matches_per_match)
     
     # for each in uv_a, we want non-matches
     # first just randomly sample "non_matches"
@@ -247,7 +252,7 @@ def create_non_correspondences(uv_b_matches, num_non_matches_per_match=100, img_
 
     # handle wrapping in width
     lower_bound = 0.0
-    upper_bound = 639.0
+    upper_bound = image_width*1.0 - 1
     lower_bound_vec = torch.ones_like(uv_b_non_matches_0_flat) * lower_bound
     upper_bound_vec = torch.ones_like(uv_b_non_matches_0_flat) * upper_bound
 
@@ -261,7 +266,7 @@ def create_non_correspondences(uv_b_matches, num_non_matches_per_match=100, img_
 
     # handle wrapping in height
     lower_bound = 0.0
-    upper_bound = 479.0
+    upper_bound = image_height*1.0 - 1
     lower_bound_vec = torch.ones_like(uv_b_non_matches_1_flat) * lower_bound
     upper_bound_vec = torch.ones_like(uv_b_non_matches_1_flat) * upper_bound
 
@@ -316,6 +321,10 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
                         Each of these is a tuple of pixel positions
     :rtype:             Each of uv_a is a tuple of torch.FloatTensors
     """
+    assert (img_a_depth.shape == img_b_depth.shape)
+    image_width  = img_a_depth.shape[1]
+    image_height = img_b_depth.shape[0]
+
     global dtype_float
     global dtype_long
     if device == 'CPU':
@@ -326,23 +335,24 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
         dtype_long = torch.cuda.LongTensor
 
     if uv_a is None:
-        uv_a = pytorch_rand_select_pixel(width=640,height=480, num_samples=num_attempts)
+        uv_a = pytorch_rand_select_pixel(width=image_width,height=image_height, num_samples=num_attempts)
     else:
         uv_a = (torch.LongTensor([uv_a[0]]).type(dtype_long), torch.LongTensor([uv_a[1]]).type(dtype_long))
         num_attempts = 1
 
     if img_a_mask is None:
         uv_a_vec = (torch.ones(num_attempts).type(dtype_long)*uv_a[0],torch.ones(num_attempts).type(dtype_long)*uv_a[1])
-        uv_a_vec_flattened = uv_a_vec[1]*640+uv_a_vec[0]
+        uv_a_vec_flattened = uv_a_vec[1]*image_width+uv_a_vec[0]
     else:
         img_a_mask = torch.from_numpy(img_a_mask).type(dtype_float)  
         mask_a = img_a_mask.squeeze(0)
         mask_a = mask_a/torch.max(mask_a)
         nonzero = (torch.nonzero(mask_a)).type(dtype_long)
         uv_a_vec = (nonzero[:,1], nonzero[:,0])
-        uv_a_vec_flattened = uv_a_vec[1]*640+uv_a_vec[0]
+        uv_a_vec_flattened = uv_a_vec[1]*image_width+uv_a_vec[0]
 
-        # mask_a = mask_a.view(640*480,1).squeeze(1)
+        # This code would randomly subsample from the mask
+        # mask_a = mask_a.view(image_width*image_height,1).squeeze(1)
         # mask_a_indices_flat = torch.nonzero(mask_a)
         # if len(mask_a_indices_flat) == 0:
         #     return (None, None)
@@ -350,7 +360,7 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
         # rand_numbers_a = torch.rand(num_samples)*len(mask_a_indices_flat)
         # rand_indices_a = torch.floor(rand_numbers_a).type(dtype_long)
         # uv_a_vec_flattened = torch.index_select(mask_a_indices_flat, 0, rand_indices_a).squeeze(1)
-        # uv_a_vec = (uv_a_vec_flattened/640, uv_a_vec_flattened%640)
+        # uv_a_vec = (uv_a_vec_flattened/image_width, uv_a_vec_flattened%image_width)
 
     if K is None:
         K = get_default_K_matrix()
@@ -404,12 +414,13 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
 
     # Prune based on
     # Case 2: the pixels projected into image b are outside FOV
-    # u2_vec bounds should be: 0, 640
-    # v2_vec bounds should be: 0, 480
+    # u2_vec bounds should be: 0, image_width
+    # v2_vec bounds should be: 0, image_height
 
     ## do u2-based pruning
     u2_vec_lower_bound = 0.0
-    u2_vec_upper_bound = 639.999  # careful, needs to be epsilon less!!
+    epsilon = 1e-3
+    u2_vec_upper_bound = image_width*1.0 - epsilon  # careful, needs to be epsilon less!!
     lower_bound_vec = torch.ones_like(u2_vec) * u2_vec_lower_bound
     upper_bound_vec = torch.ones_like(u2_vec) * u2_vec_upper_bound
     zeros_vec       = torch.zeros_like(u2_vec)
@@ -430,7 +441,7 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
 
     ## do v2-based pruning
     v2_vec_lower_bound = 0.0
-    v2_vec_upper_bound = 479.999
+    v2_vec_upper_bound = image_height*1.0 - epsilon
     lower_bound_vec = torch.ones_like(v2_vec) * v2_vec_lower_bound
     upper_bound_vec = torch.ones_like(v2_vec) * v2_vec_upper_bound
     zeros_vec       = torch.zeros_like(v2_vec)    
@@ -456,7 +467,7 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
     img_b_depth_torch = torch.squeeze(img_b_depth_torch, 0)
     img_b_depth_torch = img_b_depth_torch.view(-1,1)
 
-    uv_b_vec_flattened = (v2_vec.type(dtype_long)*640+u2_vec.type(dtype_long))  # simply round to int -- good enough 
+    uv_b_vec_flattened = (v2_vec.type(dtype_long)*image_width+u2_vec.type(dtype_long))  # simply round to int -- good enough 
                                                                        # occlusion check for smooth surfaces
 
     depth2_vec = torch.index_select(img_b_depth_torch, 0, uv_b_vec_flattened)*1.0/1000
