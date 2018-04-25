@@ -6,10 +6,10 @@ from decimal import Decimal
 
 class PixelwiseContrastiveLoss(object):
 
-    def __init__(self, config=None):
+    def __init__(self, image_shape, config=None):
     	self.type = "pixelwise_contrastive"
-        self.image_width = 640
-        self.image_height = 480 # maybe set this elsewhere
+        self.image_width  = image_shape[1]
+        self.image_height = image_shape[0]
 
         if config is None:
             self.load_default_config()

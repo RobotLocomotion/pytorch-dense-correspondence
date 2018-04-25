@@ -153,7 +153,12 @@ class DenseCorrespondenceDataset(data.Dataset):
             logging.debug("not masking non-matches")
             image_b_mask = None
             
-        uv_b_non_matches = correspondence_finder.create_non_correspondences(uv_b, num_non_matches_per_match=self.num_non_matches_per_match, img_b_mask=image_b_mask)
+        image_b_shape = image_b_depth_numpy.shape
+        image_width  = image_b_shape[1]
+        image_height = image_b_shape[1]
+
+        uv_b_non_matches = correspondence_finder.create_non_correspondences(uv_b, image_b_shape, 
+            num_non_matches_per_match=self.num_non_matches_per_match, img_b_mask=image_b_mask)
 
         if self.debug:
             # only want to bring in plotting code if in debug mode
@@ -184,14 +189,12 @@ class DenseCorrespondenceDataset(data.Dataset):
         uv_b_non_matches_long = (uv_b_non_matches[0].view(-1,1), uv_b_non_matches[1].view(-1,1) )
 
         # flatten correspondences and non_correspondences
-        matches_a = uv_a[1].long()*640+uv_a[0].long()
-        matches_b = uv_b[1].long()*640+uv_b[0].long()
-        non_matches_a = uv_a_long[1].long()*640+uv_a_long[0].long()
+        matches_a = uv_a[1].long()*image_width+uv_a[0].long()
+        matches_b = uv_b[1].long()*image_width+uv_b[0].long()
+        non_matches_a = uv_a_long[1].long()*image_width+uv_a_long[0].long()
         non_matches_a = non_matches_a.squeeze(1)
-        non_matches_b = uv_b_non_matches_long[1].long()*640+uv_b_non_matches_long[0].long()
+        non_matches_b = uv_b_non_matches_long[1].long()*image_width+uv_b_non_matches_long[0].long()
         non_matches_b = non_matches_b.squeeze(1)
-
-
 
         return "matches", image_a_rgb, image_b_rgb, matches_a, matches_b, non_matches_a, non_matches_b, metadata
 
