@@ -27,6 +27,8 @@ class DenseCorrespondenceNetwork(nn.Module):
     def __init__(self, fcn, descriptor_dimension, image_width=640,
                  image_height=480):
 
+        super(DenseCorrespondenceNetwork, self).__init__()
+
         self._fcn = fcn
         self._descriptor_dimension = descriptor_dimension
         self._image_width = image_width
