@@ -8,6 +8,7 @@ utils.add_dense_correspondence_to_python_path()
 from PIL import Image
 
 import torch
+import torch.nn as nn
 from torchvision import transforms
 from torch.autograd import Variable
 import pytorch_segmentation_detection.models.resnet_dilated as resnet_dilated
@@ -19,7 +20,7 @@ class NetworkMode:
     TRAIN = 0 # don't normalize images
     TEST = 1 # normalize images
 
-class DenseCorrespondenceNetwork(object):
+class DenseCorrespondenceNetwork(nn.Module):
 
     IMAGE_TO_TENSOR = valid_transform = transforms.Compose([transforms.ToTensor(), ])
 
@@ -328,11 +329,6 @@ class DenseCorrespondenceNetwork(object):
             path_to_network_params = utils.convert_to_absolute_path(config['path_to_network_params'])
             config['path_to_network_params_folder'] = os.path.dirname(config['path_to_network_params'])
             fcn.load_state_dict(torch.load(path_to_network_params))
-            fcn.cuda()
-            fcn.eval()
-        else:
-            fcn.cuda()
-            fcn.train()
 
 
 
@@ -340,6 +336,8 @@ class DenseCorrespondenceNetwork(object):
                                           image_width=config['image_width'],
                                           image_height=config['image_height'])
 
+        dcn.cuda()
+        dcn.train()
         dcn.config = config
         return dcn
 
