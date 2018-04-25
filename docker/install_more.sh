@@ -14,4 +14,5 @@ sudo pip install sklearn
 
 sudo pip install opencv-contrib-python
 
-sudo pip install tensorboard_logger
+sudo pip install tensorboard_logger \
+    tensorflow

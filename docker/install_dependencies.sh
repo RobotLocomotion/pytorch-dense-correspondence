@@ -28,4 +28,5 @@ pip install \
   jupyter \
   opencv-python \
   plyfile \
-  pandas 
+  pandas \
+  tensorflow
