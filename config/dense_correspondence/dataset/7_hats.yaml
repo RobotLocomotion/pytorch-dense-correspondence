@@ -12,3 +12,12 @@ test:
 image_normalization:
  mean: [0.5735, 0.3744, 0.3727]
  std_dev: [0.2448, 0.2978, 0.3188]
+ 
+# instance labels
+# 0: Boston Red Sox hat
+# 1: Banjo Camp North hat
+# 2: Princeton Orange hat
+# 3: IHMC Robotics hat
+# 4: SF Giants hat
+# 5: MIT red hat
+# 6: Warriors hat
