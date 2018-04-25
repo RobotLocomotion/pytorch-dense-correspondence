@@ -97,12 +97,21 @@ class DenseCorrespondenceEvaluation(object):
 
 
     def load_network_from_config(self, name):
+        """
+        Loads a network from config file. Puts it in eval mode by default
+        :param name:
+        :type name:
+        :return: DenseCorrespondenceNetwork
+        :rtype:
+        """
         if name not in self._config["networks"]:
             raise ValueError("Network %s is not in config file" %(name))
 
 
         network_config = self._config["networks"][name]
-        return DenseCorrespondenceNetwork.from_config(network_config)
+        dcn = DenseCorrespondenceNetwork.from_config(network_config)
+        dcn.eval()
+        return dcn
 
     def load_dataset_for_network(self, network_name):
         """
@@ -196,6 +205,7 @@ class DenseCorrespondenceEvaluation(object):
         DCE = DenseCorrespondenceEvaluation
 
         dcn = self.load_network_from_config(network_name)
+        dcn.eval()
         dataset = self.dataset
 
         if mode == "train":
@@ -227,6 +237,8 @@ class DenseCorrespondenceEvaluation(object):
         """
 
         dcn = self.load_network_from_config(network_name)
+        dcn.eval()
+
         dataset = dcn.load_training_dataset()
 
         if "evaluation_labeled_data_path" not in dataset.config:
@@ -283,6 +295,7 @@ class DenseCorrespondenceEvaluation(object):
         :return:
         """
         DCE = DenseCorrespondenceEvaluation
+        dcn.eval()
 
         logging_rate = 5
 
@@ -1261,6 +1274,8 @@ class DenseCorrespondenceEvaluation(object):
         and use pairs of images that have been human-labeled across scenes.
         """
 
+        dcn.eval()
+
         if "evaluation_labeled_data_path" not in dataset.config:
             print "Could not find labeled cross scene data for this dataset."
             print "It needs to be set in the dataset.yaml of the folder from which"
@@ -1333,7 +1348,7 @@ class DenseCorrespondenceEvaluation(object):
     def evaluate_network_qualitative(dcn, dataset, num_image_pairs=5, randomize=False,
                                      scene_type=None):
 
-
+        dcn.eval()
         # Train Data
         print "\n\n-----------Train Data Evaluation----------------"
         if randomize:
@@ -1433,7 +1448,7 @@ class DenseCorrespondenceEvaluation(object):
         :return:
         :rtype:
         """
-
+        dcn.eval()
 
         # loss_vec = np.zeros(num_iterations)
         loss_vec = []
@@ -1517,6 +1532,7 @@ class DenseCorrespondenceEvaluation(object):
         :rtype:
         """
 
+        dcn.eval()
         to_tensor = transforms.ToTensor()
 
         # compute the per-channel mean

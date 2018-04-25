@@ -227,7 +227,11 @@ class DenseCorrespondenceTraining(object):
             if (self._optimizer is None):
                 raise ValueError("you must set self._optimizer if use_pretrained=True")
 
+        # make sure network is using cuda and is in train mode
         dcn = self._dcn
+        dcn.cuda()
+        dcn.train()
+
         optimizer = self._optimizer
         batch_size = self._data_loader.batch_size
 
@@ -337,7 +341,7 @@ class DenseCorrespondenceTraining(object):
                     tensorboard_logger.log_value("train match loss", match_loss.data[0], loss_current_iteration)
                     tensorboard_logger.log_value("train non match loss", non_match_loss.data[0], loss_current_iteration)
                     tensorboard_logger.log_value("learning rate", learning_rate, loss_current_iteration)
-                    
+
 
 
                     non_match_type = metadata['non_match_type'][0]
