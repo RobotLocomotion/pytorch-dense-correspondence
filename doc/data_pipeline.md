@@ -22,7 +22,11 @@ The quick version of raw data collection currently is:
     1. Start ROS script (check that openni driver looks happy)
     2. Run Kuka drivers
     3. Check that pointcloud / sensor data in RVIZ looks OK
-3. New terminal: prepare to collect logs via `use_ros && use_spartan`, navigate to fusion server scripts (`cd spartan/src/catkin_projects/fusion_server/scripts`)
+3. New terminal: prepare to collect logs via navigate to fusion server scripts:
+```
+use_ros && use_spartan
+cd ~/spartan/src/catkin_projects/fusion_server/scripts
+```
 4. Collect many raw logs, for each:
     1. Move objects to desired position
     2. `./capture_scene_client.py`
