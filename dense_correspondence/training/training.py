@@ -337,7 +337,7 @@ class DenseCorrespondenceTraining(object):
                     tensorboard_logger.log_value("train match loss", match_loss.data[0], loss_current_iteration)
                     tensorboard_logger.log_value("train non match loss", non_match_loss.data[0], loss_current_iteration)
                     tensorboard_logger.log_value("learning rate", learning_rate, loss_current_iteration)
-                    tensorboard_logger.log_value("train_match_loss", match_loss.data[0], loss_current_iteration)
+                    
 
 
                     non_match_type = metadata['non_match_type'][0]
