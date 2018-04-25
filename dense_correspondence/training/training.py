@@ -171,7 +171,8 @@ class DenseCorrespondenceTraining(object):
 
         Note: It is up to the user to ensure that the model parameters match.
         e.g. width, height, descriptor dimension etc.
-        :param model_folder: location of the folder containing the param files 001000.pth
+
+        :param model_folder: location, relative to pdc/trained_models/, of the folder containing the param files 001000.pth
         :type model_folder:
         :param iteration: which index to use, e.g. 3500, if None it loads the latest one
         :type iteration:
@@ -179,12 +180,14 @@ class DenseCorrespondenceTraining(object):
         :rtype:
         """
 
+        pdc_path = utils.getPdcPath()
+        model_folder = os.path.join(pdc_path, "trained_models", model_folder)
+
         # find idx.pth and idx.pth.opt files
         if iteration is None:
             files = os.listdir(model_folder)
             model_param_file = sorted(fnmatch.filter(files, '*.pth'))[-1]
             optim_param_file = sorted(fnmatch.filter(files, '*.pth.opt'))[-1]
-
         else:
             prefix = utils.getPaddedString(iteration, width=6)
             model_param_file = prefix + ".pth"
@@ -203,8 +206,16 @@ class DenseCorrespondenceTraining(object):
         self._optimizer = self._construct_optimizer(self._dcn.parameters())
         self._optimizer.load_state_dict(torch.load(optim_param_file))
 
+    def run_from_pretrained(self, model_folder, iteration=None):
+        """
+        Wrapper for load_pretrained(), then run()
+        """
+        self.load_pretrained(model_folder, iteration)
+        if iteration is None:
+            iteration = 0
+        self.run(loss_current_iteration=iteration, use_pretrained=True)
 
-    def run(self, use_pretrained=False):
+    def run(self, loss_current_iteration=0, use_pretrained=False):
         """
         Runs the training
         :return:
@@ -231,13 +242,10 @@ class DenseCorrespondenceTraining(object):
         optimizer = self._optimizer
         batch_size = self._data_loader.batch_size
 
-        pixelwise_contrastive_loss = PixelwiseContrastiveLoss(config=self._config['loss_function'])
+        pixelwise_contrastive_loss = PixelwiseContrastiveLoss(config=self._config['loss_function'], image_shape=dcn.image_shape)
         pixelwise_contrastive_loss.debug = True
 
         loss = match_loss = non_match_loss = 0
-        loss_current_iteration = 0
-
-
 
         max_num_iterations = self._config['training']['num_iterations']
         logging_rate = self._config['training']['logging_rate']
@@ -253,9 +261,8 @@ class DenseCorrespondenceTraining(object):
                                            "non_match_loss": []}
 
         # save network before starting
-        self.save_network(dcn, optimizer, 0)
-
-
+        if not use_pretrained:
+            self.save_network(dcn, optimizer, 0)
 
         for epoch in range(50):  # loop over the dataset multiple times
 
@@ -282,7 +289,6 @@ class DenseCorrespondenceTraining(object):
 
                 optimizer.zero_grad()
                 self.adjust_learning_rate(optimizer, loss_current_iteration)
-
 
                 # run both images through the network
                 image_a_pred = dcn.forward(img_a)

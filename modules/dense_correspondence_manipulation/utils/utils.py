@@ -26,6 +26,8 @@ def saveToYaml(data, filename):
 def getDenseCorrespondenceSourceDir():
     return os.getenv("DC_SOURCE_DIR")
 
+def getPdcPath():
+    return os.path.join(getDenseCorrespondenceSourceDir(), "data_volume", "pdc")
 
 def dictFromPosQuat(pos, quat):
     """
