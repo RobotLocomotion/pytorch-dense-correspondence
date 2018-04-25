@@ -9,7 +9,7 @@ import yaml
 
 if __name__=="__main__":
     user_name = getpass.getuser()
-    default_image_name = user_name + '-pytorch'
+    default_image_name = user_name + '-pytorch-dense-correspondence'
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--image", type=str,
         help="(required) name of the image that this container is derived from", default=default_image_name)
