@@ -223,6 +223,9 @@ class PixelwiseContrastiveLoss(object):
         else:
             scale_factor = num_non_matches
 
+        # make sure the scale factor is not zero
+        scale_factor = max(scale_factor, 1)
+
         non_match_loss = 1.0/scale_factor * (non_match_descriptor_loss * non_match_pixel_l2_loss).sum()
 
         if self.debug:

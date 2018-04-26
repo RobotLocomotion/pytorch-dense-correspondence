@@ -97,12 +97,21 @@ class DenseCorrespondenceEvaluation(object):
 
 
     def load_network_from_config(self, name):
+        """
+        Loads a network from config file. Puts it in eval mode by default
+        :param name:
+        :type name:
+        :return: DenseCorrespondenceNetwork
+        :rtype:
+        """
         if name not in self._config["networks"]:
             raise ValueError("Network %s is not in config file" %(name))
 
 
         network_config = self._config["networks"][name]
-        return DenseCorrespondenceNetwork.from_config(network_config)
+        dcn = DenseCorrespondenceNetwork.from_config(network_config)
+        dcn.eval()
+        return dcn
 
     def load_dataset_for_network(self, network_name):
         """
@@ -196,6 +205,7 @@ class DenseCorrespondenceEvaluation(object):
         DCE = DenseCorrespondenceEvaluation
 
         dcn = self.load_network_from_config(network_name)
+        dcn.eval()
         dataset = self.dataset
 
         if mode == "train":
@@ -227,6 +237,8 @@ class DenseCorrespondenceEvaluation(object):
         """
 
         dcn = self.load_network_from_config(network_name)
+        dcn.eval()
+
         dataset = dcn.load_training_dataset()
 
         if "evaluation_labeled_data_path" not in dataset.config:
@@ -283,6 +295,7 @@ class DenseCorrespondenceEvaluation(object):
         :return:
         """
         DCE = DenseCorrespondenceEvaluation
+        dcn.eval()
 
         logging_rate = 5
 
@@ -1261,6 +1274,8 @@ class DenseCorrespondenceEvaluation(object):
         and use pairs of images that have been human-labeled across scenes.
         """
 
+        dcn.eval()
+
         if "evaluation_labeled_data_path" not in dataset.config:
             print "Could not find labeled cross scene data for this dataset."
             print "It needs to be set in the dataset.yaml of the folder from which"
@@ -1328,16 +1343,44 @@ class DenseCorrespondenceEvaluation(object):
             img_pairs.append([img_a_idx, img_b_idx])
         return scene_name, img_pairs
 
+    @staticmethod
+    def get_random_scenes_and_image_pairs(dataset):
+        """
+        Given a dataset, chose a variety of random scenes and image pairs
+
+        :param dataset: dataset from which to draw a scene and image pairs
+        :type dataset: SpartanDataset
+
+        :return: scene_names, img_pairs
+        :rtype: list[str], list of lists, where each of the lists are [img_a_idx, img_b_idx], for example:
+            [[113,220],
+             [114,225]]
+        """
+
+        scene_names = []
+
+        img_pairs = []
+        for _ in range(5):
+            scene_name = dataset.get_random_scene_name()
+            img_a_idx = dataset.get_random_image_index(scene_name)
+            pose_a = dataset.get_pose_from_scene_name_and_idx(scene_name, img_a_idx)
+            img_b_idx = dataset.get_img_idx_with_different_pose(scene_name, pose_a, num_attempts=100)
+            if img_b_idx is None:
+                continue
+            img_pairs.append([img_a_idx, img_b_idx])
+            scene_names.append(scene_name)
+
+        return scene_names, img_pairs
 
     @staticmethod
     def evaluate_network_qualitative(dcn, dataset, num_image_pairs=5, randomize=False,
                                      scene_type=None):
 
-
+        dcn.eval()
         # Train Data
         print "\n\n-----------Train Data Evaluation----------------"
         if randomize:
-            scene_name, img_pairs = DenseCorrespondenceEvaluation.get_random_image_pairs(dataset)
+            scene_names, img_pairs = DenseCorrespondenceEvaluation.get_random_scenes_and_image_pairs(dataset)
         else:
             if scene_type == "caterpillar":
                 scene_name = '2018-04-10-16-06-26'
@@ -1356,7 +1399,9 @@ class DenseCorrespondenceEvaluation(object):
             else:
                 raise ValueError("scene_type must be one of [drill, caterpillar], it was %s)" %(scene_type))
 
-        for img_pair in img_pairs:
+            scene_names = [scene_name]*len(img_pairs)
+
+        for scene_name, img_pair in zip(scene_names, img_pairs):
             print "Image pair (%d, %d)" %(img_pair[0], img_pair[1])
             DenseCorrespondenceEvaluation.single_same_scene_image_pair_qualitative_analysis(dcn,
                                                                                  dataset,
@@ -1368,7 +1413,7 @@ class DenseCorrespondenceEvaluation(object):
         print "\n\n-----------Test Data Evaluation----------------"
         dataset.set_test_mode()
         if randomize:
-            scene_name, img_pairs = DenseCorrespondenceEvaluation.get_random_image_pairs(dataset)
+            scene_names, img_pairs = DenseCorrespondenceEvaluation.get_random_scenes_and_image_pairs(dataset)
         else:
             if scene_type == "caterpillar":
                 scene_name = '2018-04-10-16-08-46'
@@ -1387,8 +1432,10 @@ class DenseCorrespondenceEvaluation(object):
             else:
                 raise ValueError("scene_type must be one of [drill, caterpillar], it was %s)" % (scene_type))
 
+            scene_names = [scene_name] * len(img_pairs)
 
-        for img_pair in img_pairs:
+
+        for scene_name, img_pair in zip(scene_names, img_pairs):
             print "Image pair (%d, %d)" %(img_pair[0], img_pair[1])
             DenseCorrespondenceEvaluation.single_same_scene_image_pair_qualitative_analysis(dcn,
                                                                                  dataset,
@@ -1419,7 +1466,7 @@ class DenseCorrespondenceEvaluation(object):
                                                                                  img_pair[1])
 
     @staticmethod
-    def compute_loss_on_dataset(dcn, data_loader, num_iterations=500):
+    def compute_loss_on_dataset(dcn, data_loader, loss_config, num_iterations=500,):
         """
 
         Computes the loss for the given number of iterations
@@ -1433,14 +1480,14 @@ class DenseCorrespondenceEvaluation(object):
         :return:
         :rtype:
         """
-
+        dcn.eval()
 
         # loss_vec = np.zeros(num_iterations)
         loss_vec = []
         match_loss_vec = []
         non_match_loss_vec = []
         counter = 0
-        pixelwise_contrastive_loss = PixelwiseContrastiveLoss()
+        pixelwise_contrastive_loss = PixelwiseContrastiveLoss(dcn.image_shape, config=loss_config)
 
         batch_size = 1
 
@@ -1517,6 +1564,7 @@ class DenseCorrespondenceEvaluation(object):
         :rtype:
         """
 
+        dcn.eval()
         to_tensor = transforms.ToTensor()
 
         # compute the per-channel mean

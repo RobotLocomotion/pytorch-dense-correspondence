@@ -106,7 +106,8 @@ class DenseCorrespondenceDataset(data.Dataset):
         if image_b_idx is None:
             logging.info("no frame with sufficiently different pose found, returning")
             # TODO: return something cleaner than no-data
-            return self.return_empty_data(image_a_rgb, image_a_rgb)
+            image_a_rgb_tensor = self.rgb_image_to_tensor(image_a_rgb)
+            return self.return_empty_data(image_a_rgb_tensor, image_a_rgb_tensor)
 
         image_b_rgb, image_b_depth, image_b_mask, image_b_pose = self.get_rgbd_mask_pose(scene_name, image_b_idx)
 
@@ -120,7 +121,8 @@ class DenseCorrespondenceDataset(data.Dataset):
 
         if uv_a is None:
             logging.info("no matches found, returning")
-            return self.return_empty_data(image_a_rgb, image_b_rgb)
+            image_a_rgb_tensor = self.rgb_image_to_tensor(image_a_rgb)
+            return self.return_empty_data(image_a_rgb_tensor, image_a_rgb_tensor)
 
         if self.debug:
             # downsample so can plot
@@ -202,7 +204,7 @@ class DenseCorrespondenceDataset(data.Dataset):
         if metadata is None:
             metadata = dict()
 
-        return None, image_a_rgb, image_b_rgb, torch.zeros(1).long(), torch.zeros(1).long(), torch.zeros(1).long(), torch.zeros(1).long(), metadata
+        return "None", image_a_rgb, image_b_rgb, torch.LongTensor([0]), torch.LongTensor([0]), torch.LongTensor([0]), torch.LongTensor([0]), metadata
 
     def get_rgbd_mask_pose(self, scene_name, img_idx):
         """

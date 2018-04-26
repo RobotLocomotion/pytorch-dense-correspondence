@@ -10,6 +10,7 @@ import random
 import dense_correspondence_manipulation.utils.utils as utils
 from dense_correspondence_manipulation.utils.utils import CameraIntrinsics
 from torchvision import transforms
+import dense_correspondence_manipulation.utils.constants as constants
 
 class SpartanDataset(DenseCorrespondenceDataset):
 
@@ -197,6 +198,9 @@ class SpartanDataset(DenseCorrespondenceDataset):
         :return: list
         :rtype:
         """
+        if "image_normalization" not in self.config:
+            return constants.IMAGE_NET_MEAN
+
         return self.config["image_normalization"]["mean"]
 
     def get_image_std_dev(self):
@@ -205,7 +209,10 @@ class SpartanDataset(DenseCorrespondenceDataset):
         :return: list
         :rtype:
         """
-        
+
+        if "image_normalization" not in self.config:
+            return constants.IMAGE_NET_STD_DEV
+
         return self.config["image_normalization"]["std_dev"]
 
     def rgb_image_to_tensor(self, img):

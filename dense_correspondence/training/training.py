@@ -7,6 +7,7 @@ import logging
 import time
 import shutil
 import subprocess
+import copy
 
 # torch
 import torch
@@ -97,15 +98,16 @@ class DenseCorrespondenceTraining(object):
                                           shuffle=True, num_workers=num_workers, drop_last=True)
 
         # create a test dataset
-        if self._dataset_test is None:
-            self._dataset_test = SpartanDataset(mode="test", config=self._dataset.config)
+        if self._config["training"]["compute_test_loss"]:
+            if self._dataset_test is None:
+                self._dataset_test = SpartanDataset(mode="test", config=self._dataset.config)
 
-        
-        self._dataset_test.load_all_pose_data()
-        self._dataset_test.set_parameters_from_training_config(self._config)
+            
+            self._dataset_test.load_all_pose_data()
+            self._dataset_test.set_parameters_from_training_config(self._config)
 
-        self._data_loader_test = torch.utils.data.DataLoader(self._dataset_test, batch_size=batch_size,
-                                          shuffle=True, num_workers=num_workers, drop_last=True)
+            self._data_loader_test = torch.utils.data.DataLoader(self._dataset_test, batch_size=batch_size,
+                                          shuffle=True, num_workers=2, drop_last=True)
 
     def load_dataset_from_config(self, config):
         """
@@ -172,21 +174,23 @@ class DenseCorrespondenceTraining(object):
         Note: It is up to the user to ensure that the model parameters match.
         e.g. width, height, descriptor dimension etc.
 
-        :param model_folder: location, relative to pdc/trained_models/, of the folder containing the param files 001000.pth
+        :param model_folder: location of the folder containing the param files 001000.pth. Can be absolute or relative path. If relative then it is relative to pdc/trained_models/
         :type model_folder:
         :param iteration: which index to use, e.g. 3500, if None it loads the latest one
         :type iteration:
-        :return:
+        :return: iteration
         :rtype:
         """
 
-        pdc_path = utils.getPdcPath()
-        model_folder = os.path.join(pdc_path, "trained_models", model_folder)
+        if not os.path.isdir(model_folder):
+            pdc_path = utils.getPdcPath()
+            model_folder = os.path.join(pdc_path, "trained_models", model_folder)
 
         # find idx.pth and idx.pth.opt files
         if iteration is None:
             files = os.listdir(model_folder)
             model_param_file = sorted(fnmatch.filter(files, '*.pth'))[-1]
+            iteration = int(model_param_file.split(".")[0])
             optim_param_file = sorted(fnmatch.filter(files, '*.pth.opt'))[-1]
         else:
             prefix = utils.getPaddedString(iteration, width=6)
@@ -206,13 +210,20 @@ class DenseCorrespondenceTraining(object):
         self._optimizer = self._construct_optimizer(self._dcn.parameters())
         self._optimizer.load_state_dict(torch.load(optim_param_file))
 
-    def run_from_pretrained(self, model_folder, iteration=None):
+        return iteration
+
+    def run_from_pretrained(self, model_folder, iteration=None, learning_rate=None):
         """
         Wrapper for load_pretrained(), then run()
         """
-        self.load_pretrained(model_folder, iteration)
+        iteration = self.load_pretrained(model_folder, iteration)
         if iteration is None:
             iteration = 0
+
+        if learning_rate is not None:
+            self._config["training"]["learning_rate_starting_from_pretrained"] = learning_rate
+            self.set_learning_rate(self._optimizer, learning_rate)
+
         self.run(loss_current_iteration=iteration, use_pretrained=True)
 
     def run(self, loss_current_iteration=0, use_pretrained=False):
@@ -221,6 +232,8 @@ class DenseCorrespondenceTraining(object):
         :return:
         :rtype:
         """
+
+        start_iteration = copy.copy(loss_current_iteration)
 
         DCE = DenseCorrespondenceEvaluation
 
@@ -238,16 +251,20 @@ class DenseCorrespondenceTraining(object):
             if (self._optimizer is None):
                 raise ValueError("you must set self._optimizer if use_pretrained=True")
 
+        # make sure network is using cuda and is in train mode
         dcn = self._dcn
+        dcn.cuda()
+        dcn.train()
+
         optimizer = self._optimizer
         batch_size = self._data_loader.batch_size
 
-        pixelwise_contrastive_loss = PixelwiseContrastiveLoss(config=self._config['loss_function'], image_shape=dcn.image_shape)
+        pixelwise_contrastive_loss = PixelwiseContrastiveLoss(image_shape=dcn.image_shape, config=self._config['loss_function'])
         pixelwise_contrastive_loss.debug = True
 
         loss = match_loss = non_match_loss = 0
 
-        max_num_iterations = self._config['training']['num_iterations']
+        max_num_iterations = self._config['training']['num_iterations'] + start_iteration
         logging_rate = self._config['training']['logging_rate']
         save_rate = self._config['training']['save_rate']
         compute_test_loss_rate = self._config['training']['compute_test_loss_rate']
@@ -274,7 +291,7 @@ class DenseCorrespondenceTraining(object):
                 data_type, img_a, img_b, matches_a, matches_b, non_matches_a, non_matches_b, metadata = data
                 data_type = data_type[0]
 
-                if data_type == None:
+                if data_type == "None":
                     print "\n didn't have any matches, continuing \n"
                     continue
 
@@ -339,11 +356,10 @@ class DenseCorrespondenceTraining(object):
                     self._visdom_plots['learning_rate'].log(loss_current_iteration, learning_rate)
 
                     # tensorboard
-                    tensorboard_logger.log_value('train loss', loss.data[0], loss_current_iteration)
-                    tensorboard_logger.log_value("train match loss", match_loss.data[0], loss_current_iteration)
-                    tensorboard_logger.log_value("train non match loss", non_match_loss.data[0], loss_current_iteration)
-                    tensorboard_logger.log_value("learning rate", learning_rate, loss_current_iteration)
-                    tensorboard_logger.log_value("train_match_loss", match_loss.data[0], loss_current_iteration)
+                    self._tensorboard_logger.log_value('train loss', loss.data[0], loss_current_iteration)
+                    self._tensorboard_logger.log_value("train match loss", match_loss.data[0], loss_current_iteration)
+                    self._tensorboard_logger.log_value("train non match loss", non_match_loss.data[0], loss_current_iteration)
+                    self._tensorboard_logger.log_value("learning rate", learning_rate, loss_current_iteration)
 
 
                     non_match_type = metadata['non_match_type'][0]
@@ -352,12 +368,12 @@ class DenseCorrespondenceTraining(object):
                     if pixelwise_contrastive_loss.debug:
                         if non_match_type == "masked":
                             self._visdom_plots['masked_hard_negative_rate'].log(loss_current_iteration, fraction_hard_negatives)
-                            tensorboard_logger.log_value("masked hard negative rate", fraction_hard_negatives, loss_current_iteration)
+                            self._tensorboard_logger.log_value("masked hard negative rate", fraction_hard_negatives, loss_current_iteration)
                         elif non_match_type == "non_masked":
                             self._visdom_plots['non_masked_hard_negative_rate'].log(loss_current_iteration,
                                                                                 fraction_hard_negatives)
 
-                            tensorboard_logger.log_value("non-masked hard negative rate", fraction_hard_negatives,
+                            self._tensorboard_logger.log_value("non-masked hard negative rate", fraction_hard_negatives,
                                                          loss_current_iteration)
                         else:
                             raise ValueError("uknown non_match_type %s" %(non_match_type))
@@ -384,6 +400,10 @@ class DenseCorrespondenceTraining(object):
                     self._visdom_plots['test']['match_loss'].log(loss_current_iteration, test_match_loss)
                     self._visdom_plots['test']['non_match_loss'].log(loss_current_iteration, test_non_match_loss)
 
+                    self._tensorboard_logger.log_value('test loss', test_loss, loss_current_iteration)
+                    self._tensorboard_logger.log_value('test match loss', test_match_loss, loss_current_iteration)
+                    self._tensorboard_logger.log_value('test non-match loss', test_non_match_loss, loss_current_iteration)
+
 
 
                 update_visdom_plots()
@@ -396,16 +416,22 @@ class DenseCorrespondenceTraining(object):
 
                     logging.info("single iteration took %.3f seconds" %(elapsed))
 
-                    percent_complete = loss_current_iteration * 100.0/max_num_iterations
+                    percent_complete = loss_current_iteration * 100.0/(max_num_iterations - start_iteration)
                     logging.info("Training is %d percent complete\n" %(percent_complete))
 
 
-                if (loss_current_iteration % compute_test_loss_rate == 0):
+                # don't compute the test loss on the first few times through the loop
+                if self._config["training"]["compute_test_loss"] and (loss_current_iteration % compute_test_loss_rate == 0) and loss_current_iteration > 5:
                     logging.info("Computing test loss")
+
+                    dcn.eval()
                     test_loss, test_match_loss, test_non_match_loss = DCE.compute_loss_on_dataset(dcn,
-                                                                                                  self._data_loader_test, num_iterations=self._config['training']['test_loss_num_iterations'])
+                                                                                                  self._data_loader_test, self._config['loss_function'], num_iterations=self._config['training']['test_loss_num_iterations'])
 
                     update_visdom_test_loss_plots(test_loss, test_match_loss, test_non_match_loss)
+
+                    # make sure to set the network back to train mode
+                    dcn.train()
 
                 if loss_current_iteration % self._config['training']['garbage_collect_rate'] == 0:
                     logging.debug("running garbage collection")
@@ -416,6 +442,7 @@ class DenseCorrespondenceTraining(object):
 
                 if loss_current_iteration > max_num_iterations:
                     logging.info("Finished testing after %d iterations" % (max_num_iterations))
+                    self.save_network(dcn, optimizer, loss_current_iteration, logging_dict=self._logging_dict)
                     return
 
 
@@ -512,6 +539,11 @@ class DenseCorrespondenceTraining(object):
                 param_group['lr'] = param_group['lr'] * self._config["training"]["learning_rate_decay"]
 
     @staticmethod
+    def set_learning_rate(optimizer, learning_rate):
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = learning_rate
+
+    @staticmethod
     def get_learning_rate(optimizer):
         for param_group in optimizer.param_groups:
             lr = param_group['lr']
@@ -571,12 +603,10 @@ class DenseCorrespondenceTraining(object):
 
         # start tensorboard
         # cmd = "python -m tensorboard.main"
-        logging.info("starting tensorboard")
+        logging.info("setting up tensorboard_logger")
         cmd = "tensorboard --logdir=%s" %(self._tensorboard_log_dir)
-        subprocess.Popen(["tensorboard", "--logdir=" + self._tensorboard_log_dir])
-        os.system(cmd)
-        tensorboard_logger.configure(self._tensorboard_log_dir)
-        logging.info("tensorboard started")
+        self._tensorboard_logger = tensorboard_logger.Logger(self._tensorboard_log_dir)
+        logging.info("tensorboard logger started")
 
 
     @staticmethod
