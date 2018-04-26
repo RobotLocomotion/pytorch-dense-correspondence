@@ -290,7 +290,7 @@ class DenseCorrespondenceTraining(object):
                 data_type, img_a, img_b, matches_a, matches_b, non_matches_a, non_matches_b, metadata = data
                 data_type = data_type[0]
 
-                if data_type == None:
+                if data_type == "empty":
                     print "\n didn't have any matches, continuing \n"
                     continue
 
