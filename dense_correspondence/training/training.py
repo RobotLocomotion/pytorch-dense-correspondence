@@ -338,7 +338,7 @@ class DenseCorrespondenceTraining(object):
                 print "single iteration took %.3f seconds" %(elapsed)
 
 
-                def update_visdom_plots():
+                def update_visdom_plots(loss, match_loss, non_match_loss):
                     """
                     Updates the visdom plots with current loss function information
                     :return:
@@ -412,7 +412,7 @@ class DenseCorrespondenceTraining(object):
 
 
 
-                update_visdom_plots()
+                update_visdom_plots(loss, match_loss, non_match_loss)
 
                 if loss_current_iteration % save_rate == 0:
                     self.save_network(dcn, optimizer, loss_current_iteration, logging_dict=self._logging_dict)
@@ -430,11 +430,19 @@ class DenseCorrespondenceTraining(object):
                 if self._config["training"]["compute_test_loss"] and (loss_current_iteration % compute_test_loss_rate == 0) and loss_current_iteration > 5:
                     logging.info("Computing test loss")
 
+                    # delete the loss, match_loss, non_match_loss variables so that
+                    # pytorch can use that GPU memory
+                    del loss, match_loss, non_match_loss
+                    gc.collect()
+
                     dcn.eval()
                     test_loss, test_match_loss, test_non_match_loss = DCE.compute_loss_on_dataset(dcn,
                                                                                                   self._data_loader_test, self._config['loss_function'], num_iterations=self._config['training']['test_loss_num_iterations'])
 
                     update_visdom_test_loss_plots(test_loss, test_match_loss, test_non_match_loss)
+
+                    # delete these variables so we can free GPU memory
+                    del test_loss, test_match_loss, test_non_match_loss
 
                     # make sure to set the network back to train mode
                     dcn.train()
