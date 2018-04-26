@@ -198,7 +198,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         :return: list
         :rtype:
         """
-        if "image_normalization" not in self._config:
+        if "image_normalization" not in self.config:
             return constants.IMAGE_NET_MEAN
 
         return self.config["image_normalization"]["mean"]
@@ -209,8 +209,8 @@ class SpartanDataset(DenseCorrespondenceDataset):
         :return: list
         :rtype:
         """
-        if "image_normalization" not in self._config:
-            return constants.IMAGE_NET_STD_DEV, constants
+        if "image_normalization" not in self.config:
+            return constants.IMAGE_NET_STD_DEV
             
         return self.config["image_normalization"]["std_dev"]
 
