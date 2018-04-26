@@ -1343,6 +1343,34 @@ class DenseCorrespondenceEvaluation(object):
             img_pairs.append([img_a_idx, img_b_idx])
         return scene_name, img_pairs
 
+    @staticmethod
+    def get_random_scenes_and_image_pairs(dataset):
+        """
+        Given a dataset, chose a variety of random scenes and image pairs
+
+        :param dataset: dataset from which to draw a scene and image pairs
+        :type dataset: SpartanDataset
+
+        :return: scene_names, img_pairs
+        :rtype: list[str], list of lists, where each of the lists are [img_a_idx, img_b_idx], for example:
+            [[113,220],
+             [114,225]]
+        """
+
+        scene_names = []
+
+        img_pairs = []
+        for _ in range(5):
+            scene_name = dataset.get_random_scene_name()
+            img_a_idx = dataset.get_random_image_index(scene_name)
+            pose_a = dataset.get_pose_from_scene_name_and_idx(scene_name, img_a_idx)
+            img_b_idx = dataset.get_img_idx_with_different_pose(scene_name, pose_a, num_attempts=100)
+            if img_b_idx is None:
+                continue
+            img_pairs.append([img_a_idx, img_b_idx])
+            scene_names.append(scene_name)
+
+        return scene_names, img_pairs
 
     @staticmethod
     def evaluate_network_qualitative(dcn, dataset, num_image_pairs=5, randomize=False,
@@ -1352,7 +1380,7 @@ class DenseCorrespondenceEvaluation(object):
         # Train Data
         print "\n\n-----------Train Data Evaluation----------------"
         if randomize:
-            scene_name, img_pairs = DenseCorrespondenceEvaluation.get_random_image_pairs(dataset)
+            scene_names, img_pairs = DenseCorrespondenceEvaluation.get_random_scenes_and_image_pairs(dataset)
         else:
             if scene_type == "caterpillar":
                 scene_name = '2018-04-10-16-06-26'
@@ -1371,7 +1399,9 @@ class DenseCorrespondenceEvaluation(object):
             else:
                 raise ValueError("scene_type must be one of [drill, caterpillar], it was %s)" %(scene_type))
 
-        for img_pair in img_pairs:
+            scene_names = [scene_name]*len(img_pairs)
+
+        for scene_name, img_pair in zip(scene_names, img_pairs):
             print "Image pair (%d, %d)" %(img_pair[0], img_pair[1])
             DenseCorrespondenceEvaluation.single_same_scene_image_pair_qualitative_analysis(dcn,
                                                                                  dataset,
@@ -1383,7 +1413,7 @@ class DenseCorrespondenceEvaluation(object):
         print "\n\n-----------Test Data Evaluation----------------"
         dataset.set_test_mode()
         if randomize:
-            scene_name, img_pairs = DenseCorrespondenceEvaluation.get_random_image_pairs(dataset)
+            scene_names, img_pairs = DenseCorrespondenceEvaluation.get_random_scenes_and_image_pairs(dataset)
         else:
             if scene_type == "caterpillar":
                 scene_name = '2018-04-10-16-08-46'
@@ -1402,8 +1432,10 @@ class DenseCorrespondenceEvaluation(object):
             else:
                 raise ValueError("scene_type must be one of [drill, caterpillar], it was %s)" % (scene_type))
 
+            scene_names = [scene_name] * len(img_pairs)
 
-        for img_pair in img_pairs:
+
+        for scene_name, img_pair in zip(scene_names, img_pairs):
             print "Image pair (%d, %d)" %(img_pair[0], img_pair[1])
             DenseCorrespondenceEvaluation.single_same_scene_image_pair_qualitative_analysis(dcn,
                                                                                  dataset,
