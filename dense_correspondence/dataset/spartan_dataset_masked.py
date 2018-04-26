@@ -209,9 +209,10 @@ class SpartanDataset(DenseCorrespondenceDataset):
         :return: list
         :rtype:
         """
+
         if "image_normalization" not in self.config:
             return constants.IMAGE_NET_STD_DEV
-            
+
         return self.config["image_normalization"]["std_dev"]
 
     def rgb_image_to_tensor(self, img):
