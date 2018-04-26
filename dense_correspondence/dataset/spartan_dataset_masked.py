@@ -198,10 +198,17 @@ class SpartanDataset(DenseCorrespondenceDataset):
         :return: list
         :rtype:
         """
-        if "image_normalization" not in self.config:
-            return constants.IMAGE_NET_MEAN
 
-        return self.config["image_normalization"]["mean"]
+        # if "image_normalization" not in self.config:
+        #     return constants.DEFAULT_IMAGE_MEAN
+
+        # return self.config["image_normalization"]["mean"]
+
+        
+        return constants.DEFAULT_IMAGE_MEAN
+
+
+        
 
     def get_image_std_dev(self):
         """
@@ -210,10 +217,14 @@ class SpartanDataset(DenseCorrespondenceDataset):
         :rtype:
         """
 
-        if "image_normalization" not in self.config:
-            return constants.IMAGE_NET_STD_DEV
+        # if "image_normalization" not in self.config:
+        #     return constants.DEFAULT_IMAGE_STD_DEV
 
-        return self.config["image_normalization"]["std_dev"]
+        # return self.config["image_normalization"]["std_dev"]
+
+        return constants.DEFAULT_IMAGE_STD_DEV
+
+        
 
     def rgb_image_to_tensor(self, img):
         """

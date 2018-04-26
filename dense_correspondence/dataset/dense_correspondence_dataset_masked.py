@@ -46,6 +46,8 @@ class DenseCorrespondenceDataset(data.Dataset):
                 [transforms.ToTensor(), transforms.ToTensor()]
             ])
 
+        self._domain_randomize = False
+
         # Otherwise, all of these parameters should be set in
         # set_parameters_from_training_config()
         if self.debug:
@@ -132,8 +134,10 @@ class DenseCorrespondenceDataset(data.Dataset):
             uv_b = (torch.index_select(uv_b[0], 0, indexes_to_keep), torch.index_select(uv_b[1], 0, indexes_to_keep))
 
         # data augmentation
-        #image_a_rgb = correspondence_augmentation.random_domain_randomize_background(image_a_rgb, image_a_mask)
-        #image_b_rgb = correspondence_augmentation.random_domain_randomize_background(image_b_rgb, image_b_mask)
+        if self._domain_randomize:
+            image_a_rgb = correspondence_augmentation.random_domain_randomize_background(image_a_rgb, image_a_mask)
+            image_b_rgb = correspondence_augmentation.random_domain_randomize_background(image_b_rgb, image_b_mask)
+
 
         if not self.debug:
             [image_a_rgb], uv_a                 = correspondence_augmentation.random_image_and_indices_mutation([image_a_rgb], uv_a)
@@ -502,6 +506,22 @@ class DenseCorrespondenceDataset(data.Dataset):
     def set_test_mode(self):
         self.scenes = self.test
         self.mode = "test"
+
+    def enable_domain_randomization(self):
+        """
+        Turns on background domain randomization
+        :return:
+        :rtype:
+        """
+        self._domain_randomize = True
+
+    def disable_domain_randomization(self):
+        """
+        Turns off background domain randomization
+        :return:
+        :rtype:
+        """
+        self._domain_randomize = False
 
 
     def compute_image_mean_and_std_dev(self, num_image_samples=10):

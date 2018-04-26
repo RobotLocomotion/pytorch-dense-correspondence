@@ -14,7 +14,7 @@ from annotate_correspondences import label_colors, draw_reticle, pil_image_to_cv
 
 sd = SpartanDataset()
 
-annotated_data_yaml_filename = "/home/peteflo/code/modules/simple-pixel-correspondence-labeler/saved_annotated_data/complete_merged_data.yaml"
+annotated_data_yaml_filename = os.path.join(dc_source_dir, "modules/simple-pixel-correspondence-labeler/new_annotated_pairs.yaml")
 annotated_data = utils.getDictFromYamlFilename(annotated_data_yaml_filename)
 
 index_of_pair_to_display = 0

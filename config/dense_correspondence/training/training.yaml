@@ -14,6 +14,7 @@ training:
   garbage_collect_rate: 1
   save_rate: 500 # how often to save the network
   batch_size: 1
+  domain_randomize: False
   # Dataset sampling config
   num_matching_attempts: 50000 # note this is not currently used, since all masked pixels are used
   num_non_matches_per_match: 150
