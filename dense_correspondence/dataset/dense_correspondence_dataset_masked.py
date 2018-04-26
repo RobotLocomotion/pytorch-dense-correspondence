@@ -202,7 +202,7 @@ class DenseCorrespondenceDataset(data.Dataset):
         if metadata is None:
             metadata = dict()
 
-        return "empty", image_a_rgb, image_b_rgb, torch.LongTensor([]), torch.LongTensor([]), torch.LongTensor([]), torch.LongTensor([]), metadata
+        return "None", [], [], torch.LongTensor([]), torch.LongTensor([]), torch.LongTensor([]), torch.LongTensor([]), metadata
 
     def get_rgbd_mask_pose(self, scene_name, img_idx):
         """
