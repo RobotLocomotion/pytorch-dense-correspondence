@@ -1434,7 +1434,7 @@ class DenseCorrespondenceEvaluation(object):
                                                                                  img_pair[1])
 
     @staticmethod
-    def compute_loss_on_dataset(dcn, data_loader, num_iterations=500):
+    def compute_loss_on_dataset(dcn, data_loader, loss_config, num_iterations=500,):
         """
 
         Computes the loss for the given number of iterations
@@ -1455,7 +1455,7 @@ class DenseCorrespondenceEvaluation(object):
         match_loss_vec = []
         non_match_loss_vec = []
         counter = 0
-        pixelwise_contrastive_loss = PixelwiseContrastiveLoss()
+        pixelwise_contrastive_loss = PixelwiseContrastiveLoss(dcn.image_shape, config=loss_config)
 
         batch_size = 1
 

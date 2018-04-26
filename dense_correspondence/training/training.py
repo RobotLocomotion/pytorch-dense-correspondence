@@ -258,7 +258,7 @@ class DenseCorrespondenceTraining(object):
         optimizer = self._optimizer
         batch_size = self._data_loader.batch_size
 
-        pixelwise_contrastive_loss = PixelwiseContrastiveLoss(config=self._config['loss_function'], image_shape=dcn.image_shape)
+        pixelwise_contrastive_loss = PixelwiseContrastiveLoss(image_shape=dcn.image_shape, config=self._config['loss_function'])
         pixelwise_contrastive_loss.debug = True
 
         loss = match_loss = non_match_loss = 0
@@ -422,7 +422,7 @@ class DenseCorrespondenceTraining(object):
                 if (loss_current_iteration % compute_test_loss_rate == 0):
                     logging.info("Computing test loss")
                     test_loss, test_match_loss, test_non_match_loss = DCE.compute_loss_on_dataset(dcn,
-                                                                                                  self._data_loader_test, num_iterations=self._config['training']['test_loss_num_iterations'])
+                                                                                                  self._data_loader_test, self._config['loss_function'], num_iterations=self._config['training']['test_loss_num_iterations'])
 
                     update_visdom_test_loss_plots(test_loss, test_match_loss, test_non_match_loss)
 
