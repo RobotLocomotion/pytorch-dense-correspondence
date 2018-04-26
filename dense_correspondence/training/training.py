@@ -399,6 +399,10 @@ class DenseCorrespondenceTraining(object):
                     self._visdom_plots['test']['match_loss'].log(loss_current_iteration, test_match_loss)
                     self._visdom_plots['test']['non_match_loss'].log(loss_current_iteration, test_non_match_loss)
 
+                    self._tensorboard_logger.log_value('test loss', test_loss, loss_current_iteration)
+                    self._tensorboard_logger.log_value('test match loss', test_match_loss, loss_current_iteration)
+                    self._tensorboard_logger.log_value('test non-match loss', test_non_match_loss, loss_current_iteration)
+
 
 
                 update_visdom_plots()
