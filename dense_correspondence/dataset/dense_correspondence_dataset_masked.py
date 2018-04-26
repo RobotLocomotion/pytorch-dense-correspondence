@@ -121,7 +121,8 @@ class DenseCorrespondenceDataset(data.Dataset):
 
         if uv_a is None:
             logging.info("no matches found, returning")
-            return self.return_empty_data(image_a_rgb, image_b_rgb)
+            image_a_rgb_tensor = self.rgb_image_to_tensor(image_a_rgb)
+            return self.return_empty_data(image_a_rgb_tensor, image_a_rgb_tensor)
 
         if self.debug:
             # downsample so can plot
