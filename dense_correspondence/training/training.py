@@ -233,6 +233,12 @@ class DenseCorrespondenceTraining(object):
         :rtype:
         """
 
+        if self._config["training"]["domain_randomize"]:
+            logging.info("enabling domain randomization")
+            self._dataset.enable_domain_randomization()
+        else:
+            self._dataset.disable_domain_randomization()
+
         start_iteration = copy.copy(loss_current_iteration)
 
         DCE = DenseCorrespondenceEvaluation
