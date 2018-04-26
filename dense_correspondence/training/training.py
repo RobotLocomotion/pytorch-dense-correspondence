@@ -98,15 +98,16 @@ class DenseCorrespondenceTraining(object):
                                           shuffle=True, num_workers=num_workers, drop_last=True)
 
         # create a test dataset
-        if self._dataset_test is None:
-            self._dataset_test = SpartanDataset(mode="test", config=self._dataset.config)
+        if self._config["training"]["compute_test_loss"]:
+            if self._dataset_test is None:
+                self._dataset_test = SpartanDataset(mode="test", config=self._dataset.config)
 
-        
-        self._dataset_test.load_all_pose_data()
-        self._dataset_test.set_parameters_from_training_config(self._config)
+            
+            self._dataset_test.load_all_pose_data()
+            self._dataset_test.set_parameters_from_training_config(self._config)
 
-        self._data_loader_test = torch.utils.data.DataLoader(self._dataset_test, batch_size=batch_size,
-                                          shuffle=True, num_workers=num_workers, drop_last=True)
+            self._data_loader_test = torch.utils.data.DataLoader(self._dataset_test, batch_size=batch_size,
+                                          shuffle=True, num_workers=2, drop_last=True)
 
     def load_dataset_from_config(self, config):
         """
@@ -419,12 +420,18 @@ class DenseCorrespondenceTraining(object):
                     logging.info("Training is %d percent complete\n" %(percent_complete))
 
 
-                if (loss_current_iteration % compute_test_loss_rate == 0):
+                # don't compute the test loss on the first few times through the loop
+                if self._config["training"]["compute_test_loss"] and (loss_current_iteration % compute_test_loss_rate == 0) and loss_current_iteration > 5:
                     logging.info("Computing test loss")
+
+                    dcn.eval()
                     test_loss, test_match_loss, test_non_match_loss = DCE.compute_loss_on_dataset(dcn,
                                                                                                   self._data_loader_test, self._config['loss_function'], num_iterations=self._config['training']['test_loss_num_iterations'])
 
                     update_visdom_test_loss_plots(test_loss, test_match_loss, test_non_match_loss)
+
+                    # make sure to set the network back to train mode
+                    dcn.train()
 
                 if loss_current_iteration % self._config['training']['garbage_collect_rate'] == 0:
                     logging.debug("running garbage collection")
