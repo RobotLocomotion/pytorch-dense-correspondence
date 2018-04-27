@@ -6,6 +6,7 @@ import sys
 import time
 import socket
 import getpass
+import fnmatch
 
 import dense_correspondence_manipulation.utils.transformations as transformations
 
@@ -210,6 +211,39 @@ def compute_angle_between_poses(pose_a, pose_b):
     return compute_angle_between_quaternions(quat_a, quat_b)
 
 
+
+def get_model_param_file_from_directory(model_folder, iteration=None):
+    """
+    Gets the 003500.pth and 003500.pth.opt files from the specified folder
+
+    :param model_folder: location of the folder containing the param files 001000.pth. Can be absolute or relative path. If relative then it is relative to pdc/trained_models/
+    :type model_folder:
+    :param iteration: which index to use, e.g. 3500, if None it loads the latest one
+    :type iteration:
+    :return: model_param_file, optim_param_file, iteration
+    :rtype: str, str, int
+    """
+
+    if not os.path.isdir(model_folder):
+        pdc_path = getPdcPath()
+        model_folder = os.path.join(pdc_path, "trained_models", model_folder)
+
+    # find idx.pth and idx.pth.opt files
+    if iteration is None:
+        files = os.listdir(model_folder)
+        model_param_file = sorted(fnmatch.filter(files, '*.pth'))[-1]
+        iteration = int(model_param_file.split(".")[0])
+        optim_param_file = sorted(fnmatch.filter(files, '*.pth.opt'))[-1]
+    else:
+        prefix = getPaddedString(iteration, width=6)
+        model_param_file = prefix + ".pth"
+        optim_param_file = prefix + ".pth.opt"
+
+    print "model_param_file", model_param_file
+    model_param_file = os.path.join(model_folder, model_param_file)
+    optim_param_file = os.path.join(model_folder, optim_param_file)
+
+    return model_param_file, optim_param_file, iteration
 
 class CameraIntrinsics(object):
     """
