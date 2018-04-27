@@ -266,7 +266,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         """
         config_file = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence',
                                    'dataset',
-                                   '10_caterpillar_scenes.yaml')
+                                   'caterpillar_17_scenes.yaml')
 
         config = utils.getDictFromYamlFilename(config_file)
         dataset = SpartanDataset(mode="train", config=config)
