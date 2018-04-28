@@ -1735,7 +1735,8 @@ class DenseCorrespondenceEvaluation(object):
         pd_dataframe_list, df = DCE.evaluate_network(dcn, dataset, num_image_pairs=num_image_pairs,
                                                      num_matches_per_image_pair=num_matches_per_image_pair)
 
-        df.to_csv(os.path.join(train_output_dir, "data.csv"))
+        train_csv = os.path.join(train_output_dir, "data.csv")
+        df.to_csv(train_csv)
 
 
 
@@ -1744,8 +1745,19 @@ class DenseCorrespondenceEvaluation(object):
         pd_dataframe_list, df = DCE.evaluate_network(dcn, dataset, num_image_pairs=num_image_pairs,
                                                      num_matches_per_image_pair=num_matches_per_image_pair)
 
-        df.to_csv(os.path.join(test_output_dir, "data.csv"))
+        test_csv = os.path.join(test_output_dir, "data.csv")
+        df.to_csv(test_csv)
 
+
+        logging.info("Making plots")
+        DCEP = DenseCorrespondenceEvaluationPlotter
+        fig_axes = DCEP.run_on_single_dataframe(train_csv, label="train", save=False)
+
+        fig_axes = DCEP.run_on_single_dataframe(test_csv, label="test", save=False, previous_fig_axes=fig_axes)
+
+        fig, _ = fig_axes        
+        save_fig_file = os.path.join(output_dir, "quant_plots.png")
+        fig.savefig(save_fig_file)
 
 
         logging.info("Finished running evaluation on network")
