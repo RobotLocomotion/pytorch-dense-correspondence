@@ -1686,7 +1686,7 @@ class DenseCorrespondenceEvaluation(object):
 
 
     @staticmethod
-    def run_evaluation_on_network(model_folder, num_image_pairs=25,
+    def run_evaluation_on_network(model_folder, num_image_pairs=100,
                                   num_matches_per_image_pair=100):
         """
         Runs all the quantitative evaluations on the model folder
