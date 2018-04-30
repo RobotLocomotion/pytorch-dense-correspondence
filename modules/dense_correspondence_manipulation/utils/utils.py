@@ -245,6 +245,27 @@ def get_model_param_file_from_directory(model_folder, iteration=None):
 
     return model_param_file, optim_param_file, iteration
 
+
+def flattened_pixel_locations_to_u_v(flat_pixel_locations, image_width):
+    """
+    :param flat_pixel_locations: A torch.LongTensor of shape torch.Shape([n,1]) where each element
+     is a flattened pixel index, i.e. some integer between 0 and 307,200 for a 640x480 image
+
+    :type flat_pixel_locations: torch.LongTensor
+
+    :return A tuple torch.LongTensor in (u,v) format
+    the pixel and the second column is the v coordinate
+
+    """
+    return (flat_pixel_locations%image_width, flat_pixel_locations/image_width)
+
+def uv_to_flattened_pixel_locations(uv_tuple, image_width):
+    """
+    Converts to a flat tensor
+    """
+    flat_pixel_locations = uv_tuple[1]*image_width + uv_tuple[0]
+    return flat_pixel_locations
+
 class CameraIntrinsics(object):
     """
     Useful class for wrapping camera intrinsics and loading them from a

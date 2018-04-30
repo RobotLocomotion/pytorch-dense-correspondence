@@ -86,6 +86,36 @@ def random_sample_from_masked_image(img_mask, num_samples):
 
     return sampled_idx_list
 
+def random_sample_from_masked_image_torch(img_mask, num_samples):
+    """
+
+    :param img_mask: Numpy array [H,W]
+    :type img_mask:
+    :param num_samples: an integer
+    :type num_samples:
+    :return: tuple of torch.LongTensor in (u,v) format
+    :rtype:
+    """
+
+    image_height, image_width = img_mask.shape
+
+    if isinstance(img_mask, np.ndarray):
+        img_mask_torch = torch.from_numpy(img_mask).float()
+    else:
+        img_mask_torch = img_mask
+
+    # This code would randomly subsample from the mask
+    mask = img_mask_torch.view(image_width*image_height,1).squeeze(1)
+    mask_indices_flat = torch.nonzero(mask)
+    if len(mask_indices_flat) == 0:
+        return (None, None)
+
+    rand_numbers = torch.rand(num_samples)*len(mask_indices_flat)
+    rand_indices = torch.floor(rand_numbers).long()
+    uv_vec_flattened = torch.index_select(mask_indices_flat, 0, rand_indices).squeeze(1)
+    uv_vec = utils.flattened_pixel_locations_to_u_v(uv_vec_flattened, image_width)
+    return uv_vec
+
 def pinhole_projection_image_to_world(uv, z, K):
     """
     Takes a (u,v) pixel location to it's 3D location in camera frame.
