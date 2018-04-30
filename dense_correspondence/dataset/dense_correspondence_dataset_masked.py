@@ -439,9 +439,18 @@ class DenseCorrespondenceDataset(data.Dataset):
         scene_directory = self.get_full_path_for_scene(scene_name)
         return scene_directory
 
+    def scene_generator(self, mode=None):
+        """
+        Returns an generator that traverses all the scenes
+        :return:
+        :rtype:
+        """
+
+        NotImplementedError("subclass must implement this method")
+
     def init_length(self):
         self.num_images_total = 0
-        for scene_name in self.scenes:
+        for scene_name in self.scene_generator( ):
             scene_directory = self.get_full_path_for_scene(scene_name)
             rgb_images_regex = os.path.join(scene_directory, "images/*_rgb.png")
             all_rgb_images_in_scene = glob.glob(rgb_images_regex)
