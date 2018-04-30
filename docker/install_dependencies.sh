@@ -17,8 +17,8 @@ apt install --no-install-recommends \
   usbutils \
   dialog \
   python-pip \
-  python-dev 
-
+  python-dev \
+  ffmpeg
 
 pip install --upgrade pip==9.0.3
 pip install -U setuptools
