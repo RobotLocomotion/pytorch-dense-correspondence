@@ -1592,9 +1592,16 @@ class DenseCorrespondenceEvaluation(object):
             channel_max, _ = res_reshape.max(0) # shape [D]
 
             # now do the same for the masked image
+            # TODO: @manuelli handle the case where the mask is empty
+            # print "mask_tensor.shape", mask_tensor.shape
             mask_flat = mask_tensor.view(-1,1).squeeze(1)
+            # print "mask_flat.shape", mask_flat.shape
 
+            
             mask_indices_flat = torch.nonzero(mask_flat).squeeze(1)
+            if mask_indices_flat.size() == 0:
+                return None, None
+            # print "mask_flat.shape", mask_flat.shape
 
             res_masked_flat = res_reshape.index_select(0, mask_indices_flat) # shape [mask_size, D]
             mask_channel_mean = res_masked_flat.mean(0)
@@ -1662,6 +1669,13 @@ class DenseCorrespondenceEvaluation(object):
 
             mask_tensor = to_tensor(mask).cuda()
             entire_image_stats, mask_image_stats = compute_descriptor_statistics(res, mask_tensor)
+
+
+            # handles the case of an empty mask
+            if mask_image_stats is None:
+                logging.info("Mask was empty, skipping")
+                continue
+
 
             update_stats(stats['entire_image'], entire_image_stats)
             update_stats(stats['mask_image'], mask_image_stats)
