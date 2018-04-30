@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
 import sys, os
+import numpy as np
+import logging
 import dense_correspondence_manipulation.utils.utils as utils
 utils.add_dense_correspondence_to_python_path()
 
@@ -14,11 +16,7 @@ from torch.autograd import Variable
 import pytorch_segmentation_detection.models.resnet_dilated as resnet_dilated
 from dense_correspondence.dataset.spartan_dataset_masked import SpartanDataset
 
-import numpy as np
 
-class NetworkMode:
-    TRAIN = 0 # don't normalize images
-    TEST = 1 # normalize images
 
 class DenseCorrespondenceNetwork(nn.Module):
 
@@ -39,7 +37,7 @@ class DenseCorrespondenceNetwork(nn.Module):
         self._image_std_dev = np.ones(3)
 
         # defaults to no image normalization, assume it is done by dataset loader instead
-        self.mode = NetworkMode.TRAIN
+
         self.config = dict()
 
         self._descriptor_image_stats = None
@@ -113,16 +111,6 @@ class DenseCorrespondenceNetwork(nn.Module):
         return self._normalize_tensor_transform
 
     @property
-    def mode(self):
-        return self._mode
-
-    @mode.setter
-    def mode(self, value):
-        assert value in [NetworkMode.TRAIN, NetworkMode.TEST]
-        self._mode = value
-
-
-    @property
     def path_to_network_params_folder(self):
         if not 'path_to_network_params_folder' in self.config:
             raise ValueError("DenseCorrespondenceNetwork: Config doesn't have a `path_to_network_params_folder`"
@@ -158,20 +146,23 @@ class DenseCorrespondenceNetwork(nn.Module):
         """
         self._normalize_tensor_transform = transforms.Normalize(self.image_mean, self.image_std_dev)
 
-    def parameters(self):
-        """
-        :return: Parameters of the fcn to be adjusted during training
-        :rtype: ?
-        """
-        return self.fcn.parameters()
+    # DEPRECATED: Now that we subclass from nn.Module we shouldn't need this
+    # def parameters(self):
+    #     """
+    #     :return: Parameters of the fcn to be adjusted during training
+    #     :rtype: ?
+    #     """
+    #     return self.fcn.parameters()
 
-    def state_dict(self):
-        """
-        Gets the state_dict for the network
-        :return:
-        :rtype:
-        """
-        return self.fcn.state_dict()
+
+    # DEPRECATED: Now that we subclass from nn.Module we shouldn't need this
+    # def state_dict(self):
+    #     """
+    #     Gets the state_dict for the network
+    #     :return:
+    #     :rtype:
+    #     """
+    #     return self.fcn.state_dict()
 
     def forward_on_img(self, img, cuda=True):
         """
@@ -237,8 +228,6 @@ class DenseCorrespondenceNetwork(nn.Module):
 
         assert len(img_tensor.shape) == 3
 
-        if self.mode == NetworkMode.TEST:
-            img_tensor = self.normalize_tensor_transform(img_tensor)
 
         # transform to shape [1,3,H,W]
         img_tensor = img_tensor.unsqueeze(0)
@@ -334,13 +323,66 @@ class DenseCorrespondenceNetwork(nn.Module):
 
 
 
-        dcn =  DenseCorrespondenceNetwork(fcn, config['descriptor_dimension'],
+        dcn = DenseCorrespondenceNetwork(fcn, config['descriptor_dimension'],
                                           image_width=config['image_width'],
                                           image_height=config['image_height'])
 
         dcn.cuda()
         dcn.train()
         dcn.config = config
+        return dcn
+
+    @staticmethod
+    def from_model_folder(model_folder, load_stored_params=True, model_param_file=None):
+        """
+        Loads a DenseCorrespondenceNetwork from a model folder
+        :param model_folder: the path to the folder where the model is stored. This direction contains
+        files like
+
+            - 003500.pth
+            - training.yaml
+
+        :type model_folder:
+        :return: a DenseCorrespondenceNetwork objecc t
+        :rtype:
+        """
+
+        model_folder = utils.convert_to_absolute_path(model_folder)
+
+        if model_param_file is None:
+            model_param_file, _, _ = utils.get_model_param_file_from_directory(model_folder)
+
+        model_param_file = utils.convert_to_absolute_path(model_param_file)
+
+        training_config_filename = os.path.join(model_folder, "training.yaml")
+        training_config = utils.getDictFromYamlFilename(training_config_filename)
+        config = training_config["dense_correspondence_network"]
+        config["path_to_network_params_folder"] = model_folder
+
+
+        fcn = resnet_dilated.Resnet34_8s(num_classes=config['descriptor_dimension'])
+
+        dcn = DenseCorrespondenceNetwork(fcn, config['descriptor_dimension'],
+                                         image_width=config['image_width'],
+                                         image_height=config['image_height'])
+
+
+        # load the stored params
+        if load_stored_params:
+            # old syntax
+            try:
+                dcn.load_state_dict(torch.load(model_param_file))
+            except:
+                logging.info("loading params with the new style failed, falling back to dcn.fcn.load_state_dict")
+                dcn.fcn.load_state_dict(torch.load(model_param_file))
+
+            # this is the new format
+            #
+
+        dcn.cuda()
+        dcn.train()
+        dcn.config = config
+
         return dcn
 
     @staticmethod

@@ -22,7 +22,7 @@ from dense_correspondence_manipulation.utils.utils import CameraIntrinsics
 from dense_correspondence.dataset.spartan_dataset_masked import SpartanDataset
 import dense_correspondence.correspondence_tools.correspondence_plotter as correspondence_plotter
 import dense_correspondence.correspondence_tools.correspondence_finder as correspondence_finder
-from dense_correspondence.network.dense_correspondence_network import DenseCorrespondenceNetwork, NetworkMode
+from dense_correspondence.network.dense_correspondence_network import DenseCorrespondenceNetwork
 from dense_correspondence.loss_functions.pixelwise_contrastive_loss import PixelwiseContrastiveLoss
 
 import dense_correspondence.evaluation.plotting as dc_plotting
@@ -108,8 +108,11 @@ class DenseCorrespondenceEvaluation(object):
             raise ValueError("Network %s is not in config file" %(name))
 
 
-        network_config = self._config["networks"][name]
-        dcn = DenseCorrespondenceNetwork.from_config(network_config)
+        path_to_network_params = self._config["networks"][name]["path_to_network_params"]
+        path_to_network_params = utils.convert_to_absolute_path(path_to_network_params)
+        model_folder = os.path.dirname(path_to_network_params)
+
+        dcn = DenseCorrespondenceNetwork.from_model_folder(model_folder, model_param_file=path_to_network_params)
         dcn.eval()
         return dcn
 
@@ -1682,6 +1685,82 @@ class DenseCorrespondenceEvaluation(object):
         return stats
 
 
+    @staticmethod
+    def run_evaluation_on_network(model_folder, num_image_pairs=100,
+                                  num_matches_per_image_pair=100):
+        """
+        Runs all the quantitative evaluations on the model folder
+        Creates a folder model_folder/analysis that stores the information.
+
+        Performs several steps:
+
+        1. compute dataset descriptor stats
+        2. compute quantitative eval csv files
+        3. make quantitative plots, save as a png for easy viewing
+
+
+        :param model_folder:
+        :type model_folder:
+        :return:
+        :rtype:
+        """
+
+        DCE = DenseCorrespondenceEvaluation
+
+        model_folder = utils.convert_to_absolute_path(model_folder)
+
+        # save it to a csv file
+        output_dir = os.path.join(model_folder, 'analysis')
+        train_output_dir = os.path.join(output_dir, "train")
+        test_output_dir = os.path.join(output_dir, "test")
+
+        # create the necessary directories
+        for dir in [output_dir, train_output_dir, test_output_dir]:
+            if not os.path.isdir(dir):
+                os.makedirs(dir)
+
+
+        dcn = DenseCorrespondenceNetwork.from_model_folder(model_folder)
+        dcn.eval()
+        dataset = dcn.load_training_dataset()
+
+        # compute dataset statistics
+        logging.info("Computing descriptor statistics on dataset")
+        DCE.compute_descriptor_statistics_on_dataset(dcn, dataset, num_images=100, save_to_file=True)
+
+
+        # evaluate on training data and on test data
+        logging.info("Evaluating network on train data")
+        dataset.set_train_mode()
+        pd_dataframe_list, df = DCE.evaluate_network(dcn, dataset, num_image_pairs=num_image_pairs,
+                                                     num_matches_per_image_pair=num_matches_per_image_pair)
+
+        train_csv = os.path.join(train_output_dir, "data.csv")
+        df.to_csv(train_csv)
+
+
+
+        logging.info("Evaluating network on test data")
+        dataset.set_test_mode()
+        pd_dataframe_list, df = DCE.evaluate_network(dcn, dataset, num_image_pairs=num_image_pairs,
+                                                     num_matches_per_image_pair=num_matches_per_image_pair)
+
+        test_csv = os.path.join(test_output_dir, "data.csv")
+        df.to_csv(test_csv)
+
+
+        logging.info("Making plots")
+        DCEP = DenseCorrespondenceEvaluationPlotter
+        fig_axes = DCEP.run_on_single_dataframe(train_csv, label="train", save=False)
+
+        fig_axes = DCEP.run_on_single_dataframe(test_csv, label="test", save=False, previous_fig_axes=fig_axes)
+
+        fig, _ = fig_axes        
+        save_fig_file = os.path.join(output_dir, "quant_plots.png")
+        fig.savefig(save_fig_file)
+
+
+        logging.info("Finished running evaluation on network")
 
 
     @staticmethod

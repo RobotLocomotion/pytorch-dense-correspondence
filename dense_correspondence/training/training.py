@@ -203,9 +203,9 @@ class DenseCorrespondenceTraining(object):
 
 
         self._dcn = self.build_network()
-        self._dcn.fcn.load_state_dict(torch.load(model_param_file))
-        self._dcn.fcn.cuda()
-        self._dcn.fcn.train()
+        self._dcn.load_state_dict(torch.load(model_param_file))
+        self._dcn.cuda()
+        self._dcn.train()
 
         self._optimizer = self._construct_optimizer(self._dcn.parameters())
         self._optimizer.load_state_dict(torch.load(optim_param_file))
@@ -634,7 +634,8 @@ class DenseCorrespondenceTraining(object):
 
     @staticmethod
     def make_default():
-        return DenseCorrespondenceTraining()
+        dataset = SpartanDataset.make_default_caterpillar()
+        return DenseCorrespondenceTraining(dataset=dataset)
 
 
     @staticmethod
