@@ -75,6 +75,16 @@ class SpartanDataset(DenseCorrespondenceDataset):
         print "   - total images:    ", self.num_images_total
 
 
+    def __getitem__(self, index):
+
+        # Case 0: Same scene, same object
+        #print "Same scene, same object"
+        #return self.get_single_object_within_scene_data()
+
+        # Case 1: Same object, different scene
+        print "Same object, different scene"
+        return self.get_single_object_across_scene_data()
+
 
     def _setup_scene_data(self):
         """
@@ -629,7 +639,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         metadata = dict()
         object_id = self.get_random_object_id()
         scene_name_a = self.get_random_single_object_scene_name(object_id)
-        scene_name_b = self.get_different_scene_for_object(object_id)
+        scene_name_b = self.get_different_scene_for_object(object_id, scene_name_a)
         metadata["object_id"] = object_id
         metadata["scene_name_a"] = scene_name_a
         metadata["scene_name_b"] = scene_name_b
@@ -654,9 +664,9 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
         # sample random indices from mask in image a
         num_samples = self.single_object_cross_scene_num_samples
-        uv_a = correspondence_finder.random_sample_from_masked_image_torch(image_a_mask, num_samples)
+        uv_a = correspondence_finder.random_sample_from_masked_image_torch(np.asarray(image_a_mask), num_samples)
         # sample random indices from mask in image b
-        uv_b = correspondence_finder.random_sample_from_masked_image_torch(image_b_mask, num_samples)
+        uv_b = correspondence_finder.random_sample_from_masked_image_torch(np.asarray(image_b_mask), num_samples)
 
 
         if (uv_a[0] is None) or (uv_b[0] is None):
@@ -678,8 +688,6 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
         return data_type, image_a_rgb, image_b_rgb, empty_tensor, empty_tensor, empty_tensor, empty_tensor, empty_tensor, empty_tensor, uv_a_flat, uv_b_flat, metadata
 
-
-        pass
 
     def get_different_object_data(self):
         pass
