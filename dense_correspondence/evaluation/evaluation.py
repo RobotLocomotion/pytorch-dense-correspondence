@@ -638,6 +638,7 @@ class DenseCorrespondenceEvaluation(object):
         dataframe_list = []
 
         total_num_matches = len(uv_a_vec[0])
+        num_matches = min(num_matches, total_num_matches)
         match_list = random.sample(range(0, total_num_matches), num_matches)
 
         if debug:
@@ -1591,16 +1592,18 @@ class DenseCorrespondenceEvaluation(object):
             channel_min, _ = res_reshape.min(0) # shape [D]
             channel_max, _ = res_reshape.max(0) # shape [D]
 
-            # now do the same for the masked image
-            # TODO: @manuelli handle the case where the mask is empty
-            # print "mask_tensor.shape", mask_tensor.shape
-            mask_flat = mask_tensor.view(-1,1).squeeze(1)
-            # print "mask_flat.shape", mask_flat.shape
-
             
-            mask_indices_flat = torch.nonzero(mask_flat).squeeze(1)
-            if mask_indices_flat.size() == 0:
-                return None, None
+            mask_flat = mask_tensor.view(-1,1).squeeze(1)
+
+            # now do the same for the masked image
+            # gracefully handle the case where the mask is all zeros
+            mask_indices_flat = torch.nonzero(mask_flat)
+            if len(mask_indices_flat) == 0:
+                return None, None     
+
+            mask_indices_flat = mask_indices_flat.squeeze(1)
+            
+                
             # print "mask_flat.shape", mask_flat.shape
 
             res_masked_flat = res_reshape.index_select(0, mask_indices_flat) # shape [mask_size, D]
