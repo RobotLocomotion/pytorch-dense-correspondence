@@ -197,6 +197,13 @@ class SpartanDataset(DenseCorrespondenceDataset):
             self.get_pose_data(scene_name)
 
     def get_pose_data(self, scene_name):
+        """
+        Checks if have not already loaded the pose_data.yaml for this scene,
+        if haven't then loads it. Then returns the dict of the pose_data.yaml.
+        :type scene_name: str
+        :return: a dict() of the pose_data.yaml for the scene.
+        :rtype: dict()
+        """
         if scene_name not in self._pose_data:
             logging.info("Loading pose data for scene %s" %(scene_name) )
             pose_data_filename = os.path.join(self.get_full_path_for_scene(scene_name),
@@ -208,7 +215,6 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
     def get_pose_from_scene_name_and_idx(self, scene_name, idx):
         """
-
         :param scene_name: str
         :param img_idx: int
         :return: 4 x 4 numpy array
@@ -231,9 +237,6 @@ class SpartanDataset(DenseCorrespondenceDataset):
         # @todo(manuelli) check that scene_name actually exists
 
         scene_directory = self.get_full_path_for_scene(scene_name)
-
-
-
 
         if image_type == ImageType.RGB:
             images_dir = os.path.join(scene_directory, 'images')
@@ -304,7 +307,6 @@ class SpartanDataset(DenseCorrespondenceDataset):
         :return: str
         :rtype:
         """
-
         scene_list = self._single_object_scene_dict[object_id][self.mode]
         return random.choice(scene_list)
 
@@ -320,7 +322,6 @@ class SpartanDataset(DenseCorrespondenceDataset):
         scene_list = self._single_object_scene_dict[object_id][self.mode]
         if len(scene_list) == 1:
             raise ValueError("There is only one scene of this object, can't sample a different one")
-
 
         idx_array = np.arange(0, len(scene_list))
         rand_idxs = np.random.choice(idx_array, 2, replace=False)
@@ -346,8 +347,11 @@ class SpartanDataset(DenseCorrespondenceDataset):
         idx_array = np.arange(0, len(object_id_list))
         rand_idxs = np.random.choice(idx_array, 2, replace=False)
 
-        return object_id_list[rand_idxs[0]], object_id_list[rand_idxs[1]] 
+        object_1_id = object_id_list[rand_idxs[0]]
+        object_2_id = object_id_list[rand_idxs[1]]
 
+        assert object_1_id != object_2_id
+        return object_1_id, object_2_id
 
     def get_random_multi_object_scene_name(self):
         """
@@ -379,7 +383,6 @@ class SpartanDataset(DenseCorrespondenceDataset):
         """
         Simple wrapper around get_within_scene_data(), for the single object case
         """
-
         if self.get_number_of_unique_single_objects() == 0:
             raise ValueError("There are no single object scenes in this dataset")
 
@@ -466,7 +469,6 @@ class SpartanDataset(DenseCorrespondenceDataset):
         image_b_depth_numpy = np.asarray(image_b_depth)
 
         # find correspondences
-
         uv_a, uv_b = correspondence_finder.batch_find_pixel_correspondences(image_a_depth_numpy, image_a_pose,
                                                                             image_b_depth_numpy, image_b_pose,
                                                                             num_attempts=self.num_matching_attempts,
@@ -578,9 +580,8 @@ class SpartanDataset(DenseCorrespondenceDataset):
         mask_a_flat = image_a_mask_torch.view(-1,1).squeeze(1)
         blind_non_matches_a = (mask_a_flat - matches_a_mask).nonzero()
         num_samples = blind_non_matches_a.size()[0]
-
-            
-        # tuple of torch.LongTensor
+ 
+        # blind_uv_b is a tuple of torch.LongTensor
         blind_uv_b = correspondence_finder.random_sample_from_masked_image_torch(image_b_mask_torch, num_samples)
         blind_non_matches_b = utils.uv_to_flattened_pixel_locations(blind_uv_b, image_width)
 
@@ -657,7 +658,6 @@ class SpartanDataset(DenseCorrespondenceDataset):
         """
         Simple wrapper for get_across_scene_data(), for the single object case
         """
-
         metadata = dict()
         object_id = self.get_random_object_id()
         scene_name_a = self.get_random_single_object_scene_name(object_id)
@@ -672,15 +672,14 @@ class SpartanDataset(DenseCorrespondenceDataset):
         """
         Simple wrapper for get_across_scene_data(), for the different object case
         """
-
         metadata = dict()
         object_id_a, object_id_b = self.get_two_different_object_ids()
         scene_name_a = self.get_random_single_object_scene_name(object_id_a)
         scene_name_b = self.get_random_single_object_scene_name(object_id_b)
         
-        metadata["object_id_a"] = object_id_a
+        metadata["object_id_a"]  = object_id_a
         metadata["scene_name_a"] = scene_name_a
-        metadata["object_id_b"] = object_id_b
+        metadata["object_id_b"]  = object_id_b
         metadata["scene_name_b"] = scene_name_b
         metadata["type"] = SpartanDatasetDataType.DIFFERENT_OBJECT
         return self.get_across_scene_data(scene_name_a, scene_name_b, metadata)
@@ -905,9 +904,3 @@ class SpartanDataset(DenseCorrespondenceDataset):
         config = utils.getDictFromYamlFilename(config_file)
         dataset = SpartanDataset(mode="train", config=config)
         return dataset
-
-
-
-
-
-
