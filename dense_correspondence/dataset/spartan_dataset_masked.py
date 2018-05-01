@@ -552,18 +552,14 @@ class SpartanDataset(DenseCorrespondenceDataset):
         if self.debug:
             # downsample so can plot
             num_matches_to_plot = 10
-            plot_uv_a = SD.subsample_tuple(uv_a, num_samples=num_matches_to_plot)
-            plot_uv_b = SD.subsample_tuple(uv_b, num_samples=num_matches_to_plot)
+            plot_uv_a, plot_uv_b = SD.subsample_tuple_pair(uv_a, uv_b, num_samples=num_matches_to_plot)
+
+            plot_uv_a_masked_long, plot_uv_b_masked_non_matches_long = SD.subsample_tuple_pair(uv_a_masked_long, uv_b_masked_non_matches_long, num_samples=num_matches_to_plot*3)
             
-            plot_uv_a_masked_long             = SD.subsample_tuple(uv_a_masked_long, num_samples=num_matches_to_plot*3)
-            plot_uv_b_masked_non_matches_long = SD.subsample_tuple(uv_b_masked_non_matches_long, num_samples=num_matches_to_plot*3)
-            
-            plot_uv_a_background_long             = SD.subsample_tuple(uv_a_background_long, num_samples=num_matches_to_plot*3)
-            plot_uv_b_background_non_matches_long = SD.subsample_tuple(uv_b_background_non_matches_long, num_samples=num_matches_to_plot*3)
+            plot_uv_a_background_long, plot_uv_b_background_non_matches_long = SD.subsample_tuple_pair(uv_a_background_long, uv_b_background_non_matches_long, num_samples=num_matches_to_plot*3)
 
             blind_uv_a = utils.flattened_pixel_locations_to_u_v(blind_non_matches_a, image_width)
-            plot_blind_uv_a = SD.subsample_tuple(blind_uv_a, num_samples=num_matches_to_plot*10)
-            plot_blind_uv_b = SD.subsample_tuple(blind_uv_b, num_samples=num_matches_to_plot*10)
+            plot_blind_uv_a, plot_blind_uv_b = SD.subsample_tuple_pair(blind_uv_a, blind_uv_b, num_samples=num_matches_to_plot*10)
 
 
         if self.debug:
@@ -785,6 +781,17 @@ class SpartanDataset(DenseCorrespondenceDataset):
         """
         indexes_to_keep = (torch.rand(num_samples) * len(uv[0])).floor().type(torch.LongTensor)
         return (torch.index_select(uv[0], 0, indexes_to_keep), torch.index_select(uv[1], 0, indexes_to_keep))
+
+    @staticmethod
+    def subsample_tuple_pair(uv_a, uv_b, num_samples):
+        """
+        Subsamples a pair of tuples, i.e. (torch.Tensor, torch.Tensor), (torch.Tensor, torch.Tensor)
+        """
+        assert len(uv_a[0]) == len(uv_b[0])
+        indexes_to_keep = (torch.rand(num_samples) * len(uv_a[0])).floor().type(torch.LongTensor)
+        uv_a_downsampled = (torch.index_select(uv_a[0], 0, indexes_to_keep), torch.index_select(uv_a[1], 0, indexes_to_keep))
+        uv_b_downsampled = (torch.index_select(uv_b[0], 0, indexes_to_keep), torch.index_select(uv_b[1], 0, indexes_to_keep))
+        return uv_a_downsampled, uv_b_downsampled
 
 
     @staticmethod
