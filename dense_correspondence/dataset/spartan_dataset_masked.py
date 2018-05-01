@@ -664,17 +664,17 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
         # sample random indices from mask in image a
         num_samples = self.single_object_cross_scene_num_samples
-        uv_a = correspondence_finder.random_sample_from_masked_image_torch(np.asarray(image_a_mask), num_samples)
+        blind_uv_a = correspondence_finder.random_sample_from_masked_image_torch(np.asarray(image_a_mask), num_samples)
         # sample random indices from mask in image b
-        uv_b = correspondence_finder.random_sample_from_masked_image_torch(np.asarray(image_b_mask), num_samples)
+        blind_uv_b = correspondence_finder.random_sample_from_masked_image_torch(np.asarray(image_b_mask), num_samples)
 
 
-        if (uv_a[0] is None) or (uv_b[0] is None):
+        if (blind_uv_a[0] is None) or (blind_uv_b[0] is None):
             uv_a_flat = SD.empty_tensor()
             uv_b_flat = SD.empty_tensor()
         else:
-            uv_a_flat = SD.flatten_uv_tensor(uv_a, image_width)
-            uv_b_flat = SD.flatten_uv_tensor(uv_b, image_width)
+            blind_uv_a_flat = SD.flatten_uv_tensor(blind_uv_a, image_width)
+            blind_uv_b_flat = SD.flatten_uv_tensor(blind_uv_b, image_width)
 
         # convert PIL.Image to torch.FloatTensor
         image_a_rgb_PIL = image_a_rgb
@@ -686,7 +686,18 @@ class SpartanDataset(DenseCorrespondenceDataset):
         data_type = SpartanDatasetDataType.SINGLE_OBJECT_ACROSS_SCENE
         empty_tensor = SD.empty_tensor()
 
-        return data_type, image_a_rgb, image_b_rgb, empty_tensor, empty_tensor, empty_tensor, empty_tensor, empty_tensor, empty_tensor, uv_a_flat, uv_b_flat, metadata
+        if self.debug and ((blind_uv_a[0] is not None) and (blind_uv_b[0] is not None)):
+            import correspondence_plotter
+            num_matches_to_plot = 10
+
+            plot_blind_uv_a, plot_blind_uv_b = SD.subsample_tuple_pair(blind_uv_a, blind_uv_b, num_samples=num_matches_to_plot*10)
+
+            correspondence_plotter.plot_correspondences_direct(image_a_rgb_PIL, image_a_depth_numpy, 
+                                                                   image_b_rgb_PIL, image_b_depth_numpy,
+                                                                   plot_blind_uv_a, plot_blind_uv_b,
+                                                                   circ_color='k', show=True)
+
+        return data_type, image_a_rgb, image_b_rgb, empty_tensor, empty_tensor, empty_tensor, empty_tensor, empty_tensor, empty_tensor, blind_uv_a_flat, blind_uv_b_flat, metadata
 
 
     def get_different_object_data(self):
