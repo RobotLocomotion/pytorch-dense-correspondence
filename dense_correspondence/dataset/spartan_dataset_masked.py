@@ -468,9 +468,6 @@ class SpartanDataset(DenseCorrespondenceDataset):
                 [image_a_rgb, image_a_depth, image_a_mask], uv_a)
             [image_b_rgb, image_b_depth, image_b_mask], uv_b = correspondence_augmentation.random_image_and_indices_mutation(
                 [image_b_rgb, image_b_depth, image_b_mask], uv_b)
-            image_a_depth_numpy = np.asarray(image_a_depth)
-            image_b_depth_numpy = np.asarray(image_b_depth)
-
 
         image_a_depth_numpy = np.asarray(image_a_depth)
         image_b_depth_numpy = np.asarray(image_b_depth)
@@ -655,19 +652,33 @@ class SpartanDataset(DenseCorrespondenceDataset):
         image_b_rgb, image_b_depth, image_b_mask, image_b_pose = self.get_rgbd_mask_pose(scene_name_b, image_b_idx)
         metadata['image_b_idx'] = image_b_idx
 
-        image_a_depth_numpy = np.asarray(image_a_depth)
-        image_b_depth_numpy = np.asarray(image_b_depth)
-
-        image_b_shape = image_b_depth_numpy.shape
-        image_width = image_b_shape[1]
-        image_height = image_b_shape[0]
-
         # sample random indices from mask in image a
         num_samples = self.single_object_cross_scene_num_samples
         blind_uv_a = correspondence_finder.random_sample_from_masked_image_torch(np.asarray(image_a_mask), num_samples)
         # sample random indices from mask in image b
         blind_uv_b = correspondence_finder.random_sample_from_masked_image_torch(np.asarray(image_b_mask), num_samples)
 
+        # data augmentation
+        if self._domain_randomize:
+            image_a_rgb = correspondence_augmentation.random_domain_randomize_background(image_a_rgb, image_a_mask)
+            image_b_rgb = correspondence_augmentation.random_domain_randomize_background(image_b_rgb, image_b_mask)
+
+        if not self.debug:
+            [image_a_rgb, image_a_mask], blind_uv_a = correspondence_augmentation.random_image_and_indices_mutation([image_a_rgb, image_a_mask], blind_uv_a)
+            [image_b_rgb, image_b_mask], blind_uv_b = correspondence_augmentation.random_image_and_indices_mutation(
+                [image_b_rgb, image_b_mask], blind_uv_b)
+        else:  # also mutate depth just for plotting
+            [image_a_rgb, image_a_depth, image_a_mask], blind_uv_a = correspondence_augmentation.random_image_and_indices_mutation(
+                [image_a_rgb, image_a_depth, image_a_mask], blind_uv_a)
+            [image_b_rgb, image_b_depth, image_b_mask], blind_uv_b = correspondence_augmentation.random_image_and_indices_mutation(
+                [image_b_rgb, image_b_depth, image_b_mask], blind_uv_b)
+
+        image_a_depth_numpy = np.asarray(image_a_depth)
+        image_b_depth_numpy = np.asarray(image_b_depth)
+
+        image_b_shape = image_b_depth_numpy.shape
+        image_width = image_b_shape[1]
+        image_height = image_b_shape[0]
 
         if (blind_uv_a[0] is None) or (blind_uv_b[0] is None):
             uv_a_flat = SD.empty_tensor()
