@@ -675,16 +675,13 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
 
 
-        return "matches", image_a_rgb, image_b_rgb, matches_a, matches_b, masked_non_matches_a, masked_non_matches_b, background_non_matches_a, background_non_matches_b, blind_non_matches_a, blind_non_matches_b, metadata
+        return metadata["type"], image_a_rgb, image_b_rgb, matches_a, matches_b, masked_non_matches_a, masked_non_matches_b, background_non_matches_a, background_non_matches_b, blind_non_matches_a, blind_non_matches_b, metadata
 
     def get_single_object_across_scene_data(self):
+        """
+        Simple wrapper for get_across_scene_data(), for the single object case
+        """
 
-        SD = SpartanDataset
-
-        if self.get_number_of_unique_single_objects() == 0:
-            raise ValueError("There are no single object scenes in this dataset")
-
-        # stores metadata about this data
         metadata = dict()
         object_id = self.get_random_object_id()
         scene_name_a = self.get_random_single_object_scene_name(object_id)
@@ -693,84 +690,13 @@ class SpartanDataset(DenseCorrespondenceDataset):
         metadata["scene_name_a"] = scene_name_a
         metadata["scene_name_b"] = scene_name_b
         metadata["type"] = SpartanDatasetDataType.SINGLE_OBJECT_ACROSS_SCENE
-
-        image_a_idx = self.get_random_image_index(scene_name_a)
-        image_a_rgb, image_a_depth, image_a_mask, image_a_pose = self.get_rgbd_mask_pose(scene_name_a, image_a_idx)
-
-        metadata['image_a_idx'] = image_a_idx
-
-        # image b
-        image_b_idx = self.get_random_image_index(scene_name_b)
-        image_b_rgb, image_b_depth, image_b_mask, image_b_pose = self.get_rgbd_mask_pose(scene_name_b, image_b_idx)
-        metadata['image_b_idx'] = image_b_idx
-
-        # sample random indices from mask in image a
-        num_samples = self.single_object_cross_scene_num_samples
-        blind_uv_a = correspondence_finder.random_sample_from_masked_image_torch(np.asarray(image_a_mask), num_samples)
-        # sample random indices from mask in image b
-        blind_uv_b = correspondence_finder.random_sample_from_masked_image_torch(np.asarray(image_b_mask), num_samples)
-
-        # data augmentation
-        if self._domain_randomize:
-            image_a_rgb = correspondence_augmentation.random_domain_randomize_background(image_a_rgb, image_a_mask)
-            image_b_rgb = correspondence_augmentation.random_domain_randomize_background(image_b_rgb, image_b_mask)
-
-        if not self.debug:
-            [image_a_rgb, image_a_mask], blind_uv_a = correspondence_augmentation.random_image_and_indices_mutation([image_a_rgb, image_a_mask], blind_uv_a)
-            [image_b_rgb, image_b_mask], blind_uv_b = correspondence_augmentation.random_image_and_indices_mutation(
-                [image_b_rgb, image_b_mask], blind_uv_b)
-        else:  # also mutate depth just for plotting
-            [image_a_rgb, image_a_depth, image_a_mask], blind_uv_a = correspondence_augmentation.random_image_and_indices_mutation(
-                [image_a_rgb, image_a_depth, image_a_mask], blind_uv_a)
-            [image_b_rgb, image_b_depth, image_b_mask], blind_uv_b = correspondence_augmentation.random_image_and_indices_mutation(
-                [image_b_rgb, image_b_depth, image_b_mask], blind_uv_b)
-
-        image_a_depth_numpy = np.asarray(image_a_depth)
-        image_b_depth_numpy = np.asarray(image_b_depth)
-
-        image_b_shape = image_b_depth_numpy.shape
-        image_width = image_b_shape[1]
-        image_height = image_b_shape[0]
-
-        if (blind_uv_a[0] is None) or (blind_uv_b[0] is None):
-            uv_a_flat = SD.empty_tensor()
-            uv_b_flat = SD.empty_tensor()
-        else:
-            blind_uv_a_flat = SD.flatten_uv_tensor(blind_uv_a, image_width)
-            blind_uv_b_flat = SD.flatten_uv_tensor(blind_uv_b, image_width)
-
-        # convert PIL.Image to torch.FloatTensor
-        image_a_rgb_PIL = image_a_rgb
-        image_b_rgb_PIL = image_b_rgb
-        image_a_rgb = self.rgb_image_to_tensor(image_a_rgb)
-        image_b_rgb = self.rgb_image_to_tensor(image_b_rgb)
-
-
-        data_type = SpartanDatasetDataType.SINGLE_OBJECT_ACROSS_SCENE
-        empty_tensor = SD.empty_tensor()
-
-        if self.debug and ((blind_uv_a[0] is not None) and (blind_uv_b[0] is not None)):
-            import correspondence_plotter
-            num_matches_to_plot = 10
-
-            plot_blind_uv_a, plot_blind_uv_b = SD.subsample_tuple_pair(blind_uv_a, blind_uv_b, num_samples=num_matches_to_plot*10)
-
-            correspondence_plotter.plot_correspondences_direct(image_a_rgb_PIL, image_a_depth_numpy, 
-                                                                   image_b_rgb_PIL, image_b_depth_numpy,
-                                                                   plot_blind_uv_a, plot_blind_uv_b,
-                                                                   circ_color='k', show=True)
-
-        return data_type, image_a_rgb, image_b_rgb, empty_tensor, empty_tensor, empty_tensor, empty_tensor, empty_tensor, empty_tensor, blind_uv_a_flat, blind_uv_b_flat, metadata
-
+        return self.get_across_scene_data(scene_name_a, scene_name_b, metadata)
 
     def get_different_object_data(self):
+        """
+        Simple wrapper for get_across_scene_data(), for the different object case
+        """
 
-        SD = SpartanDataset
-
-        if self.get_number_of_unique_single_objects() == 0:
-            raise ValueError("There are no single object scenes in this dataset")
-
-        # stores metadata about this data
         metadata = dict()
         object_id_a, object_id_b = self.get_two_different_object_ids()
         scene_name_a = self.get_random_single_object_scene_name(object_id_a)
@@ -781,6 +707,26 @@ class SpartanDataset(DenseCorrespondenceDataset):
         metadata["object_id_b"] = object_id_b
         metadata["scene_name_b"] = scene_name_b
         metadata["type"] = SpartanDatasetDataType.DIFFERENT_OBJECT
+        return self.get_across_scene_data(scene_name_a, scene_name_b, metadata)
+
+    def get_across_scene_data(self, scene_name_a, scene_name_b, metadata):
+        """
+        Essentially just returns a bunch of samples off the masks from scene_name_a, and scene_name_b.
+
+        Since this data is across scene, we can't generate matches.
+
+        Return args are for returning directly from __getitem__
+
+        :param scene_name_a, scene_name_b: Names of scenes from which to each randomly sample an image
+        :type scene_name_a, scene_name_b: strings
+        :param metadata: a dict() holding metadata of the image pair, both for logging and for different downstream loss functions
+        :type metadata: dict()
+        """
+
+        SD = SpartanDataset
+
+        if self.get_number_of_unique_single_objects() == 0:
+            raise ValueError("There are no single object scenes in this dataset")
 
         image_a_idx = self.get_random_image_index(scene_name_a)
         image_a_rgb, image_a_depth, image_a_mask, image_a_pose = self.get_rgbd_mask_pose(scene_name_a, image_a_idx)
@@ -833,8 +779,6 @@ class SpartanDataset(DenseCorrespondenceDataset):
         image_a_rgb = self.rgb_image_to_tensor(image_a_rgb)
         image_b_rgb = self.rgb_image_to_tensor(image_b_rgb)
 
-
-        data_type = SpartanDatasetDataType.SINGLE_OBJECT_ACROSS_SCENE
         empty_tensor = SD.empty_tensor()
 
         if self.debug and ((blind_uv_a[0] is not None) and (blind_uv_b[0] is not None)):
@@ -848,8 +792,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
                                                                    plot_blind_uv_a, plot_blind_uv_b,
                                                                    circ_color='k', show=True)
 
-        return data_type, image_a_rgb, image_b_rgb, empty_tensor, empty_tensor, empty_tensor, empty_tensor, empty_tensor, empty_tensor, blind_uv_a_flat, blind_uv_b_flat, metadata
-
+        return metadata["type"], image_a_rgb, image_b_rgb, empty_tensor, empty_tensor, empty_tensor, empty_tensor, empty_tensor, empty_tensor, blind_uv_a_flat, blind_uv_b_flat, metadata
 
     def get_image_mean(self):
         """
