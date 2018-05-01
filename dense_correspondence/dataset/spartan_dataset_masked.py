@@ -46,7 +46,6 @@ class SpartanDataset(DenseCorrespondenceDataset):
             self._domain_randomize = False
             self.num_masked_non_matches_per_match = 5
             self.num_background_non_matches_per_match = 5
-            self.num_blind_non_matches = 1000
             self.cross_scene_num_samples = 1000
 
         self._config = config

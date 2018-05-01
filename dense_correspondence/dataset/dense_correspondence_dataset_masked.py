@@ -507,7 +507,6 @@ class DenseCorrespondenceDataset(data.Dataset):
 
         self.num_masked_non_matches_per_match     = training_config['training']["num_masked_non_matches_per_match"] 
         self.num_background_non_matches_per_match = training_config['training']["num_background_non_matches_per_match"] 
-        self.num_blind_non_matches                = training_config['training']["num_blind_non_matches"] 
         self.cross_scene_num_samples              = training_config['training']["cross_scene_num_samples"] 
 
     def set_train_mode(self):
