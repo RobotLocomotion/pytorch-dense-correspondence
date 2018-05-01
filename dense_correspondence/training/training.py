@@ -378,26 +378,21 @@ class DenseCorrespondenceTraining(object):
                     self._tensorboard_logger.log_value("train non match loss", non_match_loss.data[0], loss_current_iteration)
                     self._tensorboard_logger.log_value("learning rate", learning_rate, loss_current_iteration)
 
+                    # #non_match_type = metadata['non_match_type'][0]
+                    # fraction_hard_negatives = pixelwise_contrastive_loss.debug_data['fraction_hard_negatives']
 
-                    non_match_type = metadata['non_match_type'][0]
-                    fraction_hard_negatives = pixelwise_contrastive_loss.debug_data['fraction_hard_negatives']
+                    # if pixelwise_contrastive_loss.debug:
+                    #     if non_match_type == "masked":
+                    #         self._visdom_plots['masked_hard_negative_rate'].log(loss_current_iteration, fraction_hard_negatives)
+                    #         self._tensorboard_logger.log_value("masked hard negative rate", fraction_hard_negatives, loss_current_iteration)
+                    #     elif non_match_type == "non_masked":
+                    #         self._visdom_plots['non_masked_hard_negative_rate'].log(loss_current_iteration,
+                    #                                                             fraction_hard_negatives)
 
-                    if pixelwise_contrastive_loss.debug:
-                        if non_match_type == "masked":
-                            self._visdom_plots['masked_hard_negative_rate'].log(loss_current_iteration, fraction_hard_negatives)
-                            self._tensorboard_logger.log_value("masked hard negative rate", fraction_hard_negatives, loss_current_iteration)
-                        elif non_match_type == "non_masked":
-                            self._visdom_plots['non_masked_hard_negative_rate'].log(loss_current_iteration,
-                                                                                fraction_hard_negatives)
-
-                            self._tensorboard_logger.log_value("non-masked hard negative rate", fraction_hard_negatives,
-                                                         loss_current_iteration)
-                        else:
-                            raise ValueError("uknown non_match_type %s" %(non_match_type))
-
-
-
-
+                    #         self._tensorboard_logger.log_value("non-masked hard negative rate", fraction_hard_negatives,
+                    #                                      loss_current_iteration)
+                    #     else:
+                    #         raise ValueError("uknown non_match_type %s" %(non_match_type))
 
 
                 def update_visdom_test_loss_plots(test_loss, test_match_loss, test_non_match_loss):
@@ -667,4 +662,3 @@ class DenseCorrespondenceTraining(object):
         logging.info("Starting visdom")
         cmd = "python -m visdom.server"
         subprocess.Popen([cmd], shell=True)
-
