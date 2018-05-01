@@ -90,7 +90,6 @@ class DenseCorrespondenceTraining(object):
             self._dataset = SpartanDataset.make_default_10_scenes_drill()
 
         
-
         self._dataset.load_all_pose_data()
         self._dataset.set_parameters_from_training_config(self._config)
 
@@ -232,12 +231,6 @@ class DenseCorrespondenceTraining(object):
         :return:
         :rtype:
         """
-
-        if self._config["training"]["domain_randomize"]:
-            logging.info("enabling domain randomization")
-            self._dataset.enable_domain_randomization()
-        else:
-            self._dataset.disable_domain_randomization()
 
         start_iteration = copy.copy(loss_current_iteration)
 

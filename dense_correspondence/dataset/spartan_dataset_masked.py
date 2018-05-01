@@ -35,36 +35,25 @@ class SpartanDataset(DenseCorrespondenceDataset):
         assert config is not None
         DenseCorrespondenceDataset.__init__(self, debug=debug)
 
+        # Otherwise, all of these parameters should be set in
+        # set_parameters_from_training_config()
+        # which is called from training.py
+        # and parameters are populated in training.yaml
+        if self.debug:
+            # NOTE: these are not the same as the numbers 
+            # that get plotted in debug mode.
+            # This is just so the dataset will "run".
+            self._domain_randomize = False
+            self.num_masked_non_matches_per_match = 5
+            self.num_background_non_matches_per_match = 5
+            self.num_blind_non_matches = 1000
+            self.cross_scene_num_samples = 1000
+
         self._config = config
         self._setup_scene_data()
-
-
-        self.num_matching_attempts = 50
-        self.num_non_matches_per_match = 150
-        self.single_object_cross_scene_num_samples = 3000
-
-
-        # if config is None:
-        #     dataset_config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence',
-        #                                'dataset',
-        #                                'spartan_dataset_masked.yaml')
-        #
-        #     dataset_config = utils.getDictFromYamlFilename(dataset_config_filename)
-        #     self._config = dataset_config
-        #
-        #     self.set_train_test_split_from_yaml(self._config)
-        # else:
-        #     # assume config has already been parsed
-        #     self._config = config
-        #     self.logs_root_path = utils.convert_to_absolute_path(self._config['logs_root_path'])
-        #     self.set_train_test_split_from_yaml(self._config)
-
-
         self._pose_data = dict()
-
         self._initialize_rgb_image_to_tensor()
 
-        
         if mode == "test":
             self.set_test_mode()
 
@@ -458,7 +447,16 @@ class SpartanDataset(DenseCorrespondenceDataset):
         7th, 8th return args: non_masked_non_matches_a, non_masked_non_matches_b
         7th, 8th rtype: 1-dimensional torch.LongTensor of shape (num_non_matches)
 
-        Return values 3,4,5,6,7,8 are all in the "single index" format for pixels. That is
+        7th, 8th return args: non_masked_non_matches_a, non_masked_non_matches_b
+        7th, 8th rtype: 1-dimensional torch.LongTensor of shape (num_non_matches)
+
+        9th, 10th return args: blind_non_matches_a, blind_non_matches_b
+        9th, 10th rtype: 1-dimensional torch.LongTensor of shape (num_non_matches)
+
+        11th return arg: metadata useful for plotting, and-or other flags for loss functions
+        11th rtype: dict
+
+        Return values 3,4,5,6,7,8,9,10 are all in the "single index" format for pixels. That is
 
         (u,v) --> n = u + image_width * v
 
@@ -488,12 +486,11 @@ class SpartanDataset(DenseCorrespondenceDataset):
         # find correspondences
         uv_a, uv_b = correspondence_finder.batch_find_pixel_correspondences(image_a_depth_numpy, image_a_pose,
                                                                             image_b_depth_numpy, image_b_pose,
-                                                                            num_attempts=self.num_matching_attempts,
                                                                             img_a_mask=np.asarray(image_a_mask))
 
         # find non_correspondences
-        num_masked_non_matches_per_match = self.num_non_matches_per_match
-        num_background_non_matches_per_match = self.num_non_matches_per_match
+        num_masked_non_matches_per_match     = self.num_masked_non_matches_per_match
+        num_background_non_matches_per_match = self.num_background_non_matches_per_match
 
         if uv_a is None:
             logging.info("no matches found, returning")
@@ -576,8 +573,6 @@ class SpartanDataset(DenseCorrespondenceDataset):
         uv_a_masked_long, uv_b_masked_non_matches_long = create_non_matches(uv_a, uv_b_masked_non_matches, num_masked_non_matches_per_match)
 
         masked_non_matches_a = SD.flatten_uv_tensor(uv_a_masked_long, image_width).squeeze(1)
-
-
         masked_non_matches_b = SD.flatten_uv_tensor(uv_b_masked_non_matches_long, image_width).squeeze(1)
 
 
@@ -586,8 +581,6 @@ class SpartanDataset(DenseCorrespondenceDataset):
                                                                             num_background_non_matches_per_match)
 
         background_non_matches_a = SD.flatten_uv_tensor(uv_a_background_long, image_width).squeeze(1)
-
-
         background_non_matches_b = SD.flatten_uv_tensor(uv_b_background_non_matches_long, image_width).squeeze(1)
 
 
@@ -709,6 +702,8 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
         Return args are for returning directly from __getitem__
 
+        See get_within_scene_data() for documentation of return args.
+
         :param scene_name_a, scene_name_b: Names of scenes from which to each randomly sample an image
         :type scene_name_a, scene_name_b: strings
         :param metadata: a dict() holding metadata of the image pair, both for logging and for different downstream loss functions
@@ -731,7 +726,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         metadata['image_b_idx'] = image_b_idx
 
         # sample random indices from mask in image a
-        num_samples = self.single_object_cross_scene_num_samples
+        num_samples = self.cross_scene_num_samples
         blind_uv_a = correspondence_finder.random_sample_from_masked_image_torch(np.asarray(image_a_mask), num_samples)
         # sample random indices from mask in image b
         blind_uv_b = correspondence_finder.random_sample_from_masked_image_torch(np.asarray(image_b_mask), num_samples)

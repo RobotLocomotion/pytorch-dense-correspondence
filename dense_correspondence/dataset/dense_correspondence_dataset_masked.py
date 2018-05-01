@@ -46,13 +46,6 @@ class DenseCorrespondenceDataset(data.Dataset):
                 [transforms.ToTensor(), transforms.ToTensor()]
             ])
 
-        self._domain_randomize = False
-
-        # Otherwise, all of these parameters should be set in
-        # set_parameters_from_training_config()
-        if self.debug:
-            self.num_matching_attempts = 20
-            self.num_non_matches_per_match = 1
       
     def __len__(self):
         return self.num_images_total
@@ -505,8 +498,17 @@ class DenseCorrespondenceDataset(data.Dataset):
 
         :param training_config: a dict() holding params
         """
-        self.num_matching_attempts     = training_config['training']['num_matching_attempts']
-        self.num_non_matches_per_match = training_config['training']['num_non_matches_per_match']
+
+        if (self.mode == "train") and (training_config["training"]["domain_randomize"]):
+            logging.info("enabling domain randomization")
+            self.enable_domain_randomization()
+        else:
+            self.disable_domain_randomization()
+
+        self.num_masked_non_matches_per_match     = training_config['training']["num_masked_non_matches_per_match"] 
+        self.num_background_non_matches_per_match = training_config['training']["num_background_non_matches_per_match"] 
+        self.num_blind_non_matches                = training_config['training']["num_blind_non_matches"] 
+        self.cross_scene_num_samples              = training_config['training']["cross_scene_num_samples"] 
 
     def set_train_mode(self):
         self.scenes = self.train
