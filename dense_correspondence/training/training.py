@@ -294,21 +294,32 @@ class DenseCorrespondenceTraining(object):
                 start_iter = time.time()
 
                 # get the inputs
-                data_type, img_a, img_b, matches_a, matches_b, non_matches_a, non_matches_b, metadata = data
-                data_type = data_type[0]
+                # data_type, img_a, img_b, matches_a, matches_b, non_matches_a, non_matches_b, metadata = data
+                # data_type = data_type[0]
+                #
+                # if data_type == "None":
+                #     print "\n didn't have any matches, continuing \n"
+                #     continue
 
-                if data_type == "None":
-                    print "\n didn't have any matches, continuing \n"
-                    continue
+                match_type, \
+                img_a, img_b, \
+                matches_a, matches_b, \
+                masked_non_matches_a, masked_non_matches_b, \
+                non_masked_non_matches_a, non_masked_non_matches_b, \
+                blind_non_matches_a, blind_non_matches_b, \
+                metadata = data
+
+                # hack for now
+                non_matches_a = masked_non_matches_a
+                non_matches_b = masked_non_matches_b
 
                 img_a = Variable(img_a.cuda(), requires_grad=False)
                 img_b = Variable(img_b.cuda(), requires_grad=False)
 
-                if data_type == "matches":
-                    matches_a = Variable(matches_a.cuda().squeeze(0), requires_grad=False)
-                    matches_b = Variable(matches_b.cuda().squeeze(0), requires_grad=False)
-                    non_matches_a = Variable(non_matches_a.cuda().squeeze(0), requires_grad=False)
-                    non_matches_b = Variable(non_matches_b.cuda().squeeze(0), requires_grad=False)
+                matches_a = Variable(matches_a.cuda().squeeze(0), requires_grad=False)
+                matches_b = Variable(matches_b.cuda().squeeze(0), requires_grad=False)
+                non_matches_a = Variable(non_matches_a.cuda().squeeze(0), requires_grad=False)
+                non_matches_b = Variable(non_matches_b.cuda().squeeze(0), requires_grad=False)
 
                 optimizer.zero_grad()
                 self.adjust_learning_rate(optimizer, loss_current_iteration)
@@ -321,14 +332,14 @@ class DenseCorrespondenceTraining(object):
                 image_b_pred = dcn.process_network_output(image_b_pred, batch_size)
 
                 # get loss
-                if data_type == "matches":
-                    loss, match_loss, non_match_loss =\
-                        pixelwise_contrastive_loss.get_loss(image_a_pred,
-                                                            image_b_pred,
-                                                            matches_a,
-                                                            matches_b,
-                                                            non_matches_a,
-                                                            non_matches_b)
+
+                loss, match_loss, non_match_loss =\
+                    pixelwise_contrastive_loss.get_loss(image_a_pred,
+                                                        image_b_pred,
+                                                        matches_a,
+                                                        matches_b,
+                                                        non_matches_a,
+                                                        non_matches_b)
 
                 loss.backward()
                 optimizer.step()

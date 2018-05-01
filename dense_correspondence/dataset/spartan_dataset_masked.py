@@ -38,6 +38,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         self._config = config
         self._setup_scene_data()
 
+
         self.num_matching_attempts = 50
         self.num_non_matches_per_match = 150
         self.single_object_cross_scene_num_samples = 3000
@@ -82,25 +83,26 @@ class SpartanDataset(DenseCorrespondenceDataset):
         img pair types, then returns that type of data.
         """
 
-        dice = random.choice([0, 1, 2, 3])
+
+        data_load_type = self._get_data_load_type()
 
         # Case 0: Same scene, same object
-        if dice == 0:
+        if data_load_type == SpartanDatasetDataType.SINGLE_OBJECT_WITHIN_SCENE:
             print "Same scene, same object"
             return self.get_single_object_within_scene_data()
 
         # Case 1: Same object, different scene
-        if dice == 1:
+        if data_load_type == SpartanDatasetDataType.SINGLE_OBJECT_ACROSS_SCENE:
             print "Same object, different scene"
             return self.get_single_object_across_scene_data()
 
         # Case 2: Different object
-        if dice == 2:
+        if data_load_type == SpartanDatasetDataType.DIFFERENT_OBJECT:
             print "Different object"
             return self.get_different_object_data()
 
         # Case 3: Multi object
-        if dice == 3:
+        if data_load_type == SpartanDatasetDataType.MULTI_OBJECT:
             print "Multi object"
             return self.get_multi_object_within_scene_data()
 
@@ -148,6 +150,21 @@ class SpartanDataset(DenseCorrespondenceDataset):
             for key, scene_list in self._multi_object_scene_dict.iteritems():
                 for scene_name in multi_object_scene_config[key]:
                     scene_list.append(scene_name)
+
+        self._setup_data_load_types()
+
+    def _setup_data_load_types(self):
+
+        self._data_load_types = []
+        self._data_load_types.append(SpartanDatasetDataType.SINGLE_OBJECT_WITHIN_SCENE)
+
+    def _get_data_load_type(self):
+        """
+        Gets a random data load type from the allowable types
+        :return: SpartanDatasetDataType
+        :rtype:
+        """
+        return random.choice(self._data_load_types)
 
     def scene_generator(self, mode=None):
         """
@@ -558,27 +575,27 @@ class SpartanDataset(DenseCorrespondenceDataset):
         # Masked non-matches
         uv_a_masked_long, uv_b_masked_non_matches_long = create_non_matches(uv_a, uv_b_masked_non_matches, num_masked_non_matches_per_match)
 
-        masked_non_matches_a = SD.flatten_uv_tensor(uv_a_masked_long, image_width)
-        masked_non_matches_a.squeeze(1)
+        masked_non_matches_a = SD.flatten_uv_tensor(uv_a_masked_long, image_width).squeeze(1)
 
-        masked_non_matches_b = SD.flatten_uv_tensor(uv_b_masked_non_matches_long, image_width)
-        masked_non_matches_b.squeeze(1)
+
+        masked_non_matches_b = SD.flatten_uv_tensor(uv_b_masked_non_matches_long, image_width).squeeze(1)
+
 
         # Non-masked non-matches
         uv_a_background_long, uv_b_background_non_matches_long = create_non_matches(uv_a, uv_b_background_non_matches,
                                                                             num_background_non_matches_per_match)
 
-        background_non_matches_a = SD.flatten_uv_tensor(uv_a_background_long, image_width)
-        background_non_matches_a.squeeze(1)
+        background_non_matches_a = SD.flatten_uv_tensor(uv_a_background_long, image_width).squeeze(1)
 
-        background_non_matches_b = SD.flatten_uv_tensor(uv_b_background_non_matches_long, image_width)
-        background_non_matches_b.squeeze(1)
+
+        background_non_matches_b = SD.flatten_uv_tensor(uv_b_background_non_matches_long, image_width).squeeze(1)
+
 
         # make blind non matches
         matches_a_mask = SD.mask_image_from_uv_flat_tensor(matches_a, image_width, image_height)
         image_a_mask_torch = torch.from_numpy(np.asarray(image_a_mask)).long()
         mask_a_flat = image_a_mask_torch.view(-1,1).squeeze(1)
-        blind_non_matches_a = (mask_a_flat - matches_a_mask).nonzero()
+        blind_non_matches_a = (mask_a_flat - matches_a_mask).nonzero().squeeze(1)
         num_samples = blind_non_matches_a.size()[0]
  
         # blind_uv_b is a tuple of torch.LongTensor
@@ -745,8 +762,8 @@ class SpartanDataset(DenseCorrespondenceDataset):
             uv_a_flat = SD.empty_tensor()
             uv_b_flat = SD.empty_tensor()
         else:
-            blind_uv_a_flat = SD.flatten_uv_tensor(blind_uv_a, image_width)
-            blind_uv_b_flat = SD.flatten_uv_tensor(blind_uv_b, image_width)
+            blind_uv_a_flat = SD.flatten_uv_tensor(blind_uv_a, image_width).squeeze(1)
+            blind_uv_b_flat = SD.flatten_uv_tensor(blind_uv_b, image_width).squeeze(1)
 
         # convert PIL.Image to torch.FloatTensor
         image_a_rgb_PIL = image_a_rgb
@@ -898,8 +915,8 @@ class SpartanDataset(DenseCorrespondenceDataset):
         :rtype:
         """
         config_file = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence',
-                                   'dataset',
-                                   'caterpillar_17_scenes.yaml')
+                                   'dataset', 'composite',
+                                   'caterpillar_only.yaml')
 
         config = utils.getDictFromYamlFilename(config_file)
         dataset = SpartanDataset(mode="train", config=config)
