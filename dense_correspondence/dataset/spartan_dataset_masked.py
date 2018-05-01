@@ -77,7 +77,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
     def __getitem__(self, index):
 
-        dice = random.choice([0,1,2])
+        dice = random.choice([0])
 
         # Case 0: Same scene, same object
         if dice == 0:
@@ -396,6 +396,26 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
     def get_single_object_within_scene_data(self):
         """
+        Simple wrapper around get_within_scene_data(), for the single object case
+        """
+
+        if self.get_number_of_unique_single_objects() == 0:
+            raise ValueError("There are no single object scenes in this dataset")
+
+        object_id = self.get_random_object_id()
+        scene_name = self.get_random_single_object_scene_name(object_id)
+
+        # stores metadata about this data
+        metadata = dict()
+        metadata["object_id"] = object_id
+        metadata["scene_name"] = scene_name
+        metadata["type"] = SpartanDatasetDataType.SINGLE_OBJECT_WITHIN_SCENE
+
+        return self.get_within_scene_data(scene_name, metadata)
+
+
+    def get_within_scene_data(self, scene_name, metadata):
+        """
         The method through which the dataset is accessed for training.
 
         Each call is is the result of
@@ -429,19 +449,6 @@ class SpartanDataset(DenseCorrespondenceDataset):
         """
 
         SD = SpartanDataset
-
-        if self.get_number_of_unique_single_objects() == 0:
-            raise ValueError("There are no single object scenes in this dataset")
-
-        # stores metadata about this data
-        metadata = dict()
-        object_id = self.get_random_object_id()
-        scene_name = self.get_random_single_object_scene_name(object_id)
-
-        metadata["object_id"] = object_id
-        metadata["scene_name"] = scene_name
-        metadata["type"] = SpartanDatasetDataType.SINGLE_OBJECT_WITHIN_SCENE
-
 
         image_a_idx = self.get_random_image_index(scene_name)
         image_a_rgb, image_a_depth, image_a_mask, image_a_pose = self.get_rgbd_mask_pose(scene_name, image_a_idx)
