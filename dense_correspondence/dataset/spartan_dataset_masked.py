@@ -42,9 +42,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         self.num_non_matches_per_match = 150
         self.single_object_cross_scene_num_samples = 3000
 
-        #
-        #
-        #
+
         # if config is None:
         #     dataset_config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence',
         #                                'dataset',
@@ -76,6 +74,13 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
 
     def __getitem__(self, index):
+        """
+        This overloads __getitem__ and is what is actually returned 
+        using a torch dataloader.
+
+        This small function randomly chooses one of our different 
+        img pair types, then returns that type of data.
+        """
 
         dice = random.choice([0, 1, 2, 3])
 
@@ -111,17 +116,11 @@ class SpartanDataset(DenseCorrespondenceDataset):
         Each entry of self._single_object_scene_dict is a dict with keys {"test", "train"}. The
         values are lists of scenes
 
-        self._multi_object_scene_dict
-
         self._single_object_scene_dict has (key, value) = (object_id, scene config for that object)
 
         self._multi_object_scene_dict has (key, value) = ("train"/"test", list of scenes)
+
         Note that the scenes have absolute paths here
-
-
-
-        :return:
-        :rtype:
         """
 
         self.logs_root_path = utils.convert_to_absolute_path(self._config['logs_root_path'])
@@ -152,7 +151,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
     def scene_generator(self, mode=None):
         """
-        Returns an generator that traverses all the scenes
+        Returns a generator that traverses all the scenes
         :return:
         :rtype:
         """
@@ -174,14 +173,6 @@ class SpartanDataset(DenseCorrespondenceDataset):
         """
         norm_transform = transforms.Normalize(self.get_image_mean(), self.get_image_std_dev())
         self._rgb_image_to_tensor = transforms.Compose([transforms.ToTensor(), norm_transform])
-
-    def get_pose(self, rgb_filename):
-        scene_directory = rgb_filename.split("images")[0]
-        index = self.get_index(rgb_filename)
-        pose_list = self.get_pose_list(scene_directory, "images.posegraph")
-        pose_elasticfusion = self.get_pose_from_list(int(index), pose_list)
-        pose_matrix4 = self.elasticfusion_pose_to_homogeneous_transform(pose_elasticfusion)
-        return pose_matrix4
 
     def get_full_path_for_scene(self, scene_name, ):
         """
@@ -227,21 +218,6 @@ class SpartanDataset(DenseCorrespondenceDataset):
         pose_data = scene_pose_data[idx]['camera_to_world']
         return utils.homogenous_transform_from_dict(pose_data)
 
-
-    def get_pose_from_list(self, index, pose_list):
-        pose = pose_list[index]
-        pose = [float(x) for x in pose[1:]]
-        return pose
-
-    def get_index(self, rgb_filename):
-        prefix = rgb_filename.split("_rgb")[0]
-        return prefix.split("images/")[1]
-
-    def get_mask_filename(self, rgb_filename):
-        images_masks_dir = os.path.join(os.path.dirname(os.path.dirname(rgb_filename)), "image_masks")
-        index = self.get_index(rgb_filename)
-        mask_filename = images_masks_dir+"/"+index+"_mask.png"
-        return mask_filename
 
     def get_image_filename(self, scene_name, img_index, image_type):
         """
