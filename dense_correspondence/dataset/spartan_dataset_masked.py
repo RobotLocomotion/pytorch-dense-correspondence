@@ -488,9 +488,6 @@ class SpartanDataset(DenseCorrespondenceDataset):
                                                                             image_b_depth_numpy, image_b_pose,
                                                                             img_a_mask=np.asarray(image_a_mask))
 
-        # find non_correspondences
-        num_masked_non_matches_per_match     = self.num_masked_non_matches_per_match
-        num_background_non_matches_per_match = self.num_background_non_matches_per_match
 
         if uv_a is None:
             logging.info("no matches found, returning")
@@ -526,7 +523,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         uv_b_masked_non_matches = \
             correspondence_finder.create_non_correspondences(uv_b,
                                                              image_b_shape,
-                                                             num_non_matches_per_match=num_masked_non_matches_per_match,
+                                                             num_non_matches_per_match=self.num_masked_non_matches_per_match,
                                                                             img_b_mask=image_b_mask_torch)
 
 
@@ -534,7 +531,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
         uv_b_background_non_matches = correspondence_finder.create_non_correspondences(uv_b,
                                                                             image_b_shape,
-                                                                            num_non_matches_per_match=num_background_non_matches_per_match,
+                                                                            num_non_matches_per_match=self.num_background_non_matches_per_match,
                                                                             img_b_mask=image_b_mask_inv)
 
 
