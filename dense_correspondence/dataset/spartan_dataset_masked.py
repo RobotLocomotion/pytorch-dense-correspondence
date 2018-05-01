@@ -77,7 +77,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
     def __getitem__(self, index):
 
-        dice = random.choice([0])
+        dice = random.choice([0, 1, 2, 3])
 
         # Case 0: Same scene, same object
         if dice == 0:
@@ -93,6 +93,11 @@ class SpartanDataset(DenseCorrespondenceDataset):
         if dice == 2:
             print "Different object"
             return self.get_different_object_data()
+
+        # Case 3: Different object
+        if dice == 3:
+            print "Multi object"
+            return self.get_multi_object_within_scene_data()
 
 
     def _setup_scene_data(self):
@@ -405,11 +410,26 @@ class SpartanDataset(DenseCorrespondenceDataset):
         object_id = self.get_random_object_id()
         scene_name = self.get_random_single_object_scene_name(object_id)
 
-        # stores metadata about this data
         metadata = dict()
         metadata["object_id"] = object_id
         metadata["scene_name"] = scene_name
         metadata["type"] = SpartanDatasetDataType.SINGLE_OBJECT_WITHIN_SCENE
+
+        return self.get_within_scene_data(scene_name, metadata)
+
+    def get_multi_object_within_scene_data(self):
+        """
+        Simple wrapper around get_within_scene_data(), for the multi object case
+        """
+
+        if not self.has_multi_object_scenes():
+            raise ValueError("There are no multi object scenes in this dataset")
+
+        scene_name = self.get_random_multi_object_scene_name()
+
+        metadata = dict()
+        metadata["scene_name"] = scene_name
+        metadata["type"] = SpartanDatasetDataType.MULTI_OBJECT
 
         return self.get_within_scene_data(scene_name, metadata)
 
@@ -829,10 +849,6 @@ class SpartanDataset(DenseCorrespondenceDataset):
                                                                    circ_color='k', show=True)
 
         return data_type, image_a_rgb, image_b_rgb, empty_tensor, empty_tensor, empty_tensor, empty_tensor, empty_tensor, empty_tensor, blind_uv_a_flat, blind_uv_b_flat, metadata
-
-
-    def get_multi_object_scene_data(self):
-        pass
 
 
     def get_image_mean(self):
