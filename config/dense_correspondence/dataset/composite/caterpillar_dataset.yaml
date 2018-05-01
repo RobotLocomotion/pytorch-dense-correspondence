@@ -1,8 +1,0 @@
-logs_root_path: code/data_volume/pdc/logs_proto
-
-single_object_scenes_config_files:
-- caterpillar_17_scenes.yaml
-- baymax.yaml
-
-multi_object_scenes_config_files:
-- multi_object.yaml

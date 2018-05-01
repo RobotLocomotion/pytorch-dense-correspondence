@@ -131,7 +131,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
                                        'dataset')
 
         for config_file in self.config["single_object_scenes_config_files"]:
-            config_file = os.path.join(prefix, config_file)
+            config_file = os.path.join(prefix, 'single_object', config_file)
             single_object_scene_config = utils.getDictFromYamlFilename(config_file)
             object_id = single_object_scene_config["object_id"]
             self._single_object_scene_dict[object_id] = single_object_scene_config
@@ -142,7 +142,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
 
         for config_file in self.config["multi_object_scenes_config_files"]:
-            config_file = os.path.join(prefix, config_file)
+            config_file = os.path.join(prefix, 'multi_object', config_file)
             multi_object_scene_config = utils.getDictFromYamlFilename(config_file)
 
             for key, scene_list in self._multi_object_scene_dict.iteritems():
