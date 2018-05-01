@@ -87,7 +87,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
         # Case 2: Different object
         print "Different object"
-        return self.get_different_object_scene_data()
+        return self.get_different_object_data()
 
 
     def _setup_scene_data(self):
@@ -740,14 +740,15 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
         # stores metadata about this data
         metadata = dict()
-        object_id = self.get_random_object_id()
-        scene_name_a = self.get_random_single_object_scene_name(object_id)
-
-        scene_name_b = self.get_different_scene_for_object(object_id, scene_name_a)
-        metadata["object_id"] = object_id
+        object_id_a, object_id_b = self.get_two_different_object_ids()
+        scene_name_a = self.get_random_single_object_scene_name(object_id_a)
+        scene_name_b = self.get_random_single_object_scene_name(object_id_b)
+        
+        metadata["object_id_a"] = object_id_a
         metadata["scene_name_a"] = scene_name_a
+        metadata["object_id_b"] = object_id_b
         metadata["scene_name_b"] = scene_name_b
-        metadata["type"] = SpartanDatasetDataType.SINGLE_OBJECT_ACROSS_SCENE
+        metadata["type"] = SpartanDatasetDataType.DIFFERENT_OBJECT
 
         image_a_idx = self.get_random_image_index(scene_name_a)
         image_a_rgb, image_a_depth, image_a_mask, image_a_pose = self.get_rgbd_mask_pose(scene_name_a, image_a_idx)
