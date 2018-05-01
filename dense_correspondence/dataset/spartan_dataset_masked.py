@@ -94,7 +94,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
             print "Different object"
             return self.get_different_object_data()
 
-        # Case 3: Different object
+        # Case 3: Multi object
         if dice == 3:
             print "Multi object"
             return self.get_multi_object_within_scene_data()
