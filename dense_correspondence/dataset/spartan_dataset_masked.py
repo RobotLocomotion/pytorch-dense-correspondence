@@ -77,17 +77,22 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
     def __getitem__(self, index):
 
+        dice = random.choice([0,1,2])
+
         # Case 0: Same scene, same object
-        #print "Same scene, same object"
-        #return self.get_single_object_within_scene_data()
+        if dice == 0:
+            print "Same scene, same object"
+            return self.get_single_object_within_scene_data()
 
         # Case 1: Same object, different scene
-        #print "Same object, different scene"
-        #return self.get_single_object_across_scene_data()
+        if dice == 1:
+            print "Same object, different scene"
+            return self.get_single_object_across_scene_data()
 
         # Case 2: Different object
-        print "Different object"
-        return self.get_different_object_data()
+        if dice == 2:
+            print "Different object"
+            return self.get_different_object_data()
 
 
     def _setup_scene_data(self):
