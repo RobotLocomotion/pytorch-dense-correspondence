@@ -56,6 +56,10 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
         if mode == "test":
             self.set_test_mode()
+        elif mode == "train":
+            self.set_train_mode()
+        else:
+            raise ValueError("mode should be one of [test, train]")
 
         self.init_length()
         print "Using SpartanDataset:"
