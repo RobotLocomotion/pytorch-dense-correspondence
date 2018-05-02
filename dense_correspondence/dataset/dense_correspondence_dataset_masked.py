@@ -201,7 +201,24 @@ class DenseCorrespondenceDataset(data.Dataset):
         if metadata is None:
             metadata = dict()
 
-        return "None", image_a_rgb, image_b_rgb, torch.LongTensor([0]), torch.LongTensor([0]), torch.LongTensor([0]), torch.LongTensor([0]), metadata
+        empty = DenseCorrespondenceDataset.empty_tensor()
+        return -1, image_a_rgb, image_b_rgb, empty, empty, empty, empty, empty, empty, empty, empty, metadata
+
+    @staticmethod
+    def empty_tensor():
+        """
+        Makes a placeholder tensor
+        :return:
+        :rtype:
+        """
+        return torch.LongTensor([-1])
+
+    @staticmethod
+    def is_empty(tensor):
+        """
+        Tells if the tensor is the same as that created by empty_tensor()
+        """
+        return ((len(tensor) == 1) and (tensor[0] == -1))
 
     def get_rgbd_mask_pose(self, scene_name, img_idx):
         """
@@ -510,11 +527,9 @@ class DenseCorrespondenceDataset(data.Dataset):
         self.cross_scene_num_samples              = training_config['training']["cross_scene_num_samples"] 
 
     def set_train_mode(self):
-        self.scenes = self.train
         self.mode = "train"
 
     def set_test_mode(self):
-        self.scenes = self.test
         self.mode = "test"
 
     def enable_domain_randomization(self):

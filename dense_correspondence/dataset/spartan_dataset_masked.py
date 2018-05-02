@@ -383,6 +383,27 @@ class SpartanDataset(DenseCorrespondenceDataset):
         """
         return len(self._multi_object_scene_dict["train"]) > 0
 
+    def get_random_scene_name(self):
+        """
+        Gets a random scene name across both single and multi object
+        """
+        types = []
+        if self.has_multi_object_scenes():
+            for _ in range(len(self._multi_object_scene_dict[self.mode])):
+                types.append("multi")
+        if self.get_number_of_unique_single_objects() > 0:
+            for _ in range(self.get_number_of_unique_single_objects()):
+                types.append("single")
+
+        if len(types) == 0:
+            raise ValueError("I don't think you have any scenes?")
+        scene_type = random.choice(types)
+
+        if scene_type == "multi":
+            return self.get_random_multi_object_scene_name()
+        if scene_type == "single":
+            object_id = self.get_random_object_id()
+            return self.get_random_single_object_scene_name(object_id)
 
     def get_single_object_within_scene_data(self):
         """
@@ -566,7 +587,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
 
         # Masked non-matches
-        uv_a_masked_long, uv_b_masked_non_matches_long = create_non_matches(uv_a, uv_b_masked_non_matches, num_masked_non_matches_per_match)
+        uv_a_masked_long, uv_b_masked_non_matches_long = create_non_matches(uv_a, uv_b_masked_non_matches, self.num_masked_non_matches_per_match)
 
         masked_non_matches_a = SD.flatten_uv_tensor(uv_a_masked_long, image_width).squeeze(1)
         masked_non_matches_b = SD.flatten_uv_tensor(uv_b_masked_non_matches_long, image_width).squeeze(1)
@@ -574,7 +595,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
         # Non-masked non-matches
         uv_a_background_long, uv_b_background_non_matches_long = create_non_matches(uv_a, uv_b_background_non_matches,
-                                                                            num_background_non_matches_per_match)
+                                                                            self.num_background_non_matches_per_match)
 
         background_non_matches_a = SD.flatten_uv_tensor(uv_a_background_long, image_width).squeeze(1)
         background_non_matches_b = SD.flatten_uv_tensor(uv_b_background_non_matches_long, image_width).squeeze(1)
@@ -585,11 +606,14 @@ class SpartanDataset(DenseCorrespondenceDataset):
         image_a_mask_torch = torch.from_numpy(np.asarray(image_a_mask)).long()
         mask_a_flat = image_a_mask_torch.view(-1,1).squeeze(1)
         blind_non_matches_a = (mask_a_flat - matches_a_mask).nonzero().squeeze(1)
-        num_samples = blind_non_matches_a.size()[0]
- 
-        # blind_uv_b is a tuple of torch.LongTensor
-        blind_uv_b = correspondence_finder.random_sample_from_masked_image_torch(image_b_mask_torch, num_samples)
-        blind_non_matches_b = utils.uv_to_flattened_pixel_locations(blind_uv_b, image_width)
+        num_blind_samples = blind_non_matches_a.size()[0]
+
+        if num_blind_samples > 0:
+            # blind_uv_b is a tuple of torch.LongTensor
+            blind_uv_b = correspondence_finder.random_sample_from_masked_image_torch(image_b_mask_torch, num_blind_samples)
+            blind_non_matches_b = utils.uv_to_flattened_pixel_locations(blind_uv_b, image_width)
+        else:
+            blind_non_matches_a = blind_non_matches_b = SD.empty_tensor()
 
         if self.debug:
             # downsample so can plot
@@ -834,15 +858,6 @@ class SpartanDataset(DenseCorrespondenceDataset):
         :rtype:
         """
         return uv_tensor[1].long() * image_width + uv_tensor[0].long()
-
-    @staticmethod
-    def empty_tensor():
-        """
-        Makes a placeholder tensor
-        :return:
-        :rtype:
-        """
-        return torch.LongTensor([-1])
 
     @staticmethod
     def mask_image_from_uv_flat_tensor(uv_flat_tensor, image_width, image_height):
