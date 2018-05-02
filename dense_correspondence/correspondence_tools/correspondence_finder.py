@@ -89,11 +89,12 @@ def random_sample_from_masked_image(img_mask, num_samples):
 def random_sample_from_masked_image_torch(img_mask, num_samples):
     """
 
-    :param img_mask: Numpy array [H,W]
+    :param img_mask: Numpy array [H,W] or torch.Tensor with shape [H,W]
     :type img_mask:
     :param num_samples: an integer
     :type num_samples:
-    :return: tuple of torch.LongTensor in (u,v) format
+    :return: tuple of torch.LongTensor in (u,v) format. Each torch.LongTensor has shape
+    [num_samples]
     :rtype:
     """
 
