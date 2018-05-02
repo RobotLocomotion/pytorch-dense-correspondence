@@ -9,10 +9,8 @@ class PixelwiseContrastiveLoss(object):
         self.image_width  = image_shape[1]
         self.image_height = image_shape[0]
 
-        if config is None:
-            self.load_default_config()
-        else:
-            self._config = config
+        assert config is not None
+        self._config = config
 
         self._debug_data = dict()
 
@@ -29,14 +27,6 @@ class PixelwiseContrastiveLoss(object):
     @property
     def debug_data(self):
         return self._debug_data
-
-    def load_default_config(self):
-        self._config = dict()
-        self._config['M_descriptor'] = 0.5
-        self._config['M_pixel'] = 100 # 100 pixel threshold, squared
-        self._config['non_match_loss_weight'] = 1.0
-        self._config['use_l2_pixel_loss'] = False
-        self._config['scale_by_hard_negatives'] = True
 
     def get_loss_matched_and_non_matched_with_l2(self, image_a_pred, image_b_pred, matches_a, matches_b, non_matches_a, non_matches_b,
                  M_descriptor=None, M_pixel=None, non_match_loss_weight=1.0, use_l2_pixel_loss=None):
