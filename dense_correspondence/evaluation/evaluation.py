@@ -406,6 +406,9 @@ class DenseCorrespondenceEvaluation(object):
                 res_a_norm_mask = dc_plotting.normalize_descriptor(res_a_mask, descriptor_image_stats['mask_image'])
                 res_b_norm_mask = dc_plotting.normalize_descriptor(res_b_mask, descriptor_image_stats['mask_image'])
 
+            res_a_norm_mask = res_a_norm_mask * mask_a_repeat
+            res_b_norm_mask = res_b_norm_mask * mask_b_repeat
+
             axes[1,0].imshow(res_a_norm_mask)
             axes[1,1].imshow(res_b_norm_mask)
 
