@@ -775,8 +775,8 @@ class SpartanDataset(DenseCorrespondenceDataset):
         image_height = image_b_shape[0]
 
         if (blind_uv_a[0] is None) or (blind_uv_b[0] is None):
-            uv_a_flat = SD.empty_tensor()
-            uv_b_flat = SD.empty_tensor()
+            blind_uv_a_flat = SD.empty_tensor()
+            blind_uv_b_flat = SD.empty_tensor()
         else:
             blind_uv_a_flat = SD.flatten_uv_tensor(blind_uv_a, image_width).squeeze(1)
             blind_uv_b_flat = SD.flatten_uv_tensor(blind_uv_b, image_width).squeeze(1)
