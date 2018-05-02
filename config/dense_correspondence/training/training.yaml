@@ -20,8 +20,8 @@ training:
   num_background_non_matches_per_match: 50
   cross_scene_num_samples: 10000
   use_SINGLE_OBJECT_WITHIN_SCENE: True
-  use_SINGLE_OBJECT_ACROSS_SCENE: False
-  use_DIFFERENT_OBJECT: False
+  use_SINGLE_OBJECT_ACROSS_SCENE: True
+  use_DIFFERENT_OBJECT: True
   use_MULTI_OBJECT: True
   # Loss function config
   loss_function: pixelwise_contrastive_loss # not currently used
