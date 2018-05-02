@@ -459,13 +459,22 @@ class DenseCorrespondenceDataset(data.Dataset):
         NotImplementedError("subclass must implement this method")
 
     def init_length(self):
+        """
+        Computes the total number of images and scenes in this dataset.
+        Sets the result to the class variables self.num_images_total and self._num_scenes
+        :return:
+        :rtype:
+        """
+        
         self.num_images_total = 0
+        self._num_scenes = 0
         for scene_name in self.scene_generator():
             scene_directory = self.get_full_path_for_scene(scene_name)
             rgb_images_regex = os.path.join(scene_directory, "images/*_rgb.png")
             all_rgb_images_in_scene = glob.glob(rgb_images_regex)
             num_images_this_scene = len(all_rgb_images_in_scene)
             self.num_images_total += num_images_this_scene
+            self._num_scenes += 1
 
     def load_from_config_yaml(self, key):
 
