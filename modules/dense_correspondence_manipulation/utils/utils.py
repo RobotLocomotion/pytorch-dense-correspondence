@@ -1,5 +1,6 @@
 # Basic I/O utils
 import yaml
+from yaml import CLoader
 import numpy as np
 import os
 import sys
@@ -14,8 +15,7 @@ def getDictFromYamlFilename(filename):
     """
     Read data from a YAML files
     """
-    stream = file(filename)
-    return yaml.load(stream)
+    return yaml.load(file(filename), Loader=CLoader)
 
 def saveToYaml(data, filename):
     """
