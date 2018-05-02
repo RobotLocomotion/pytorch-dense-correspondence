@@ -146,6 +146,9 @@ class SpartanDataset(DenseCorrespondenceDataset):
         self._data_load_types = []
         if self.debug:
             self._data_load_types.append(SpartanDatasetDataType.SINGLE_OBJECT_WITHIN_SCENE)
+            self._data_load_types.append(SpartanDatasetDataType.SINGLE_OBJECT_ACROSS_SCENE)
+            self._data_load_types.append(SpartanDatasetDataType.DIFFERENT_OBJECT)
+            self._data_load_types.append(SpartanDatasetDataType.MULTI_OBJECT)
 
     def _get_data_load_type(self):
         """
@@ -778,8 +781,8 @@ class SpartanDataset(DenseCorrespondenceDataset):
             blind_uv_a_flat = SD.empty_tensor()
             blind_uv_b_flat = SD.empty_tensor()
         else:
-            blind_uv_a_flat = SD.flatten_uv_tensor(blind_uv_a, image_width).squeeze(1)
-            blind_uv_b_flat = SD.flatten_uv_tensor(blind_uv_b, image_width).squeeze(1)
+            blind_uv_a_flat = SD.flatten_uv_tensor(blind_uv_a, image_width)
+            blind_uv_b_flat = SD.flatten_uv_tensor(blind_uv_b, image_width)
 
         # convert PIL.Image to torch.FloatTensor
         image_a_rgb_PIL = image_a_rgb
