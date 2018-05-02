@@ -14,10 +14,11 @@ training:
   garbage_collect_rate: 1
   save_rate: 500 # how often to save the network
   batch_size: 1
+  # Datset config
   domain_randomize: False
-  # Dataset sampling config
-  num_matching_attempts: 50000 # note this is not currently used, since all masked pixels are used
-  num_non_matches_per_match: 150
+  num_masked_non_matches_per_match: 100
+  num_background_non_matches_per_match: 50
+  cross_scene_num_samples: 10000
   # Loss function config
   loss_function: pixelwise_contrastive_loss # not currently used
   # Logging config
