@@ -1,4 +1,5 @@
 logs_root_path: code/data_volume/pdc/logs_proto
+object_id: "caterpillar"
 train:
 - "2018-04-10-16-02-59"
 - "2018-04-10-16-04-10"
@@ -22,9 +23,5 @@ test:
 - "2018-04-10-16-11-10"
 - "2018-04-16-14-46-36"
 - "2018-04-16-17-35-21"
-
-image_normalization:
-  mean: [0.5512, 0.3818, 0.3821]
-  std_dev: [0.2303, 0.2753, 0.2867]
 
 evaluation_labeled_data_path: code/data_volume/pdc/evaluation_labeled_data/caterpillar_cross_scene_labels.yaml

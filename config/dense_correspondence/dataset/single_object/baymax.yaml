@@ -1,4 +1,5 @@
 logs_root_path: code/data_volume/pdc/logs_proto
+object_id: "baymax"
 train:
 - "2018-04-24-17-16-40"
 - "2018-04-24-17-18-39"

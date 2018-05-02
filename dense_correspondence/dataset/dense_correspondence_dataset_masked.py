@@ -46,13 +46,6 @@ class DenseCorrespondenceDataset(data.Dataset):
                 [transforms.ToTensor(), transforms.ToTensor()]
             ])
 
-        self._domain_randomize = False
-
-        # Otherwise, all of these parameters should be set in
-        # set_parameters_from_training_config()
-        if self.debug:
-            self.num_matching_attempts = 20
-            self.num_non_matches_per_match = 1
       
     def __len__(self):
         return self.num_images_total
@@ -208,7 +201,24 @@ class DenseCorrespondenceDataset(data.Dataset):
         if metadata is None:
             metadata = dict()
 
-        return "None", image_a_rgb, image_b_rgb, torch.LongTensor([0]), torch.LongTensor([0]), torch.LongTensor([0]), torch.LongTensor([0]), metadata
+        empty = DenseCorrespondenceDataset.empty_tensor()
+        return -1, image_a_rgb, image_b_rgb, empty, empty, empty, empty, empty, empty, empty, empty, metadata
+
+    @staticmethod
+    def empty_tensor():
+        """
+        Makes a placeholder tensor
+        :return:
+        :rtype:
+        """
+        return torch.LongTensor([-1])
+
+    @staticmethod
+    def is_empty(tensor):
+        """
+        Tells if the tensor is the same as that created by empty_tensor()
+        """
+        return ((len(tensor) == 1) and (tensor[0] == -1))
 
     def get_rgbd_mask_pose(self, scene_name, img_idx):
         """
@@ -439,14 +449,32 @@ class DenseCorrespondenceDataset(data.Dataset):
         scene_directory = self.get_full_path_for_scene(scene_name)
         return scene_directory
 
+    def scene_generator(self, mode=None):
+        """
+        Returns an generator that traverses all the scenes
+        :return:
+        :rtype:
+        """
+
+        NotImplementedError("subclass must implement this method")
+
     def init_length(self):
+        """
+        Computes the total number of images and scenes in this dataset.
+        Sets the result to the class variables self.num_images_total and self._num_scenes
+        :return:
+        :rtype:
+        """
+        
         self.num_images_total = 0
-        for scene_name in self.scenes:
+        self._num_scenes = 0
+        for scene_name in self.scene_generator():
             scene_directory = self.get_full_path_for_scene(scene_name)
             rgb_images_regex = os.path.join(scene_directory, "images/*_rgb.png")
             all_rgb_images_in_scene = glob.glob(rgb_images_regex)
             num_images_this_scene = len(all_rgb_images_in_scene)
             self.num_images_total += num_images_this_scene
+            self._num_scenes += 1
 
     def load_from_config_yaml(self, key):
 
@@ -496,15 +524,32 @@ class DenseCorrespondenceDataset(data.Dataset):
 
         :param training_config: a dict() holding params
         """
-        self.num_matching_attempts     = training_config['training']['num_matching_attempts']
-        self.num_non_matches_per_match = training_config['training']['num_non_matches_per_match']
+
+        if (self.mode == "train") and (training_config["training"]["domain_randomize"]):
+            logging.info("enabling domain randomization")
+            self.enable_domain_randomization()
+        else:
+            self.disable_domain_randomization()
+
+        self.num_masked_non_matches_per_match     = training_config['training']["num_masked_non_matches_per_match"] 
+        self.num_background_non_matches_per_match = training_config['training']["num_background_non_matches_per_match"] 
+        self.cross_scene_num_samples              = training_config['training']["cross_scene_num_samples"] 
+
+        from spartan_dataset_masked import SpartanDatasetDataType
+
+        if training_config["training"]["use_SINGLE_OBJECT_WITHIN_SCENE"]:
+            self._data_load_types.append(SpartanDatasetDataType.SINGLE_OBJECT_WITHIN_SCENE)
+        if training_config["training"]["use_SINGLE_OBJECT_ACROSS_SCENE"]:
+            self._data_load_types.append(SpartanDatasetDataType.SINGLE_OBJECT_ACROSS_SCENE)
+        if training_config["training"]["use_DIFFERENT_OBJECT"]:
+            self._data_load_types.append(SpartanDatasetDataType.DIFFERENT_OBJECT)
+        if training_config["training"]["use_MULTI_OBJECT"]:
+            self._data_load_types.append(SpartanDatasetDataType.MULTI_OBJECT)
 
     def set_train_mode(self):
-        self.scenes = self.train
         self.mode = "train"
 
     def set_test_mode(self):
-        self.scenes = self.test
         self.mode = "test"
 
     def enable_domain_randomization(self):
