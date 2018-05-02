@@ -7,13 +7,14 @@ import glob
 import random
 
 import torch
-import torch.utils.data as data
-from torchvision import transforms
 
+# note that this is the torchvision provided by the warmspringwinds
+# pytorch-segmentation-detection repo. It is a fork of pytorch/vision
+from torchvision import transforms
 
 import dense_correspondence_manipulation.utils.utils as utils
 from dense_correspondence_manipulation.utils.utils import CameraIntrinsics
-from torchvision import transforms
+
 import dense_correspondence_manipulation.utils.constants as constants
 import dense_correspondence.correspondence_tools.correspondence_finder as correspondence_finder
 import dense_correspondence.correspondence_tools.correspondence_augmentation as correspondence_augmentation
