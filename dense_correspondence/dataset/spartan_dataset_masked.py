@@ -874,7 +874,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
     @staticmethod
     def mask_image_from_uv_flat_tensor(uv_flat_tensor, image_width, image_height):
         """
-        Returns a torch.LongTensor with shape [image_width*image_height[. It has a 1 exactly
+        Returns a torch.LongTensor with shape [image_width*image_height]. It has a 1 exactly
         at the indices specified by uv_flat_tensor
         :param uv_flat_tensor:
         :type uv_flat_tensor:
