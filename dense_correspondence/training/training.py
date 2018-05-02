@@ -39,6 +39,7 @@ from dense_correspondence.dataset.spartan_dataset_masked import SpartanDataset
 from dense_correspondence.network.dense_correspondence_network import DenseCorrespondenceNetwork
 
 from dense_correspondence.loss_functions.pixelwise_contrastive_loss import PixelwiseContrastiveLoss
+import dense_correspondence.loss_functions.loss_composer as loss_composer
 from dense_correspondence.evaluation.evaluation import DenseCorrespondenceEvaluation
 
 
@@ -326,28 +327,14 @@ class DenseCorrespondenceTraining(object):
                 image_b_pred = dcn.process_network_output(image_b_pred, batch_size)
 
                 # get loss
-                loss, match_loss, masked_non_match_loss =\
-                    pixelwise_contrastive_loss.get_loss(image_a_pred,
-                                                        image_b_pred,
-                                                        matches_a,
-                                                        matches_b,
-                                                        masked_non_matches_a,
-                                                        masked_non_matches_b)
-
-                background_non_match_loss =\
-                    pixelwise_contrastive_loss.non_match_loss_descriptor_only(image_a_pred, image_b_pred,
-                                                                              background_non_matches_a, background_non_matches_b,
-                                                                              M_descriptor=0.5)
-                loss += background_non_match_loss
-
-
-                blind_non_match_loss = 0
-                if not (SpartanDataset.is_empty(background_non_matches_a.data)):
-                    blind_non_match_loss =\
-                        pixelwise_contrastive_loss.non_match_loss_descriptor_only(image_a_pred, image_b_pred,
-                                                                                  blind_non_matches_a, blind_non_matches_b,
-                                                                                  M_descriptor=0.5)
-                    loss += blind_non_match_loss
+                loss, match_loss, masked_non_match_loss, \
+                background_non_match_loss, blind_non_match_loss = loss_composer.get_loss(pixelwise_contrastive_loss, match_type,
+                                                                                image_a_pred, image_b_pred,
+                                                                                matches_a,     matches_b,
+                                                                                masked_non_matches_a, masked_non_matches_b,
+                                                                                background_non_matches_a, background_non_matches_b,
+                                                                                blind_non_matches_a, blind_non_matches_b)
+                
 
                 loss.backward()
                 optimizer.step()
