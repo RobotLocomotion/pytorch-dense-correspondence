@@ -64,6 +64,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         self.init_length()
         print "Using SpartanDataset:"
         print "   - in", self.mode, "mode"
+        print "   - number of scenes", self._num_scenes
         print "   - total images:    ", self.num_images_total
 
 
