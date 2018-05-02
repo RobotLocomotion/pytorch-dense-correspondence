@@ -160,10 +160,10 @@ class PixelwiseContrastiveLoss(object):
         :rtype:
         """
 
+
+
         non_matches_a_descriptors = torch.index_select(image_a_pred, 1, non_matches_a).squeeze()
         non_matches_b_descriptors = torch.index_select(image_b_pred, 1, non_matches_b).squeeze()
-
-
 
         norm_degree = 2
         non_match_loss = (non_matches_a_descriptors - non_matches_b_descriptors).norm(norm_degree, 1)
@@ -266,9 +266,8 @@ class PixelwiseContrastiveLoss(object):
         else:
             scale_factor = num_non_matches
 
-        # self.non_match_loss_vec = non_match_loss_vec
-        # self.scale_factor = scale_factor
-        # self.num_non_matches = num_non_matches
+        # make sure the scale factor is not zero
+        scale_factor = max(scale_factor, 1)
 
         non_match_loss = 1.0 / scale_factor * non_match_loss_vec.sum()
 
