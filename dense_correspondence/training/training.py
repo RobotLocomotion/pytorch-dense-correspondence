@@ -337,7 +337,7 @@ class DenseCorrespondenceTraining(object):
                 background_non_match_loss =\
                     pixelwise_contrastive_loss.non_match_loss_descriptor_only(image_a_pred, image_b_pred,
                                                                               background_non_matches_a, background_non_matches_b,
-                                                                              M_descriptor=1.0)
+                                                                              M_descriptor=0.5)
                 loss += background_non_match_loss
 
 
