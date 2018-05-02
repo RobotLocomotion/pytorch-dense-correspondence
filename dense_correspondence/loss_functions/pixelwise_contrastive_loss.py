@@ -1,7 +1,5 @@
 import torch
 from torch.autograd import Variable
-from decimal import Decimal
-
 
 
 class PixelwiseContrastiveLoss(object):
@@ -40,7 +38,7 @@ class PixelwiseContrastiveLoss(object):
         self._config['use_l2_pixel_loss'] = False
         self._config['scale_by_hard_negatives'] = True
 
-    def get_loss(self, image_a_pred, image_b_pred, matches_a, matches_b, non_matches_a, non_matches_b,
+    def get_loss_matched_and_non_matched_with_l2(self, image_a_pred, image_b_pred, matches_a, matches_b, non_matches_a, non_matches_b,
                  M_descriptor=None, M_pixel=None, non_match_loss_weight=1.0, use_l2_pixel_loss=None):
         """
         Computes the loss function
