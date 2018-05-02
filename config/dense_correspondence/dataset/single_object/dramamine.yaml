@@ -1,4 +1,5 @@
 logs_root_path: code/data_volume/pdc/logs_proto
+object_id: "dramamine"
 train:
 - "2018-04-24-17-46-59"
 - "2018-04-24-17-50-15"
