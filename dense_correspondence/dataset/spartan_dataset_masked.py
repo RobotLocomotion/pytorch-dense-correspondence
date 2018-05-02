@@ -487,6 +487,11 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
         (u,v) --> n = u + image_width * v
 
+        If no datapoints were found for some type of match or non-match then we return
+        our "special" empty tensor. Note that due to the way the pytorch data loader
+        functions you cannot return an empty tensor like torch.FloatTensor([]). So we
+        return SpartanDataset.empty_tensor()
+
         """
 
         SD = SpartanDataset
