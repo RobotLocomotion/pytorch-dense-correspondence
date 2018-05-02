@@ -144,7 +144,8 @@ class SpartanDataset(DenseCorrespondenceDataset):
     def _setup_data_load_types(self):
 
         self._data_load_types = []
-        self._data_load_types.append(SpartanDatasetDataType.SINGLE_OBJECT_WITHIN_SCENE)
+        if self.debug:
+            self._data_load_types.append(SpartanDatasetDataType.SINGLE_OBJECT_WITHIN_SCENE)
 
     def _get_data_load_type(self):
         """

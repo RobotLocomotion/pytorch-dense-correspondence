@@ -526,6 +526,17 @@ class DenseCorrespondenceDataset(data.Dataset):
         self.num_background_non_matches_per_match = training_config['training']["num_background_non_matches_per_match"] 
         self.cross_scene_num_samples              = training_config['training']["cross_scene_num_samples"] 
 
+        from spartan_dataset_masked import SpartanDatasetDataType
+
+        if training_config["training"]["use_SINGLE_OBJECT_WITHIN_SCENE"]:
+            self._data_load_types.append(SpartanDatasetDataType.SINGLE_OBJECT_WITHIN_SCENE)
+        if training_config["training"]["use_SINGLE_OBJECT_ACROSS_SCENE"]:
+            self._data_load_types.append(SpartanDatasetDataType.SINGLE_OBJECT_ACROSS_SCENE)
+        if training_config["training"]["use_DIFFERENT_OBJECT"]:
+            self._data_load_types.append(SpartanDatasetDataType.DIFFERENT_OBJECT)
+        if training_config["training"]["use_MULTI_OBJECT"]:
+            self._data_load_types.append(SpartanDatasetDataType.MULTI_OBJECT)
+
     def set_train_mode(self):
         self.mode = "train"
 
