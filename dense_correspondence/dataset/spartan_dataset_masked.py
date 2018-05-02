@@ -755,6 +755,10 @@ class SpartanDataset(DenseCorrespondenceDataset):
         # sample random indices from mask in image b
         blind_uv_b = correspondence_finder.random_sample_from_masked_image_torch(np.asarray(image_b_mask), num_samples)
 
+        if (blind_uv_a[0] is None) or (blind_uv_b[0] is None):
+            image_a_rgb_tensor = self.rgb_image_to_tensor(image_a_rgb)
+            return self.return_empty_data(image_a_rgb_tensor, image_a_rgb_tensor)
+
         # data augmentation
         if self._domain_randomize:
             image_a_rgb = correspondence_augmentation.random_domain_randomize_background(image_a_rgb, image_a_mask)
@@ -777,12 +781,8 @@ class SpartanDataset(DenseCorrespondenceDataset):
         image_width = image_b_shape[1]
         image_height = image_b_shape[0]
 
-        if (blind_uv_a[0] is None) or (blind_uv_b[0] is None):
-            blind_uv_a_flat = SD.empty_tensor()
-            blind_uv_b_flat = SD.empty_tensor()
-        else:
-            blind_uv_a_flat = SD.flatten_uv_tensor(blind_uv_a, image_width)
-            blind_uv_b_flat = SD.flatten_uv_tensor(blind_uv_b, image_width)
+        blind_uv_a_flat = SD.flatten_uv_tensor(blind_uv_a, image_width)
+        blind_uv_b_flat = SD.flatten_uv_tensor(blind_uv_b, image_width)
 
         # convert PIL.Image to torch.FloatTensor
         image_a_rgb_PIL = image_a_rgb
