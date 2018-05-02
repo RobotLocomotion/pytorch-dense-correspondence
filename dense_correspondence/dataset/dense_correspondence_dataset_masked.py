@@ -460,7 +460,7 @@ class DenseCorrespondenceDataset(data.Dataset):
 
     def init_length(self):
         self.num_images_total = 0
-        for scene_name in self.scene_generator( ):
+        for scene_name in self.scene_generator():
             scene_directory = self.get_full_path_for_scene(scene_name)
             rgb_images_regex = os.path.join(scene_directory, "images/*_rgb.png")
             all_rgb_images_in_scene = glob.glob(rgb_images_regex)
