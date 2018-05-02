@@ -1,4 +1,5 @@
 logs_root_path: code/data_volume/pdc/logs_proto
+object_id: "yellow_robot"
 train:
 - "2018-04-24-15-57-16"
 - "2018-04-24-15-59-25"
