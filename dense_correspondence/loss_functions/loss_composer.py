@@ -30,7 +30,7 @@ def get_loss(pixelwise_contrastive_loss, match_type,
                                             blind_non_matches_a, blind_non_matches_b)
 
     if (match_type == SpartanDatasetDataType.SINGLE_OBJECT_ACROSS_SCENE).all():
-        print "applying DIFFERENT_OBJECT loss"
+        print "applying SINGLE_OBJECT_ACROSS_SCENE loss"
         return get_same_object_across_scene_loss(pixelwise_contrastive_loss, image_a_pred, image_b_pred,
                                             blind_non_matches_a, blind_non_matches_b)
 
