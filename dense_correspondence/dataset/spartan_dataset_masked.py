@@ -7,13 +7,14 @@ import glob
 import random
 
 import torch
-import torch.utils.data as data
-from torchvision import transforms
 
+# note that this is the torchvision provided by the warmspringwinds
+# pytorch-segmentation-detection repo. It is a fork of pytorch/vision
+from torchvision import transforms
 
 import dense_correspondence_manipulation.utils.utils as utils
 from dense_correspondence_manipulation.utils.utils import CameraIntrinsics
-from torchvision import transforms
+
 import dense_correspondence_manipulation.utils.constants as constants
 import dense_correspondence.correspondence_tools.correspondence_finder as correspondence_finder
 import dense_correspondence.correspondence_tools.correspondence_augmentation as correspondence_augmentation
@@ -55,10 +56,15 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
         if mode == "test":
             self.set_test_mode()
+        elif mode == "train":
+            self.set_train_mode()
+        else:
+            raise ValueError("mode should be one of [test, train]")
 
         self.init_length()
         print "Using SpartanDataset:"
         print "   - in", self.mode, "mode"
+        print "   - number of scenes", self._num_scenes
         print "   - total images:    ", self.num_images_total
 
 
@@ -484,6 +490,11 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
         (u,v) --> n = u + image_width * v
 
+        If no datapoints were found for some type of match or non-match then we return
+        our "special" empty tensor. Note that due to the way the pytorch data loader
+        functions you cannot return an empty tensor like torch.FloatTensor([]). So we
+        return SpartanDataset.empty_tensor()
+
         """
 
         SD = SpartanDataset
@@ -614,8 +625,13 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
         if num_blind_samples > 0:
             # blind_uv_b is a tuple of torch.LongTensor
+            # make sure we check that blind_uv_b is non-empty
             blind_uv_b = correspondence_finder.random_sample_from_masked_image_torch(image_b_mask_torch, num_blind_samples)
-            blind_non_matches_b = utils.uv_to_flattened_pixel_locations(blind_uv_b, image_width)
+
+            if len(blind_uv_b[0]) == 0:
+                blind_non_matches_a = blind_non_matches_b = SD.empty_tensor()
+            else:    
+                blind_non_matches_b = utils.uv_to_flattened_pixel_locations(blind_uv_b, image_width)
         else:
             blind_non_matches_a = blind_non_matches_b = SD.empty_tensor()
 
@@ -780,7 +796,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         image_b_shape = image_b_depth_numpy.shape
         image_width = image_b_shape[1]
         image_height = image_b_shape[0]
-
+        
         blind_uv_a_flat = SD.flatten_uv_tensor(blind_uv_a, image_width)
         blind_uv_b_flat = SD.flatten_uv_tensor(blind_uv_b, image_width)
 
@@ -866,7 +882,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
     @staticmethod
     def mask_image_from_uv_flat_tensor(uv_flat_tensor, image_width, image_height):
         """
-        Returns a torch.LongTensor with shape [image_width*image_height[. It has a 1 exactly
+        Returns a torch.LongTensor with shape [image_width*image_height]. It has a 1 exactly
         at the indices specified by uv_flat_tensor
         :param uv_flat_tensor:
         :type uv_flat_tensor:
