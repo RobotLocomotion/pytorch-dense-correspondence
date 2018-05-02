@@ -66,20 +66,25 @@ def get_within_scene_loss(pixelwise_contrastive_loss, image_a_pred, image_b_pred
                                                                           matches_a,            matches_b,
                                                                           masked_non_matches_a, masked_non_matches_b)
 
-    background_non_match_loss =\
-        pixelwise_contrastive_loss.non_match_loss_descriptor_only(image_a_pred, image_b_pred,
-                                                                background_non_matches_a, background_non_matches_b,
-                                                                M_descriptor=0.5)
-    loss += background_non_match_loss
+    # background_non_match_loss =\
+    #     pixelwise_contrastive_loss.non_match_loss_descriptor_only(image_a_pred, image_b_pred,
+    #                                                             background_non_matches_a, background_non_matches_b,
+    #                                                             M_descriptor=0.5)
+
+    background_non_match_loss = zero_loss()
+    # background_non_match_loss =\
+    #     pixelwise_contrastive_loss.non_match_loss_with_l2_pixel_norm(image_a_pred, image_b_pred, matches_b, background_non_matches_a, background_non_matches_b)    
+    # loss += background_non_match_loss
 
 
     blind_non_match_loss = zero_loss()
-    if not (SpartanDataset.is_empty(blind_non_matches_a.data)):
-        blind_non_match_loss =\
-            pixelwise_contrastive_loss.non_match_loss_descriptor_only(image_a_pred, image_b_pred,
-                                                                    blind_non_matches_a, blind_non_matches_b,
-                                                                    M_descriptor=0.5)
-        loss += blind_non_match_loss
+    # if not (SpartanDataset.is_empty(blind_non_matches_a.data)):
+    #     blind_non_match_loss =\
+    #         pixelwise_contrastive_loss.non_match_loss_descriptor_only(image_a_pred, image_b_pred,
+    #                                                                 blind_non_matches_a, blind_non_matches_b,
+    #                                                                 M_descriptor=0.5)
+    #     loss += blind_non_match_loss
+
     return loss, match_loss, masked_non_match_loss, background_non_match_loss, blind_non_match_loss
 
 def get_different_object_loss(pixelwise_contrastive_loss, image_a_pred, image_b_pred,

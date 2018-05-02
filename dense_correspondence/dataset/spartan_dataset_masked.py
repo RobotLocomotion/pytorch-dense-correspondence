@@ -83,7 +83,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         # Case 0: Same scene, same object
         if data_load_type == SpartanDatasetDataType.SINGLE_OBJECT_WITHIN_SCENE:
             print "Same scene, same object"
-            return self.get_single_object_within_scene_data()
+            return self.get_single_object_within_scene_data(index)
 
         # Case 1: Same object, different scene
         if data_load_type == SpartanDatasetDataType.SINGLE_OBJECT_ACROSS_SCENE:
@@ -415,7 +415,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
             object_id = self.get_random_object_id()
             return self.get_random_single_object_scene_name(object_id)
 
-    def get_single_object_within_scene_data(self):
+    def get_single_object_within_scene_data(self, index):
         """
         Simple wrapper around get_within_scene_data(), for the single object case
         """
@@ -430,7 +430,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         metadata["scene_name"] = scene_name
         metadata["type"] = SpartanDatasetDataType.SINGLE_OBJECT_WITHIN_SCENE
 
-        return self.get_within_scene_data(scene_name, metadata)
+        return self.get_within_scene_data(scene_name, metadata, index)
 
     def get_multi_object_within_scene_data(self):
         """
@@ -449,7 +449,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         return self.get_within_scene_data(scene_name, metadata)
 
 
-    def get_within_scene_data(self, scene_name, metadata):
+    def get_within_scene_data(self, scene_name, metadata, index=None):
         """
         The method through which the dataset is accessed for training.
 
@@ -555,19 +555,30 @@ class SpartanDataset(DenseCorrespondenceDataset):
         image_width = image_b_shape[1]
         image_height = image_b_shape[0]
 
+
+        if index%2 == 0:
+            print "use_mask"
+            num_non_matches_per_match = self.num_masked_non_matches_per_match
+            
+        else:
+            print "don't use mask"
+            image_b_mask_torch = None
+            num_non_matches_per_match = self.num_background_non_matches_per_match
+
+
         uv_b_masked_non_matches = \
             correspondence_finder.create_non_correspondences(uv_b,
                                                              image_b_shape,
-                                                             num_non_matches_per_match=self.num_masked_non_matches_per_match,
+                                                             num_non_matches_per_match=num_non_matches_per_match,
                                                                             img_b_mask=image_b_mask_torch)
 
 
-        image_b_mask_inv = 1 - image_b_mask_torch
+        # image_b_mask_inv = 1 - image_b_mask_torch
 
-        uv_b_background_non_matches = correspondence_finder.create_non_correspondences(uv_b,
-                                                                            image_b_shape,
-                                                                            num_non_matches_per_match=self.num_background_non_matches_per_match,
-                                                                            img_b_mask=image_b_mask_inv)
+        # uv_b_background_non_matches = correspondence_finder.create_non_correspondences(uv_b,
+        #                                                                     image_b_shape,
+        #                                                                     num_non_matches_per_match=num_background_non_matches_per_match,
+        #                                                                     img_b_mask=None)
 
 
 
@@ -609,11 +620,11 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
 
         # Non-masked non-matches
-        uv_a_background_long, uv_b_background_non_matches_long = create_non_matches(uv_a, uv_b_background_non_matches,
-                                                                            self.num_background_non_matches_per_match)
+        # uv_a_background_long, uv_b_background_non_matches_long = create_non_matches(uv_a, uv_b_background_non_matches,
+        #                                                                     self.num_background_non_matches_per_match)
 
-        background_non_matches_a = SD.flatten_uv_tensor(uv_a_background_long, image_width).squeeze(1)
-        background_non_matches_b = SD.flatten_uv_tensor(uv_b_background_non_matches_long, image_width).squeeze(1)
+        # background_non_matches_a = SD.flatten_uv_tensor(uv_a_background_long, image_width).squeeze(1)
+        # background_non_matches_b = SD.flatten_uv_tensor(uv_b_background_non_matches_long, image_width).squeeze(1)
 
 
         # make blind non matches
@@ -621,7 +632,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         image_a_mask_torch = torch.from_numpy(np.asarray(image_a_mask)).long()
         mask_a_flat = image_a_mask_torch.view(-1,1).squeeze(1)
         blind_non_matches_a = (mask_a_flat - matches_a_mask).nonzero().squeeze(1)
-        num_blind_samples = blind_non_matches_a.size()[0]
+        num_blind_samples = 0
 
         if num_blind_samples > 0:
             # blind_uv_b is a tuple of torch.LongTensor
@@ -702,7 +713,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
 
 
-        return metadata["type"], image_a_rgb, image_b_rgb, matches_a, matches_b, masked_non_matches_a, masked_non_matches_b, background_non_matches_a, background_non_matches_b, blind_non_matches_a, blind_non_matches_b, metadata
+        return metadata["type"], image_a_rgb, image_b_rgb, matches_a, matches_b, masked_non_matches_a, masked_non_matches_b, SD.empty_tensor(), SD.empty_tensor(), blind_non_matches_a, blind_non_matches_b, metadata
 
     def get_single_object_across_scene_data(self):
         """

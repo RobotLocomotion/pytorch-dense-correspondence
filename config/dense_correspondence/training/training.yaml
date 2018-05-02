@@ -4,7 +4,7 @@ training:
   learning_rate_decay: 0.9
   steps_between_learning_rate_decay: 250 # decay the learning rate after this many steps
   weight_decay: 1.0e-4
-  num_iterations: 10000 # number of iterations to train for
+  num_iterations: 3500 # number of iterations to train for
   # Dataset loader config
   num_workers: 5 # num threads/workers for dataset loading
   compute_test_loss: False
@@ -16,13 +16,13 @@ training:
   batch_size: 1
   # Datset config
   domain_randomize: False
-  num_masked_non_matches_per_match: 100
-  num_background_non_matches_per_match: 50
+  num_masked_non_matches_per_match: 150
+  num_background_non_matches_per_match: 150
   cross_scene_num_samples: 10000
   use_SINGLE_OBJECT_WITHIN_SCENE: True
-  use_SINGLE_OBJECT_ACROSS_SCENE: True
-  use_DIFFERENT_OBJECT: True
-  use_MULTI_OBJECT: True
+  use_SINGLE_OBJECT_ACROSS_SCENE: False
+  use_DIFFERENT_OBJECT: False
+  use_MULTI_OBJECT: False
   # Loss function config
   loss_function: pixelwise_contrastive_loss # not currently used
   # Logging config
