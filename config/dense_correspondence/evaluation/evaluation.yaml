@@ -3,11 +3,11 @@ params:
   num_matches_per_image_pair: 100
 
 networks:
-  baymax:
-    path_to_network_params: code/data_volume/pdc/trained_models/single_objects/baymax_stable_3/003500.pth
-
-  headphones:
-    path_to_network_params: code/data_volume/pdc/trained_models/single_objects/headphones_3/003500.pth
+  10_scenes_drill:
+    path_to_network_params: code/dense_correspondence/recipes/trained_models/10_drill_long_3d_3500_steps/dense_resnet_34_8s_03500.pth
+    descriptor_dimension: 3
+    image_width: 640
+    image_height: 480
 
 dataset: [] # which dataset to use, not used for now
 
