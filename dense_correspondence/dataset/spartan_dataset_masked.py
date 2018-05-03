@@ -171,6 +171,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
                     val.append(item)
 
         self._config = dict()
+        self._config["logs_root_path"] = self.logs_root_path
         self._config["single_object"] = self._single_object_scene_dict
         self._config["multi_object"] = self._multi_object_scene_dict
 
@@ -186,6 +187,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         self._config = config_expanded
         self._single_object_scene_dict = self._config["single_object"]
         self._multi_object_scene_dict = self._config["multi_object"] 
+        self.logs_root_path = self._config["logs_root_path"]
 
     def _setup_data_load_types(self):
 
