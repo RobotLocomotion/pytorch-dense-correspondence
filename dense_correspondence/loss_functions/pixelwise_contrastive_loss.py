@@ -121,6 +121,15 @@ class PixelwiseContrastiveLoss(object):
         num_matches = matches_a.size()[0]
         matches_a_descriptors = torch.index_select(image_a_pred, 1, matches_a)
         matches_b_descriptors = torch.index_select(image_b_pred, 1, matches_b)
+
+        # crazily enough, if there is only one element to index_select into
+        # above, then the first dimension is collapsed down, and we end up 
+        # with shape [D,], where we want [1,D]
+        # this unsqueeze fixes that case
+        if len(matches_a) == 1:
+            matches_a_descriptors = matches_a_descriptors.unsqueeze(0)
+            matches_b_descriptors = matches_b_descriptors.unsqueeze(0)
+
         match_loss = 1.0 / num_matches * (matches_a_descriptors - matches_b_descriptors).pow(2).sum()
 
         return match_loss, matches_a_descriptors, matches_b_descriptors
@@ -150,6 +159,14 @@ class PixelwiseContrastiveLoss(object):
 
         non_matches_a_descriptors = torch.index_select(image_a_pred, 1, non_matches_a).squeeze()
         non_matches_b_descriptors = torch.index_select(image_b_pred, 1, non_matches_b).squeeze()
+
+        # crazily enough, if there is only one element to index_select into
+        # above, then the first dimension is collapsed down, and we end up 
+        # with shape [D,], where we want [1,D]
+        # this unsqueeze fixes that case
+        if len(non_matches_a) == 1:
+            non_matches_a_descriptors = non_matches_a_descriptors.unsqueeze(0)
+            non_matches_b_descriptors = non_matches_b_descriptors.unsqueeze(0)
 
         norm_degree = 2
         non_match_loss = (non_matches_a_descriptors - non_matches_b_descriptors).norm(norm_degree, 1)
