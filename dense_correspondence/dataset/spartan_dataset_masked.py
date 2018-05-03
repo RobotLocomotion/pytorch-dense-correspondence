@@ -567,7 +567,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         uv_b_background_non_matches = correspondence_finder.create_non_correspondences(uv_b,
                                                                             image_b_shape,
                                                                             num_non_matches_per_match=self.num_background_non_matches_per_match,
-                                                                            img_b_mask=image_b_mask_inv)
+                                                                            img_b_mask=None)
 
 
 
