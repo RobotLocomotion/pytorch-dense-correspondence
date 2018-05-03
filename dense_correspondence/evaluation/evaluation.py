@@ -244,16 +244,7 @@ class DenseCorrespondenceEvaluation(object):
 
         dataset = dcn.load_training_dataset()
 
-        if "evaluation_labeled_data_path" not in dataset.config:
-            print "Could not find labeled cross scene data for this dataset."
-            print "It needs to be set in the dataset.yaml of the folder from which"
-            print "this network is loaded from."
-            return
-
-        cross_scene_data_path = dataset.config["evaluation_labeled_data_path"]
-        home = os.path.dirname(utils.getDenseCorrespondenceSourceDir())
-        cross_scene_data_full_path = os.path.join(home, cross_scene_data_path)
-        cross_scene_data = utils.getDictFromYamlFilename(cross_scene_data_full_path)
+        cross_scene_data = DenseCorrespondenceEvaluation.parse_cross_scene_data(dataset)
         
         pd_dataframe_list = []
         for annotated_pair in cross_scene_data:
@@ -1275,14 +1266,11 @@ class DenseCorrespondenceEvaluation(object):
 
 
     @staticmethod
-    def evaluate_network_qualitative_cross_scene(dcn, dataset, draw_human_annotations=True):
+    def parse_cross_scene_data(dataset):
         """
-        This will search for the "evaluation_labeled_data_path" in the dataset.yaml,
-        and use pairs of images that have been human-labeled across scenes.
+        This takes a dataset.config, and concatenates together
+        a list of all of the cross scene data annotated pairs.
         """
-
-        dcn.eval()
-
         evaluation_labeled_data_paths = []
 
         # add the multi object list
@@ -1307,7 +1295,18 @@ class DenseCorrespondenceEvaluation(object):
             this_cross_scene_data = utils.getDictFromYamlFilename(cross_scene_data_full_path)
             cross_scene_data += this_cross_scene_data
 
-        print cross_scene_data 
+        return cross_scene_data
+
+    @staticmethod
+    def evaluate_network_qualitative_cross_scene(dcn, dataset, draw_human_annotations=True):
+        """
+        This will search for the "evaluation_labeled_data_path" in the dataset.yaml,
+        and use pairs of images that have been human-labeled across scenes.
+        """
+
+        dcn.eval()
+
+        cross_scene_data = DenseCorrespondenceEvaluation.parse_cross_scene_data(dataset)
         
         for annotated_pair in cross_scene_data:
 
