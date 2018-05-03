@@ -233,16 +233,22 @@ class DenseCorrespondenceEvaluation(object):
             df.to_csv(data_file)
 
 
+
     def evaluate_single_network_cross_scene(self, network_name, save=True):
+        """
+        Simple wrapper that uses class config and then calls static method
+        """
+        dcn = self.load_network_from_config(network_name)
+        dcn.eval()
+        dataset = dcn.load_training_dataset()
+        DenseCorrespondenceEvaluation.evaluate_network_cross_scene(dcn, dataset, save=save)
+
+    @staticmethod
+    def evaluate_network_cross_scene(dcn=None, dataset=None, save=True):
         """
         This will search for the "evaluation_labeled_data_path" in the dataset.yaml,
         and use pairs of images that have been human-labeled across scenes.
         """
-
-        dcn = self.load_network_from_config(network_name)
-        dcn.eval()
-
-        dataset = dcn.load_training_dataset()
 
         cross_scene_data = DenseCorrespondenceEvaluation.parse_cross_scene_data(dataset)
         
@@ -277,6 +283,7 @@ class DenseCorrespondenceEvaluation(object):
                 os.makedirs(output_dir)
 
             df.to_csv(data_file)
+        return df
 
 
     @staticmethod
@@ -1747,9 +1754,10 @@ class DenseCorrespondenceEvaluation(object):
         output_dir = os.path.join(model_folder, 'analysis')
         train_output_dir = os.path.join(output_dir, "train")
         test_output_dir = os.path.join(output_dir, "test")
+        cross_scene_output_dir = os.path.join(output_dir, "cross_scene")
 
         # create the necessary directories
-        for dir in [output_dir, train_output_dir, test_output_dir]:
+        for dir in [output_dir, train_output_dir, test_output_dir, cross_scene_output_dir]:
             if not os.path.isdir(dir):
                 os.makedirs(dir)
 
@@ -1772,8 +1780,6 @@ class DenseCorrespondenceEvaluation(object):
         train_csv = os.path.join(train_output_dir, "data.csv")
         df.to_csv(train_csv)
 
-
-
         logging.info("Evaluating network on test data")
         dataset.set_test_mode()
         pd_dataframe_list, df = DCE.evaluate_network(dcn, dataset, num_image_pairs=num_image_pairs,
@@ -1783,16 +1789,20 @@ class DenseCorrespondenceEvaluation(object):
         df.to_csv(test_csv)
 
 
+        logging.info("Evaluating network on cross scene data")
+        df = DCE.evaluate_network_cross_scene(dcn=dcn, dataset=dataset, save=False)
+        cross_scene_csv = os.path.join(cross_scene_output_dir, "data.csv")
+        df.to_csv(cross_scene_csv)
+
         logging.info("Making plots")
         DCEP = DenseCorrespondenceEvaluationPlotter
         fig_axes = DCEP.run_on_single_dataframe(train_csv, label="train", save=False)
-
         fig_axes = DCEP.run_on_single_dataframe(test_csv, label="test", save=False, previous_fig_axes=fig_axes)
+        fig_axes = DCEP.run_on_single_dataframe(cross_scene_csv, label="cross_scene", save=False, previous_fig_axes=fig_axes)
 
         fig, _ = fig_axes        
         save_fig_file = os.path.join(output_dir, "quant_plots.png")
         fig.savefig(save_fig_file)
-
 
         logging.info("Finished running evaluation on network")
 
