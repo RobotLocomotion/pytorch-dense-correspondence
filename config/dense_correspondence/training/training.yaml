@@ -39,7 +39,11 @@ dense_correspondence_network:
 loss_function:
   M_descriptor: 0.5 # margin for non-match desciptor distance
   M_pixel: 50 # Clamp for pixel distance
-  non_match_loss_weight: 1.0
-  use_l2_pixel_loss: True
+  match_loss_weight: 1.0
+  masked_non_match_loss_weight: 0.5
+  background_non_match_loss_weight: 0.5
+  blind_non_match_loss_weight: 0.0
+  use_l2_pixel_loss_on_masked_non_matches: True
+  use_l2_pixel_loss_on_background_non_matches: True
   scale_by_hard_negatives: True
 

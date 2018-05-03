@@ -60,43 +60,38 @@ def get_within_scene_loss(pixelwise_contrastive_loss, image_a_pred, image_b_pred
     """
     Simple wrapper for pixelwise_contrastive_loss functions.  Args and return args documented above in get_loss()
     """
+    pcl = pixelwise_contrastive_loss
 
     _, match_loss, masked_non_match_loss =\
         pixelwise_contrastive_loss.get_loss_matched_and_non_matched_with_l2(image_a_pred,         image_b_pred,
                                                                           matches_a,            matches_b,
                                                                           masked_non_matches_a, masked_non_matches_b)
 
-    # background_non_match_loss =\
-    #     pixelwise_contrastive_loss.non_match_loss_descriptor_only(image_a_pred, image_b_pred,
-    #                                                             background_non_matches_a, background_non_matches_b,
-    #                                                             M_descriptor=0.5)
-    
-
-
-    background_non_match_loss =\
-        pixelwise_contrastive_loss.non_match_loss_with_l2_pixel_norm(image_a_pred, image_b_pred, matches_b, background_non_matches_a, background_non_matches_b)    
-    
-
-    num_masked_non_matches = len(masked_non_matches_a)
-    num_background_non_matches = len(background_non_matches_a)
-    total_num_non_matches = num_masked_non_matches + num_background_non_matches
-
-    weight_masked = num_masked_non_matches*1.0/total_num_non_matches
-    weight_background = num_background_non_matches*1.0/total_num_non_matches
+    if pcl._config["use_l2_pixel_loss_on_background_non_matches"]:
+        background_non_match_loss =\
+            pixelwise_contrastive_loss.non_match_loss_with_l2_pixel_norm(image_a_pred, image_b_pred, matches_b, background_non_matches_a, background_non_matches_b)    
         
-    loss = match_loss + \
-    pixelwise_contrastive_loss._config["non_match_loss_weight"] * \
-    (weight_masked *  masked_non_match_loss + weight_background * background_non_match_loss)
-    
-
+    else:
+        background_non_match_loss =\
+            pixelwise_contrastive_loss.non_match_loss_descriptor_only(image_a_pred, image_b_pred,
+                                                                    background_non_matches_a, background_non_matches_b,
+                                                                    M_descriptor=0.5)
+        
+        
 
     blind_non_match_loss = zero_loss()
-    # if not (SpartanDataset.is_empty(blind_non_matches_a.data)):
-    #     blind_non_match_loss =\
-    #         pixelwise_contrastive_loss.non_match_loss_descriptor_only(image_a_pred, image_b_pred,
-    #                                                                 blind_non_matches_a, blind_non_matches_b,
-    #                                                                 M_descriptor=0.5)
-    #     loss += blind_non_match_loss
+    if not (SpartanDataset.is_empty(blind_non_matches_a.data)):
+        blind_non_match_loss =\
+            pixelwise_contrastive_loss.non_match_loss_descriptor_only(image_a_pred, image_b_pred,
+                                                                    blind_non_matches_a, blind_non_matches_b,
+                                                                    M_descriptor=0.5)
+        
+        
+    loss = pcl._config["match_loss_weight"] * match_loss + \
+    pcl._config["masked_non_match_loss_weight"] * masked_non_match_loss + \
+    pcl._config["background_non_match_loss_weight"] * background_non_match_loss +\
+    pcl._config["blind_non_match_loss_weight"] * blind_non_match_loss
+    
 
     return loss, match_loss, masked_non_match_loss, background_non_match_loss, blind_non_match_loss
 
