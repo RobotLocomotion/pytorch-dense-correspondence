@@ -290,7 +290,7 @@ class DenseCorrespondenceNetwork(nn.Module):
         network_params_folder = utils.convert_to_absolute_path(network_params_folder)
         dataset_config_file = os.path.join(network_params_folder, 'dataset.yaml')
         config = utils.getDictFromYamlFilename(dataset_config_file)
-        return SpartanDataset(config=config)
+        return SpartanDataset(config_expanded=config)
 
     @staticmethod
     def from_config(config, load_stored_params=True):
