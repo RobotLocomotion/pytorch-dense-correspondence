@@ -26,7 +26,7 @@ See the notebook `evaluation_quantitative.ipynb` for example usage. The main cla
 
 ##### Across Scene
 
-In order to evaluate our performance across scenes we need pixelwise matches that go across scenes. This is not something that our data collection pipeline can do automatically, so there is some human labeling involved here. Use the [cross scene match annotation tool](cross_scene_annotation_tool.md) to generate some labeled data. Then see the notebook `evaluation_quantitative_cross_scene.ipynb` for how to use the cross scene evaluation functionality. The main function in `DenseCorrespondenceEvaluation` is `evaluate_single_network_cross_scene`. The main steps in that function call are exactly the same as the **within scene** evaluation above, except that the matches come from manual annotations rather than our camera pose tracking.
+In order to evaluate our performance across scenes we need pixelwise matches that go across scenes. This is not something that our data collection pipeline can do automatically, so there is some human labeling involved here. Use the [cross scene annotation tool](../modules/simple-pixel-correspondence-labeler/README.md) to generate some labeled data. Then see the notebook `evaluation_quantitative_cross_scene.ipynb` for how to use the cross scene evaluation functionality. The main function in `DenseCorrespondenceEvaluation` is `evaluate_single_network_cross_scene`. The main steps in that function call are exactly the same as the **within scene** evaluation above, except that the matches come from manual annotations rather than our camera pose tracking.
 
 ### 2. DenseCorrespondenceEvaluationPlotter
 
