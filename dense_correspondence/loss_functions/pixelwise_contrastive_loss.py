@@ -1,7 +1,5 @@
 import torch
 from torch.autograd import Variable
-from decimal import Decimal
-
 
 
 class PixelwiseContrastiveLoss(object):
@@ -11,10 +9,8 @@ class PixelwiseContrastiveLoss(object):
         self.image_width  = image_shape[1]
         self.image_height = image_shape[0]
 
-        if config is None:
-            self.load_default_config()
-        else:
-            self._config = config
+        assert config is not None
+        self._config = config
 
         self._debug_data = dict()
 
@@ -32,15 +28,7 @@ class PixelwiseContrastiveLoss(object):
     def debug_data(self):
         return self._debug_data
 
-    def load_default_config(self):
-        self._config = dict()
-        self._config['M_descriptor'] = 0.5
-        self._config['M_pixel'] = 100 # 100 pixel threshold, squared
-        self._config['non_match_loss_weight'] = 1.0
-        self._config['use_l2_pixel_loss'] = False
-        self._config['scale_by_hard_negatives'] = True
-
-    def get_loss(self, image_a_pred, image_b_pred, matches_a, matches_b, non_matches_a, non_matches_b,
+    def get_loss_matched_and_non_matched_with_l2(self, image_a_pred, image_b_pred, matches_a, matches_b, non_matches_a, non_matches_b,
                  M_descriptor=None, M_pixel=None, non_match_loss_weight=1.0, use_l2_pixel_loss=None):
         """
         Computes the loss function
@@ -85,11 +73,9 @@ class PixelwiseContrastiveLoss(object):
         if M_pixel is None:
             M_pixel = self._config["M_pixel"]
 
-        if non_match_loss_weight is None:
-            non_match_loss_weight = self._config["non_match_loss_weight"]
 
         if use_l2_pixel_loss is None:
-            use_l2_pixel_loss = self._config['use_l2_pixel_loss']
+            use_l2_pixel_loss = self._config['use_l2_pixel_loss_on_masked_non_matches']
 
 
         match_loss, _, _ = PCL.match_loss(image_a_pred, image_b_pred, matches_a, matches_b)
@@ -107,9 +93,8 @@ class PixelwiseContrastiveLoss(object):
             non_match_loss = self.non_match_loss_descriptor_only(image_a_pred, image_b_pred, non_matches_a, non_matches_b, M_descriptor=M_descriptor)
 
 
-        loss = match_loss + non_match_loss_weight * non_match_loss
 
-        return loss, match_loss, non_match_loss
+        return match_loss, non_match_loss
 
     @staticmethod
     def match_loss(image_a_pred, image_b_pred, matches_a, matches_b):
@@ -142,9 +127,12 @@ class PixelwiseContrastiveLoss(object):
 
 
     @staticmethod
-    def non_match_descriptor_loss(image_a_pred, image_b_pred, non_matches_a, non_matches_b, M=0.5):
+    def non_match_descriptor_loss(image_a_pred, image_b_pred, non_matches_a, non_matches_b, M=0.5, invert=False):
         """
         Computes the max(0, M - D(I_a,I_b,u_a,u_b))^2 term
+
+        This is effectively:       "a and b should be AT LEAST M away from each other"
+        With invert=True, this is: "a and b should be AT MOST  M away from each other" 
 
          :param image_a_pred: Output of DCN network on image A.
         :type image_a_pred: torch.Variable(torch.FloatTensor) shape [1, W * H, D]
@@ -160,14 +148,15 @@ class PixelwiseContrastiveLoss(object):
         :rtype:
         """
 
-
-
         non_matches_a_descriptors = torch.index_select(image_a_pred, 1, non_matches_a).squeeze()
         non_matches_b_descriptors = torch.index_select(image_b_pred, 1, non_matches_b).squeeze()
 
         norm_degree = 2
         non_match_loss = (non_matches_a_descriptors - non_matches_b_descriptors).norm(norm_degree, 1)
-        non_match_loss = torch.clamp(M - non_match_loss.pow(2), min=0)
+        if not invert:
+            non_match_loss = torch.clamp(M - non_match_loss.pow(2), min=0)
+        else:
+            non_match_loss = torch.clamp(non_match_loss.pow(2) - M, min=0)
 
         hard_negative_idxs = torch.nonzero(non_match_loss)
         num_hard_negatives = len(hard_negative_idxs)
@@ -235,7 +224,7 @@ class PixelwiseContrastiveLoss(object):
 
         return non_match_loss
 
-    def non_match_loss_descriptor_only(self, image_a_pred, image_b_pred, non_matches_a, non_matches_b, M_descriptor=0.5):
+    def non_match_loss_descriptor_only(self, image_a_pred, image_b_pred, non_matches_a, non_matches_b, M_descriptor=0.5, invert=False):
         """
         Computes the non-match loss, only using the desciptor norm
         :param image_a_pred:
@@ -257,7 +246,7 @@ class PixelwiseContrastiveLoss(object):
             M_descriptor = self._config["M_descriptor"]
 
         non_match_loss_vec, num_hard_negatives, _, _ = PCL.non_match_descriptor_loss(image_a_pred, image_b_pred, non_matches_a,
-                                                                 non_matches_b, M=M_descriptor)
+                                                                 non_matches_b, M=M_descriptor, invert=invert)
 
         num_non_matches = long(non_match_loss_vec.size()[0])
 
@@ -274,7 +263,6 @@ class PixelwiseContrastiveLoss(object):
         if self._debug:
             self._debug_data['num_hard_negatives'] = num_hard_negatives
             self._debug_data['fraction_hard_negatives'] = num_hard_negatives * 1.0/num_non_matches
-
 
         return non_match_loss
 
