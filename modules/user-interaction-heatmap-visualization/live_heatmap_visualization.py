@@ -26,7 +26,7 @@ utils.set_cuda_visible_devices([0])
 dce = DenseCorrespondenceEvaluation(eval_config)
 dcn = dce.load_network_from_config("caterpillar_image_normalization")
 
-annotated_data_yaml_filename = "/home/peteflo/code/modules/simple-pixel-correspondence-labeler/saved_annotated_data/complete_merged_data.yaml"
+annotated_data_yaml_filename = "/home/peteflo/code/data_volume/pdc/evaluation_labeled_data/caterpillar_cross_scene_labels.yaml"
 annotated_data = utils.getDictFromYamlFilename(annotated_data_yaml_filename)
 
 index_of_pair_to_display = 0
