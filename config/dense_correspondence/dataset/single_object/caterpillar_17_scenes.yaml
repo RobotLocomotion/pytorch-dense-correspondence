@@ -24,4 +24,5 @@ test:
 - "2018-04-16-14-46-36"
 - "2018-04-16-17-35-21"
 
-evaluation_labeled_data_path: code/data_volume/pdc/evaluation_labeled_data/caterpillar_cross_scene_labels.yaml
+evaluation_labeled_data_path: 
+- "code/data_volume/pdc/evaluation_labeled_data/caterpillar_cross_scene_labels.yaml"

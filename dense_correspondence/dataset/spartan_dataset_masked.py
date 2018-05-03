@@ -31,9 +31,30 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
     PADDED_STRING_WIDTH = 6
 
-    def __init__(self, debug=False, mode="train", config=None):
+    def __init__(self, debug=False, mode="train", config=None, config_expanded=None):
+        """
+        :param config: This is for creating a dataset from a composite dataset config file.
+            This is of the form:
 
-        assert config is not None
+                logs_root_path: code/data_volume/pdc/logs_proto
+
+                single_object_scenes_config_files:
+                - caterpillar_17_scenes.yaml
+                - baymax.yaml
+
+                multi_object_scenes_config_files:
+                - multi_object.yaml
+
+        :type config: dict()
+
+        :param config_expanded: When a config is read, it is parsed into an expanded form
+            which is actually used as self._config.  See the function _setup_scene_data()
+            for how this is done.  We want to save this expanded config to disk as it contains
+            all config information.  If loading a previously-used dataset configuration, we want
+            to pass in the config_expanded.
+        :type config_expanded: dict() 
+        """
+
         DenseCorrespondenceDataset.__init__(self, debug=debug)
 
         # Otherwise, all of these parameters should be set in
@@ -49,8 +70,13 @@ class SpartanDataset(DenseCorrespondenceDataset):
             self.num_background_non_matches_per_match = 5
             self.cross_scene_num_samples = 1000
 
-        self._config = config
-        self._setup_scene_data()
+        if config is not None:
+            self._setup_scene_data(config)
+        elif config_expanded is not None:
+            self._parse_expanded_config(config_expanded)
+        else:
+            raise ValueError("You need to give me either a config or config_expanded")
+
         self._pose_data = dict()
         self._initialize_rgb_image_to_tensor()
 
@@ -101,7 +127,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
             return self.get_multi_object_within_scene_data()
 
 
-    def _setup_scene_data(self):
+    def _setup_scene_data(self, config):
         """
         Initializes the data for all the different types of scenes
 
@@ -119,14 +145,14 @@ class SpartanDataset(DenseCorrespondenceDataset):
         Note that the scenes have absolute paths here
         """
 
-        self.logs_root_path = utils.convert_to_absolute_path(self._config['logs_root_path'])
+        self.logs_root_path = utils.convert_to_absolute_path(config['logs_root_path'])
 
         self._single_object_scene_dict = dict()
 
         prefix = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence',
                                        'dataset')
 
-        for config_file in self.config["single_object_scenes_config_files"]:
+        for config_file in config["single_object_scenes_config_files"]:
             config_file = os.path.join(prefix, 'single_object', config_file)
             single_object_scene_config = utils.getDictFromYamlFilename(config_file)
             object_id = single_object_scene_config["object_id"]
@@ -134,18 +160,32 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
         # will have test and train entries
         # each one is a list of scenes
-        self._multi_object_scene_dict = {"train": [], "test": []}
+        self._multi_object_scene_dict = {"train": [], "test": [], "evaluation_labeled_data_path": []}
 
-
-        for config_file in self.config["multi_object_scenes_config_files"]:
+        for config_file in config["multi_object_scenes_config_files"]:
             config_file = os.path.join(prefix, 'multi_object', config_file)
             multi_object_scene_config = utils.getDictFromYamlFilename(config_file)
 
-            for key, scene_list in self._multi_object_scene_dict.iteritems():
-                for scene_name in multi_object_scene_config[key]:
-                    scene_list.append(scene_name)
+            for key, val in self._multi_object_scene_dict.iteritems():
+                for item in multi_object_scene_config[key]:
+                    val.append(item)
+
+        self._config = dict()
+        self._config["single_object"] = self._single_object_scene_dict
+        self._config["multi_object"] = self._multi_object_scene_dict
 
         self._setup_data_load_types()
+
+    def _parse_expanded_config(self, config_expanded):
+        """
+        If we have previously saved to disk a dict with:
+        "single_object", and
+        "multi_object" keys, 
+        then we want to recreate a config from these.
+        """
+        self._config = config_expanded
+        self._single_object_scene_dict = self._config["single_object"]
+        self._multi_object_scene_dict = self._config["multi_object"] 
 
     def _setup_data_load_types(self):
 
