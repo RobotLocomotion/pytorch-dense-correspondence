@@ -533,7 +533,9 @@ class DenseCorrespondenceDataset(data.Dataset):
 
         self.num_masked_non_matches_per_match     = training_config['training']["num_masked_non_matches_per_match"] 
         self.num_background_non_matches_per_match = training_config['training']["num_background_non_matches_per_match"] 
-        self.cross_scene_num_samples              = training_config['training']["cross_scene_num_samples"] 
+        self.cross_scene_num_samples              = training_config['training']["cross_scene_num_samples"]
+
+        self._use_image_b_mask_inv = training_config["training"]["use_image_b_mask_inv"] 
 
         from spartan_dataset_masked import SpartanDatasetDataType
 
