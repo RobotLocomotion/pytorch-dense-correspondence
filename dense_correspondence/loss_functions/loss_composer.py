@@ -62,7 +62,7 @@ def get_within_scene_loss(pixelwise_contrastive_loss, image_a_pred, image_b_pred
     """
     pcl = pixelwise_contrastive_loss
 
-    _, match_loss, masked_non_match_loss =\
+    match_loss, masked_non_match_loss =\
         pixelwise_contrastive_loss.get_loss_matched_and_non_matched_with_l2(image_a_pred,         image_b_pred,
                                                                           matches_a,            matches_b,
                                                                           masked_non_matches_a, masked_non_matches_b)

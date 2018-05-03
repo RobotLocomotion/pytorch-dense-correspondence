@@ -73,11 +73,9 @@ class PixelwiseContrastiveLoss(object):
         if M_pixel is None:
             M_pixel = self._config["M_pixel"]
 
-        if non_match_loss_weight is None:
-            non_match_loss_weight = self._config["non_match_loss_weight"]
 
         if use_l2_pixel_loss is None:
-            use_l2_pixel_loss = self._config['use_l2_pixel_loss']
+            use_l2_pixel_loss = self._config['use_l2_pixel_loss_on_masked_non_matches']
 
 
         match_loss, _, _ = PCL.match_loss(image_a_pred, image_b_pred, matches_a, matches_b)
@@ -95,9 +93,8 @@ class PixelwiseContrastiveLoss(object):
             non_match_loss = self.non_match_loss_descriptor_only(image_a_pred, image_b_pred, non_matches_a, non_matches_b, M_descriptor=M_descriptor)
 
 
-        loss = match_loss + non_match_loss_weight * non_match_loss
 
-        return loss, match_loss, non_match_loss
+        return match_loss, non_match_loss
 
     @staticmethod
     def match_loss(image_a_pred, image_b_pred, matches_a, matches_b):
