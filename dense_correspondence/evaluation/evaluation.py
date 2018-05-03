@@ -1283,16 +1283,31 @@ class DenseCorrespondenceEvaluation(object):
 
         dcn.eval()
 
-        if "evaluation_labeled_data_path" not in dataset.config:
+        evaluation_labeled_data_paths = []
+
+        # add the multi object list
+        evaluation_labeled_data_paths += dataset.config["multi_object"]["evaluation_labeled_data_path"]
+        
+        # add all of the single object lists
+        for object_key, val in dataset.config["single_object"].iteritems():
+            if "evaluation_labeled_data_path" in val:
+                evaluation_labeled_data_paths += val["evaluation_labeled_data_path"]
+
+        if len(evaluation_labeled_data_paths) == 0:
             print "Could not find labeled cross scene data for this dataset."
             print "It needs to be set in the dataset.yaml of the folder from which"
             print "this network is loaded from."
             return
 
-        cross_scene_data_path = dataset.config["evaluation_labeled_data_path"]
+        cross_scene_data = []
+
         home = os.path.dirname(utils.getDenseCorrespondenceSourceDir())
-        cross_scene_data_full_path = os.path.join(home, cross_scene_data_path)
-        cross_scene_data = utils.getDictFromYamlFilename(cross_scene_data_full_path)
+        for i in evaluation_labeled_data_paths:
+            cross_scene_data_full_path = os.path.join(home, i)
+            this_cross_scene_data = utils.getDictFromYamlFilename(cross_scene_data_full_path)
+            cross_scene_data += this_cross_scene_data
+
+        print cross_scene_data 
         
         for annotated_pair in cross_scene_data:
 
