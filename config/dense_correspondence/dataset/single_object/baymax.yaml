@@ -12,3 +12,5 @@ train:
 test:
 - "2018-04-24-17-40-34"
 - "2018-04-24-17-42-27"
+evaluation_labeled_data_path: 
+- "code/data_volume/pdc/evaluation_labeled_data/baymax_cross_scene_labels.yaml"
