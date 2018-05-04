@@ -1943,7 +1943,7 @@ class DenseCorrespondenceEvaluation(object):
         df.to_csv(cross_scene_csv)
 
 
-        ### DETECT IF CAN DO ADCROSS OBJECT
+        # only do across object analysis if have multiple single objects
         if dataset.get_number_of_unique_single_objects() > 1:
             across_object_output_dir = os.path.join(output_dir, "across_object")
             if not os.path.isdir(across_object_output_dir):
