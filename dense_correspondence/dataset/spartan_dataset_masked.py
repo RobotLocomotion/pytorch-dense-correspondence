@@ -604,12 +604,15 @@ class SpartanDataset(DenseCorrespondenceDataset):
                                                                             img_b_mask=image_b_mask_torch)
 
 
-        image_b_mask_inv = 1 - image_b_mask_torch
+        if self._use_image_b_mask_inv:
+            image_b_mask_inv = 1 - image_b_mask_torch
+        else:
+            image_b_mask_inv = None
 
         uv_b_background_non_matches = correspondence_finder.create_non_correspondences(uv_b,
                                                                             image_b_shape,
                                                                             num_non_matches_per_match=self.num_background_non_matches_per_match,
-                                                                            img_b_mask=None)
+                                                                            img_b_mask=image_b_mask_inv)
 
 
 
@@ -662,20 +665,38 @@ class SpartanDataset(DenseCorrespondenceDataset):
         matches_a_mask = SD.mask_image_from_uv_flat_tensor(matches_a, image_width, image_height)
         image_a_mask_torch = torch.from_numpy(np.asarray(image_a_mask)).long()
         mask_a_flat = image_a_mask_torch.view(-1,1).squeeze(1)
-        blind_non_matches_a = (mask_a_flat - matches_a_mask).nonzero().squeeze(1)
-        num_blind_samples = blind_non_matches_a.size()[0]
+        blind_non_matches_a = (mask_a_flat - matches_a_mask).nonzero()
 
-        if num_blind_samples > 0:
-            # blind_uv_b is a tuple of torch.LongTensor
-            # make sure we check that blind_uv_b is non-empty
-            blind_uv_b = correspondence_finder.random_sample_from_masked_image_torch(image_b_mask_torch, num_blind_samples)
-
-            if len(blind_uv_b[0]) == 0:
-                blind_non_matches_a = blind_non_matches_b = SD.empty_tensor()
-            else:    
-                blind_non_matches_b = utils.uv_to_flattened_pixel_locations(blind_uv_b, image_width)
+        no_blind_matches_found = False
+        if len(blind_non_matches_a) == 0:
+            no_blind_matches_found = True
         else:
+
+            blind_non_matches_a = blind_non_matches_a.squeeze(1)
+            num_blind_samples = blind_non_matches_a.size()[0]
+
+            if num_blind_samples > 0:
+                # blind_uv_b is a tuple of torch.LongTensor
+                # make sure we check that blind_uv_b is not None and that it is non-empty
+                
+
+                blind_uv_b = correspondence_finder.random_sample_from_masked_image_torch(image_b_mask_torch, num_blind_samples)
+
+                if blind_uv_b[0] is None:
+                    no_blind_matches_found = True
+                elif len(blind_uv_b[0]) == 0:
+                    no_blind_matches_found = True
+                else:    
+                    blind_non_matches_b = utils.uv_to_flattened_pixel_locations(blind_uv_b, image_width)
+
+                    if len(blind_non_matches_b) == 0:
+                        no_blind_matches_found = True
+            else:
+                no_blind_matches_found = True
+
+        if no_blind_matches_found:
             blind_non_matches_a = blind_non_matches_b = SD.empty_tensor()
+                
 
         if self.debug:
             # downsample so can plot

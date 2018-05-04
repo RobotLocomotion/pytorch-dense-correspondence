@@ -83,18 +83,18 @@ class PixelwiseContrastiveLoss(object):
 
 
         if use_l2_pixel_loss:
-            non_match_loss =\
+            non_match_loss, num_hard_negatives =\
                 self.non_match_loss_with_l2_pixel_norm(image_a_pred, image_b_pred, matches_b,
                                                        non_matches_a, non_matches_b,
                                                        M_descriptor=M_descriptor,
                                                        M_pixel=M_pixel)
         else:
             # version with no l2 pixel term
-            non_match_loss = self.non_match_loss_descriptor_only(image_a_pred, image_b_pred, non_matches_a, non_matches_b, M_descriptor=M_descriptor)
+            non_match_loss, num_hard_negatives = self.non_match_loss_descriptor_only(image_a_pred, image_b_pred, non_matches_a, non_matches_b, M_descriptor=M_descriptor)
 
 
 
-        return match_loss, non_match_loss
+        return match_loss, non_match_loss, num_hard_negatives
 
     @staticmethod
     def match_loss(image_a_pred, image_b_pred, matches_a, matches_b):
@@ -121,6 +121,15 @@ class PixelwiseContrastiveLoss(object):
         num_matches = matches_a.size()[0]
         matches_a_descriptors = torch.index_select(image_a_pred, 1, matches_a)
         matches_b_descriptors = torch.index_select(image_b_pred, 1, matches_b)
+
+        # crazily enough, if there is only one element to index_select into
+        # above, then the first dimension is collapsed down, and we end up 
+        # with shape [D,], where we want [1,D]
+        # this unsqueeze fixes that case
+        if len(matches_a) == 1:
+            matches_a_descriptors = matches_a_descriptors.unsqueeze(0)
+            matches_b_descriptors = matches_b_descriptors.unsqueeze(0)
+
         match_loss = 1.0 / num_matches * (matches_a_descriptors - matches_b_descriptors).pow(2).sum()
 
         return match_loss, matches_a_descriptors, matches_b_descriptors
@@ -150,6 +159,14 @@ class PixelwiseContrastiveLoss(object):
 
         non_matches_a_descriptors = torch.index_select(image_a_pred, 1, non_matches_a).squeeze()
         non_matches_b_descriptors = torch.index_select(image_b_pred, 1, non_matches_b).squeeze()
+
+        # crazily enough, if there is only one element to index_select into
+        # above, then the first dimension is collapsed down, and we end up 
+        # with shape [D,], where we want [1,D]
+        # this unsqueeze fixes that case
+        if len(non_matches_a) == 1:
+            non_matches_a_descriptors = non_matches_a_descriptors.unsqueeze(0)
+            non_matches_b_descriptors = non_matches_b_descriptors.unsqueeze(0)
 
         norm_degree = 2
         non_match_loss = (non_matches_a_descriptors - non_matches_b_descriptors).norm(norm_degree, 1)
@@ -189,8 +206,8 @@ class PixelwiseContrastiveLoss(object):
         :type M_descriptor: float
         :param M_pixel: margin for pixel loss term
         :type M_pixel: float
-        :return:
-        :rtype:
+        :return: non_match_loss, num_hard_negatives
+        :rtype: torch.Variable, int
         """
 
         if M_descriptor is None:
@@ -207,22 +224,17 @@ class PixelwiseContrastiveLoss(object):
 
         non_match_pixel_l2_loss, _, _ = self.l2_pixel_loss(matches_b, non_matches_b, M_pixel=M_pixel)
 
-        if self._config['scale_by_hard_negatives']:
-            scale_factor = num_hard_negatives
-        else:
-            scale_factor = num_non_matches
 
-        # make sure the scale factor is not zero
-        scale_factor = max(scale_factor, 1)
 
-        non_match_loss = 1.0/scale_factor * (non_match_descriptor_loss * non_match_pixel_l2_loss).sum()
+
+        non_match_loss = (non_match_descriptor_loss * non_match_pixel_l2_loss).sum()
 
         if self.debug:
             self._debug_data['num_hard_negatives'] = num_hard_negatives
             self._debug_data['fraction_hard_negatives'] = num_hard_negatives * 1.0/num_non_matches
 
 
-        return non_match_loss
+        return non_match_loss, num_hard_negatives
 
     def non_match_loss_descriptor_only(self, image_a_pred, image_b_pred, non_matches_a, non_matches_b, M_descriptor=0.5, invert=False):
         """
@@ -237,8 +249,8 @@ class PixelwiseContrastiveLoss(object):
         :type non_matches_b:
         :param M:
         :type M:
-        :return:
-        :rtype:
+        :return: non_match_loss, num_hard_negatives
+        :rtype: torch.Variable, int
         """
         PCL = PixelwiseContrastiveLoss
 
@@ -250,21 +262,14 @@ class PixelwiseContrastiveLoss(object):
 
         num_non_matches = long(non_match_loss_vec.size()[0])
 
-        if self._config['scale_by_hard_negatives']:
-            scale_factor = num_hard_negatives
-        else:
-            scale_factor = num_non_matches
 
-        # make sure the scale factor is not zero
-        scale_factor = max(scale_factor, 1)
-
-        non_match_loss = 1.0 / scale_factor * non_match_loss_vec.sum()
+        non_match_loss = non_match_loss_vec.sum()
 
         if self._debug:
             self._debug_data['num_hard_negatives'] = num_hard_negatives
             self._debug_data['fraction_hard_negatives'] = num_hard_negatives * 1.0/num_non_matches
 
-        return non_match_loss
+        return non_match_loss, num_hard_negatives
 
 
     def l2_pixel_loss(self, matches_b, non_matches_b, M_pixel=None):
