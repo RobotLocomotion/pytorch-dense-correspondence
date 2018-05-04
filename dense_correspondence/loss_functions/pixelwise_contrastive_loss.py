@@ -43,7 +43,7 @@ class PixelwiseContrastiveLoss(object):
 
 
         match_loss = 1/num_matches \sum_{num_matches} ||descriptor_a - descriptor_b||_2^2
-        non_match_loss = 1/num_non_matches \sum_{num_non_matches} max(0, M_margin - ||descriptor_a - descriptor_b||_2^2 )
+        non_match_loss = 1/num_non_matches \sum_{num_non_matches} max(0, M_margin - ||descriptor_a - descriptor_b||_2)^2
 
         loss = match_loss + non_match_loss
 
@@ -171,9 +171,9 @@ class PixelwiseContrastiveLoss(object):
         norm_degree = 2
         non_match_loss = (non_matches_a_descriptors - non_matches_b_descriptors).norm(norm_degree, 1)
         if not invert:
-            non_match_loss = torch.clamp(M - non_match_loss.pow(2), min=0)
+            non_match_loss = torch.clamp(M - non_match_loss, min=0).pow(2)
         else:
-            non_match_loss = torch.clamp(non_match_loss.pow(2) - M, min=0)
+            non_match_loss = torch.clamp(non_match_loss - M, min=0).pow(2)
 
         hard_negative_idxs = torch.nonzero(non_match_loss)
         num_hard_negatives = len(hard_negative_idxs)
