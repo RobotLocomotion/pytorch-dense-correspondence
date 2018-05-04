@@ -1943,16 +1943,6 @@ class DenseCorrespondenceEvaluation(object):
         df.to_csv(cross_scene_csv)
 
 
-        # only do across object analysis if have multiple single objects
-        if dataset.get_number_of_unique_single_objects() > 1:
-            across_object_output_dir = os.path.join(output_dir, "across_object")
-            if not os.path.isdir(across_object_output_dir):
-                os.makedirs(across_object_output_dir)
-            logging.info("Evaluating network on across object data")
-            df = DCE.evaluate_network_across_objects(dcn=dcn, dataset=dataset, save=False)
-            across_object_csv = os.path.join(across_object_output_dir, "data.csv")
-            df.to_csv(across_object_csv)
-
         logging.info("Making plots")
         DCEP = DenseCorrespondenceEvaluationPlotter
         fig_axes = DCEP.run_on_single_dataframe(train_csv, label="train", save=False)
@@ -1962,6 +1952,18 @@ class DenseCorrespondenceEvaluation(object):
         fig, _ = fig_axes        
         save_fig_file = os.path.join(output_dir, "quant_plots.png")
         fig.savefig(save_fig_file)
+
+        # only do across object analysis if have multiple single objects
+        if dataset.get_number_of_unique_single_objects() > 1:
+            across_object_output_dir = os.path.join(output_dir, "across_object")
+            if not os.path.isdir(across_object_output_dir):
+                os.makedirs(across_object_output_dir)
+            logging.info("Evaluating network on across object data")
+            df = DCE.evaluate_network_across_objects(dcn=dcn, dataset=dataset)
+            across_object_csv = os.path.join(across_object_output_dir, "data.csv")
+            df.to_csv(across_object_csv)
+            DCEP.run_on_single_dataframe_across_objects(across_object_csv, label="cross_scene", save=True)
+
 
         logging.info("Finished running evaluation on network")
 
@@ -2055,6 +2057,25 @@ class DenseCorrespondenceEvaluationPlotter(object):
         plot = DCEP.make_cdf_plot(ax, data, num_bins=num_bins, label=label)
         ax.set_xlabel('Pixel match error, L2 (pixel distance)')
         ax.set_ylabel('Fraction of images')
+        return plot
+
+    @staticmethod
+    def make_across_object_best_match_plot(ax, df, label=None, num_bins=100):
+        """
+        :param ax: axis of a matplotlib plot to plot on
+        :param df: pandas dataframe, i.e. generated from quantitative 
+        :param num_bins:
+        :type num_bins:
+        :return:
+        :rtype:
+        """
+        DCEP = DenseCorrespondenceEvaluationPlotter
+
+        data = df['norm_diff_descriptor_best_match']
+
+        plot = DCEP.make_cdf_plot(ax, data, num_bins=num_bins, label=label)
+        ax.set_xlabel('Best descriptor match, L2 norm')
+        ax.set_ylabel('Fraction of pixel samples from images')
         return plot
 
     @staticmethod
@@ -2237,6 +2258,41 @@ class DenseCorrespondenceEvaluationPlotter(object):
         yaml_file = os.path.join(output_dir, 'stats.yaml')
         utils.saveToYaml(d, yaml_file)
         return [fig, axes]
+
+    @staticmethod
+    def run_on_single_dataframe_across_objects(path_to_df_csv, label=None, output_dir=None, save=True, previous_fig_axes=None):
+        """
+        This method is intended to be called from an ipython notebook for plotting.
+
+        See run_on_single_dataframe() for documentation.
+
+        The only difference is that for this one, we only have across object data. 
+        """
+        DCEP = DenseCorrespondenceEvaluationPlotter
+
+        path_to_csv = utils.convert_to_absolute_path(path_to_df_csv)
+
+        if output_dir is None:
+            output_dir = os.path.dirname(path_to_csv)
+
+        df = pd.read_csv(path_to_csv, index_col=0, parse_dates=True)
+
+        if previous_fig_axes==None:
+            N = 1
+            fig, ax = plt.subplots(N, figsize=(10,N*5))
+        else:
+            [fig, ax] = previous_fig_axes
+        
+        
+        # pixel match error
+        plot = DCEP.make_across_object_best_match_plot(ax, df, label=label)
+        ax.legend()
+       
+        if save:
+            fig_file = os.path.join(output_dir, "across_objects.png")
+            fig.savefig(fig_file)
+        
+        return [fig, ax]
 
 
 def run():
