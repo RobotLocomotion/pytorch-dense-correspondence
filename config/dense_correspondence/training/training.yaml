@@ -16,8 +16,10 @@ training:
   batch_size: 1
   # Datset config
   domain_randomize: False
-  num_masked_non_matches_per_match: 75
-  num_background_non_matches_per_match: 75
+  num_non_matches_per_match: 150
+  fraction_masked_non_matches: 0.75
+  fraction_background_non_matches: 0.25
+  use_image_b_mask_inv: True
   cross_scene_num_samples: 10000
   use_SINGLE_OBJECT_WITHIN_SCENE: True
   use_SINGLE_OBJECT_ACROSS_SCENE: False
@@ -40,9 +42,7 @@ loss_function:
   M_descriptor: 0.5 # margin for non-match desciptor distance
   M_pixel: 50 # Clamp for pixel distance
   match_loss_weight: 1.0
-  masked_non_match_loss_weight: 0.5
-  background_non_match_loss_weight: 0.5
-  blind_non_match_loss_weight: 0.0
+  non_match_loss_weight: 1.0
   use_l2_pixel_loss_on_masked_non_matches: True
   use_l2_pixel_loss_on_background_non_matches: True
   scale_by_hard_negatives: True
