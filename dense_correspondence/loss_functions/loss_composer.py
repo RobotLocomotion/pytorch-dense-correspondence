@@ -65,7 +65,8 @@ def get_within_scene_loss(pixelwise_contrastive_loss, image_a_pred, image_b_pred
     match_loss, masked_non_match_loss, num_masked_hard_negatives =\
         pixelwise_contrastive_loss.get_loss_matched_and_non_matched_with_l2(image_a_pred,         image_b_pred,
                                                                           matches_a,            matches_b,
-                                                                          masked_non_matches_a, masked_non_matches_b)
+                                                                          masked_non_matches_a, masked_non_matches_b,
+                                                                          M_descriptor=pcl._config["M_masked"])
 
     if pcl._config["use_l2_pixel_loss_on_background_non_matches"]:
         background_non_match_loss, num_background_hard_negatives =\
@@ -75,7 +76,7 @@ def get_within_scene_loss(pixelwise_contrastive_loss, image_a_pred, image_b_pred
         background_non_match_loss, num_background_hard_negatives =\
             pixelwise_contrastive_loss.non_match_loss_descriptor_only(image_a_pred, image_b_pred,
                                                                     background_non_matches_a, background_non_matches_b,
-                                                                    M_descriptor=0.5)
+                                                                    M_descriptor=pcl._config["M_background"])
         
         
 
@@ -89,6 +90,8 @@ def get_within_scene_loss(pixelwise_contrastive_loss, image_a_pred, image_b_pred
 
 
     total_num_hard_negatives = num_masked_hard_negatives + num_background_hard_negatives
+    if total_num_hard_negatives == 0:
+        total_num_hard_negatives = 1
     non_match_loss = 1.0/total_num_hard_negatives * (masked_non_match_loss + background_non_match_loss)
 
     loss = pcl._config["match_loss_weight"] * match_loss + \
