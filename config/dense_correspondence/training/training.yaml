@@ -47,4 +47,5 @@ loss_function:
   use_l2_pixel_loss_on_masked_non_matches: False
   use_l2_pixel_loss_on_background_non_matches: False
   scale_by_hard_negatives: True
+  alpha_triplet: 0.1
 
