@@ -99,6 +99,27 @@ def get_within_scene_loss(pixelwise_contrastive_loss, image_a_pred, image_b_pred
 
     return loss, match_loss, masked_non_match_loss, background_non_match_loss, blind_non_match_loss
 
+def get_within_scene_loss_triplet(pixelwise_contrastive_loss, image_a_pred, image_b_pred,
+                                        matches_a,    matches_b,
+                                        masked_non_matches_a, masked_non_matches_b,
+                                        background_non_matches_a, background_non_matches_b,
+                                        blind_non_matches_a, blind_non_matches_b):
+    """
+    Simple wrapper for pixelwise_contrastive_loss functions.  Args and return args documented above in get_loss()
+    """
+    
+    pcl = pixelwise_contrastive_loss
+
+    masked_triplet_loss =\
+        pixelwise_contrastive_loss.get_triplet_loss(image_a_pred, image_b_pred, matches_a, matches_b, masked_non_matches_a, masked_non_matches_b, pcl._config["alpha_triplet"])
+        
+    background_triplet_loss =\
+        pixelwise_contrastive_loss.get_triplet_loss(image_a_pred, image_b_pred, matches_a, matches_b, background_non_matches_a, background_non_matches_b, pcl._config["alpha_triplet"])
+
+    total_loss = masked_triplet_loss + background_triplet_loss
+
+    return total_loss, zero_loss(), zero_loss(), zero_loss(), zero_loss()
+
 def get_different_object_loss(pixelwise_contrastive_loss, image_a_pred, image_b_pred,
                               blind_non_matches_a, blind_non_matches_b):
     """

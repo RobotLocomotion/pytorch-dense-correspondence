@@ -97,11 +97,39 @@ class PixelwiseContrastiveLoss(object):
         return match_loss, non_match_loss, num_hard_negatives
 
     @staticmethod
+    def get_triplet_loss(image_a_pred, image_b_pred, matches_a, matches_b, non_matches_a, non_matches_b, alpha):
+        """
+        Computes the loss function
+
+        \sum_{triplets} ||D(I_a, u_a, I_b, u_{b,match})||_2^2 - ||D(I_a, u_a, I_b, u_{b,non-match)||_2^2 + alpha 
+
+        """
+        num_matches = matches_a.size()[0]
+        num_non_matches = non_matches_a.size()[0]
+        multiplier = num_non_matches / num_matches
+
+        ## non_matches_a is already replicated up to be the right size
+        ## non_matches_b is also that side
+        ## matches_a is just a smaller version of non_matches_a
+        ## matches_b is the only thing that needs to be replicated up in size
+
+        matches_b_long =  torch.t(matches_b.repeat(multiplier, 1)).contiguous().view(-1)
+                         
+        matches_a_descriptors = torch.index_select(image_a_pred, 1, non_matches_a)
+        matches_b_descriptors      = torch.index_select(image_b_pred, 1, matches_b_long)
+        non_matches_b_descriptors  = torch.index_select(image_b_pred, 1, non_matches_b)
+
+        triplet_losses = (matches_a_descriptors - matches_b_descriptors).pow(2) - (matches_a_descriptors - non_matches_b_descriptors).pow(2) + alpha
+        triplet_loss = 1.0 / num_non_matches * torch.clamp(triplet_losses, min=0).sum()
+
+        return triplet_loss
+
+    @staticmethod
     def match_loss(image_a_pred, image_b_pred, matches_a, matches_b):
         """
         Computes the match loss given by
 
-        1/num_matches * \sum_{matches} ||D(I_a, u_a, I_b, u_b)||_2
+        1/num_matches * \sum_{matches} ||D(I_a, u_a, I_b, u_b)||_2^2
 
         :param image_a_pred: Output of DCN network on image A.
         :type image_a_pred: torch.Variable(torch.FloatTensor) shape [1, W * H, D]
