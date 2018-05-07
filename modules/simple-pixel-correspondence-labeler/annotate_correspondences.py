@@ -18,13 +18,13 @@ sd.set_train_mode()
 
 
 USE_FIRST_IMAGE = False # force using first image in each log
-RANDOMIZE_TEST_TRAIN = False # randomize selecting image pairs in train vs test
+RANDOMIZE_TEST_TRAIN = False # randomize seletcting
 
 def numpy_to_cv2(numpy_img):
     return numpy_img[:, :, ::-1].copy() # open and convert between BGR and RGB
 
-def pil_image_to_cv2(pil_image     return np.array(pil_image)[:, :, ::-1].copy() # open and convert between BGR and RGB
-
+def pil_image_to_cv2(pil_image):
+    return np.array(pil_image)[:, :, ::-1].copy() # open and convert between BGR and RGB
 def get_cv2_img_pair_from_spartan():
     scene_name_a = sd.get_random_scene_name()
     num_attempts = 50
