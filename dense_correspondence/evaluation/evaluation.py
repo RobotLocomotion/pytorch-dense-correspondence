@@ -73,6 +73,18 @@ class DCNEvaluationPandaTemplate(PandaDataFrameWrapper):
     def __init__(self):
         PandaDataFrameWrapper.__init__(self, DCNEvaluationPandaTemplate.columns)
 
+class DCNEvaluationPandaTemplateAcrossObject(PandaDataFrameWrapper):
+    columns = ['scene_name_a',
+            'scene_name_b',
+            'img_a_idx',
+            'img_b_idx',
+            'object_id_a',
+            'object_id_b',
+            'norm_diff_descriptor_best_match']
+
+    def __init__(self):
+        PandaDataFrameWrapper.__init__(self, DCNEvaluationPandaTemplateAcrossObject.columns)
+
 class SIFTKeypointMatchPandaTemplate(PandaDataFrameWrapper):
     columns = ['scene_name',
                'img_a_idx',
@@ -283,6 +295,36 @@ class DenseCorrespondenceEvaluation(object):
                 os.makedirs(output_dir)
 
             df.to_csv(data_file)
+        return df
+
+
+    @staticmethod
+    def evaluate_network_across_objects(dcn=None, dataset=None, num_image_pairs=25):
+        """
+        This grabs different objects and computes a small set of statistics on their distribution.
+        """
+        
+        pd_dataframe_list = []
+        for i in xrange(num_image_pairs):
+
+            object_id_a, object_id_b = dataset.get_two_different_object_ids()
+            scene_name_a = dataset.get_random_single_object_scene_name(object_id_a)
+            scene_name_b = dataset.get_random_single_object_scene_name(object_id_b)
+
+            image_a_idx = dataset.get_random_image_index(scene_name_a)
+            image_b_idx = dataset.get_random_image_index(scene_name_b)
+    
+            dataframe_list_temp =\
+                DenseCorrespondenceEvaluation.single_across_object_image_pair_quantitative_analysis(dcn,
+                dataset, scene_name_a, scene_name_b, image_a_idx, image_b_idx, object_id_a, object_id_b)
+
+            assert dataframe_list_temp is not None
+
+            pd_dataframe_list += dataframe_list_temp
+
+
+        df = pd.concat(pd_dataframe_list)
+
         return df
 
 
@@ -581,6 +623,81 @@ class DenseCorrespondenceEvaluation(object):
         return dataframe_list
 
     @staticmethod
+    def single_across_object_image_pair_quantitative_analysis(dcn, dataset, scene_name_a, scene_name_b,
+                                                img_a_idx, img_b_idx, object_id_a, object_id_b, num_uv_a_samples=100,
+                                                debug=False):
+        """
+        Quantitative analysis of a dcn on a pair of images from the same scene.
+
+        :param dcn: 
+        :type dcn: DenseCorrespondenceNetwork
+        :param dataset:
+        :type dataset: SpartanDataset
+        :param scene_name:
+        :type scene_name: str
+        :param img_a_idx:
+        :type img_a_idx: int
+        :param img_b_idx:
+        :type img_b_idx: int
+        :param camera_intrinsics_matrix: Optionally set camera intrinsics, otherwise will get it from the dataset
+        :type camera_intrinsics_matrix: 3 x 3 numpy array
+        :return: Dict with relevant data
+        :rtype:
+        """
+
+        
+        rgb_a, depth_a, mask_a, _ = dataset.get_rgbd_mask_pose(scene_name_a, img_a_idx)
+        rgb_b, depth_b, mask_b, _ = dataset.get_rgbd_mask_pose(scene_name_b, img_b_idx)
+
+        depth_a = np.asarray(depth_a)
+        depth_b = np.asarray(depth_b)
+        mask_a = np.asarray(mask_a)
+        mask_b = np.asarray(mask_b)
+
+        # compute dense descriptors
+        rgb_a_tensor = dataset.rgb_image_to_tensor(rgb_a)
+        rgb_b_tensor = dataset.rgb_image_to_tensor(rgb_b)
+
+        # these are Variables holding torch.FloatTensors, first grab the data, then convert to numpy
+        res_a = dcn.forward_single_image_tensor(rgb_a_tensor).data.cpu().numpy()
+        res_b = dcn.forward_single_image_tensor(rgb_b_tensor).data.cpu().numpy()
+
+        # container to hold a list of pandas dataframe
+        # will eventually combine them all with concat
+        dataframe_list = []
+
+        logging_rate = 100
+
+        image_height, image_width = dcn.image_shape
+
+        DCE = DenseCorrespondenceEvaluation
+
+        sampled_idx_list = random_sample_from_masked_image(mask_a, num_uv_a_samples)
+
+        for i in range(num_uv_a_samples):
+     
+            uv_a = [sampled_idx_list[1][i], sampled_idx_list[0][i]]
+
+            pd_template = DCE.compute_descriptor_match_statistics_no_ground_truth(uv_a, res_a,
+                                                                  res_b,
+                                                                  rgb_a=rgb_a,
+                                                                  rgb_b=rgb_b,
+                                                                  depth_a=depth_a,
+                                                                  depth_b=depth_b,
+                                                                  debug=debug)
+
+            pd_template.set_value('scene_name_a', scene_name_a)
+            pd_template.set_value('scene_name_b', scene_name_b)
+            pd_template.set_value('object_id_a', object_id_a)
+            pd_template.set_value('object_id_b', object_id_b)
+            pd_template.set_value('img_a_idx', int(img_a_idx))
+            pd_template.set_value('img_b_idx', int(img_b_idx))
+
+            dataframe_list.append(pd_template.dataframe)
+
+        return dataframe_list
+
+    @staticmethod
     def single_same_scene_image_pair_quantitative_analysis(dcn, dataset, scene_name,
                                                 img_a_idx, img_b_idx,
                                                 camera_intrinsics_matrix=None,
@@ -690,6 +807,37 @@ class DenseCorrespondenceEvaluation(object):
         MAX_DEPTH = 10.0
 
         return ((depth > 0) and (depth < MAX_DEPTH))
+
+
+
+    @staticmethod
+    def compute_descriptor_match_statistics_no_ground_truth(uv_a, res_a, res_b, rgb_a=None, rgb_b=None, 
+                                                            depth_a=None, depth_b=None, debug=False):
+        """
+        Computes statistics of descriptor pixelwise match when there is zero ground truth data.
+
+        :param res_a: descriptor for image a, of shape (H,W,D)
+        :type res_a: numpy array
+        :param res_b: descriptor for image b, of shape (H,W,D)
+        :param debug: whether or not to print visualization
+        :type debug:
+        """
+
+        DCE = DenseCorrespondenceEvaluation
+
+        # compute best match
+        uv_b, best_match_diff, norm_diffs =\
+            DenseCorrespondenceNetwork.find_best_match(uv_a, res_a,
+                                                       res_b, debug=debug)
+        
+        if debug:
+            correspondence_plotter.plot_correspondences_direct(rgb_a, depth_a, rgb_b, depth_b,
+                                                               uv_a, uv_b, show=True)
+
+
+        pd_template = DCNEvaluationPandaTemplateAcrossObject()
+        pd_template.set_value('norm_diff_descriptor_best_match', best_match_diff)
+        return pd_template
 
 
     @staticmethod
@@ -1794,6 +1942,7 @@ class DenseCorrespondenceEvaluation(object):
         cross_scene_csv = os.path.join(cross_scene_output_dir, "data.csv")
         df.to_csv(cross_scene_csv)
 
+
         logging.info("Making plots")
         DCEP = DenseCorrespondenceEvaluationPlotter
         fig_axes = DCEP.run_on_single_dataframe(train_csv, label="train", save=False)
@@ -1803,6 +1952,18 @@ class DenseCorrespondenceEvaluation(object):
         fig, _ = fig_axes        
         save_fig_file = os.path.join(output_dir, "quant_plots.png")
         fig.savefig(save_fig_file)
+
+        # only do across object analysis if have multiple single objects
+        if dataset.get_number_of_unique_single_objects() > 1:
+            across_object_output_dir = os.path.join(output_dir, "across_object")
+            if not os.path.isdir(across_object_output_dir):
+                os.makedirs(across_object_output_dir)
+            logging.info("Evaluating network on across object data")
+            df = DCE.evaluate_network_across_objects(dcn=dcn, dataset=dataset)
+            across_object_csv = os.path.join(across_object_output_dir, "data.csv")
+            df.to_csv(across_object_csv)
+            DCEP.run_on_single_dataframe_across_objects(across_object_csv, label="cross_scene", save=True)
+
 
         logging.info("Finished running evaluation on network")
 
@@ -1896,6 +2057,25 @@ class DenseCorrespondenceEvaluationPlotter(object):
         plot = DCEP.make_cdf_plot(ax, data, num_bins=num_bins, label=label)
         ax.set_xlabel('Pixel match error, L2 (pixel distance)')
         ax.set_ylabel('Fraction of images')
+        return plot
+
+    @staticmethod
+    def make_across_object_best_match_plot(ax, df, label=None, num_bins=100):
+        """
+        :param ax: axis of a matplotlib plot to plot on
+        :param df: pandas dataframe, i.e. generated from quantitative 
+        :param num_bins:
+        :type num_bins:
+        :return:
+        :rtype:
+        """
+        DCEP = DenseCorrespondenceEvaluationPlotter
+
+        data = df['norm_diff_descriptor_best_match']
+
+        plot = DCEP.make_cdf_plot(ax, data, num_bins=num_bins, label=label)
+        ax.set_xlabel('Best descriptor match, L2 norm')
+        ax.set_ylabel('Fraction of pixel samples from images')
         return plot
 
     @staticmethod
@@ -2078,6 +2258,41 @@ class DenseCorrespondenceEvaluationPlotter(object):
         yaml_file = os.path.join(output_dir, 'stats.yaml')
         utils.saveToYaml(d, yaml_file)
         return [fig, axes]
+
+    @staticmethod
+    def run_on_single_dataframe_across_objects(path_to_df_csv, label=None, output_dir=None, save=True, previous_fig_axes=None):
+        """
+        This method is intended to be called from an ipython notebook for plotting.
+
+        See run_on_single_dataframe() for documentation.
+
+        The only difference is that for this one, we only have across object data. 
+        """
+        DCEP = DenseCorrespondenceEvaluationPlotter
+
+        path_to_csv = utils.convert_to_absolute_path(path_to_df_csv)
+
+        if output_dir is None:
+            output_dir = os.path.dirname(path_to_csv)
+
+        df = pd.read_csv(path_to_csv, index_col=0, parse_dates=True)
+
+        if previous_fig_axes==None:
+            N = 1
+            fig, ax = plt.subplots(N, figsize=(10,N*5))
+        else:
+            [fig, ax] = previous_fig_axes
+        
+        
+        # pixel match error
+        plot = DCEP.make_across_object_best_match_plot(ax, df, label=label)
+        ax.legend()
+       
+        if save:
+            fig_file = os.path.join(output_dir, "across_objects.png")
+            fig.savefig(fig_file)
+        
+        return [fig, ax]
 
 
 def run():

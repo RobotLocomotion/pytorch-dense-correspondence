@@ -69,6 +69,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
             self.num_masked_non_matches_per_match = 5
             self.num_background_non_matches_per_match = 5
             self.cross_scene_num_samples = 1000
+            self._use_image_b_mask_inv = True
 
         if config is not None:
             self._setup_scene_data(config)
@@ -194,9 +195,9 @@ class SpartanDataset(DenseCorrespondenceDataset):
         self._data_load_types = []
         if self.debug:
             self._data_load_types.append(SpartanDatasetDataType.SINGLE_OBJECT_WITHIN_SCENE)
-            self._data_load_types.append(SpartanDatasetDataType.SINGLE_OBJECT_ACROSS_SCENE)
-            self._data_load_types.append(SpartanDatasetDataType.DIFFERENT_OBJECT)
-            self._data_load_types.append(SpartanDatasetDataType.MULTI_OBJECT)
+            # self._data_load_types.append(SpartanDatasetDataType.SINGLE_OBJECT_ACROSS_SCENE)
+            # self._data_load_types.append(SpartanDatasetDataType.DIFFERENT_OBJECT)
+            # self._data_load_types.append(SpartanDatasetDataType.MULTI_OBJECT)
 
     def _get_data_load_type(self):
         """

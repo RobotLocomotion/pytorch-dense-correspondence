@@ -10,7 +10,10 @@ sys.path.append(dc_source_dir)
 sys.path.append(os.path.join(dc_source_dir, "dense_correspondence", "correspondence_tools"))
 from dense_correspondence.dataset.spartan_dataset_masked import SpartanDataset, ImageType
 
-sd = SpartanDataset()
+config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence', 
+                               'dataset', 'composite', 'caterpillar_only.yaml')
+config = utils.getDictFromYamlFilename(config_filename)
+sd = SpartanDataset(config=config)
 
 def numpy_to_cv2(numpy_img):
     return numpy_img[:, :, ::-1].copy() # open and convert between BGR and RGB

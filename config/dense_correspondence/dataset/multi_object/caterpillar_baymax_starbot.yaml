@@ -12,3 +12,5 @@ train:
 test:
 - "2018-05-04-20-35-49"
 - "2018-05-04-20-38-23"
+evaluation_labeled_data_path: 
+- "nowhereyet"
