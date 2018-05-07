@@ -8,4 +8,4 @@ test:
 - "2018-05-07-18-38-43" # head towards robot
 - "2018-05-07-18-46-43" # head pointing left
 evaluation_labeled_data_path: 
-- "nowhereyet"
+- "code/data_volume/pdc/evaluation_labeled_data/star_bot_front_cross_scene_labels.yaml"
