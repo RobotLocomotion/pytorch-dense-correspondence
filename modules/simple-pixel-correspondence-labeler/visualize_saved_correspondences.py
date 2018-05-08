@@ -12,7 +12,11 @@ from dense_correspondence.dataset.spartan_dataset_masked import SpartanDataset, 
 
 from annotate_correspondences import label_colors, draw_reticle, pil_image_to_cv2, drawing_scale_config
 
-sd = SpartanDataset()
+config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence', 
+                               'dataset', 'composite', 'caterpillar_baymax_starbot_onlymulti_front.yaml')
+config = utils.getDictFromYamlFilename(config_filename)
+sd = SpartanDataset(config=config)
+sd.set_train_mode()
 
 annotated_data_yaml_filename = os.path.join(dc_source_dir, "modules/simple-pixel-correspondence-labeler/new_annotated_pairs.yaml")
 annotated_data = utils.getDictFromYamlFilename(annotated_data_yaml_filename)
@@ -21,7 +25,8 @@ index_of_pair_to_display = 0
 
 def draw_points(img, img_points_picked):
     for index, img_point in enumerate(img_points_picked):
-        draw_reticle(img, int(img_point["u"]), int(img_point["v"]), label_colors[index])
+        color = label_colors[index%len(label_colors)]
+        draw_reticle(img, int(img_point["u"]), int(img_point["v"]), color)
 
 def next_image_pair_from_saved():
     global img1, img2, index_of_pair_to_display
