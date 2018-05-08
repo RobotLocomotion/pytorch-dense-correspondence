@@ -1,0 +1,14 @@
+logs_root_path: code/data_volume/pdc/logs_proto
+object_id_list: ["star_bot", "caterpillar", "baymax"]
+train:
+- "2018-05-04-20-12-25"
+- "2018-05-04-20-19-47"
+- "2018-05-04-20-22-22"
+- "2018-05-04-20-35-49"
+test:
+- "2018-05-04-20-12-25"
+- "2018-05-04-20-19-47"
+- "2018-05-04-20-22-22"
+- "2018-05-04-20-35-49"
+evaluation_labeled_data_path: 
+- "nowhereyet"
