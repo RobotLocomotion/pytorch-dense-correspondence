@@ -1,0 +1,10 @@
+logs_root_path: code/data_volume/pdc/logs_proto
+object_id: "hat_princeton_orange"
+train:
+- "2018-04-23-13-42-37" # pointing down
+- "2018-04-25-18-06-59" # pointing down, back tucked in
+test:
+- "2018-04-23-13-42-37" # pointing down
+- "2018-04-25-18-06-59" # pointing down, back tucked in
+evaluation_labeled_data_path: 
+- "nowhereyet"

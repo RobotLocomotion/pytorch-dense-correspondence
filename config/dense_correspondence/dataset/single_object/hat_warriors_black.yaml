@@ -1,0 +1,12 @@
+logs_root_path: code/data_volume/pdc/logs_proto
+object_id: "hat_warriors_black"
+train:
+- "2018-04-23-13-51-51" # pointing down
+- "2018-04-25-18-43-01" # pointing left, squished
+- "2018-04-25-21-12-15" # pointing down right
+test:
+- "2018-04-23-13-51-51" # pointing down
+- "2018-04-25-18-43-01" # pointing left, squished
+- "2018-04-25-21-12-15" # pointing down right
+evaluation_labeled_data_path: 
+- "nowhereyet"

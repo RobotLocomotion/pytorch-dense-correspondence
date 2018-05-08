@@ -1,0 +1,12 @@
+logs_root_path: code/data_volume/pdc/logs_proto
+object_id: "hat_banjo_camp_north"
+train:
+- "2018-04-23-13-39-37" # pointing down
+- "2018-04-25-17-56-29" # pointing down left
+- "2018-04-25-18-02-21" # pointing right, crushed
+test:
+- "2018-04-23-13-39-37" # pointing down
+- "2018-04-25-17-56-29" # pointing down left
+- "2018-04-25-18-02-21" # pointing right, crushed
+evaluation_labeled_data_path: 
+- "nowhereyet"
