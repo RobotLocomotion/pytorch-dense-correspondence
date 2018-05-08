@@ -11,4 +11,4 @@ test:
 - "2018-05-04-20-22-22"
 - "2018-05-04-20-35-49"
 evaluation_labeled_data_path: 
-- "nowhereyet"
+- "code/data_volume/pdc/evaluation_labeled_data/caterpillar_starbot_baymax_multi_cross_scene_labels.yaml"
