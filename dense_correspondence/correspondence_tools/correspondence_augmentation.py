@@ -212,5 +212,62 @@ def add_noise(rgb_image):
     """
     max_noise_to_add_or_subtract = 50
     return rgb_image + get_random_entire_image(rgb_image.shape, max_noise_to_add_or_subtract) - get_random_entire_image(rgb_image.shape, max_noise_to_add_or_subtract) 
+
+
+def merge_images_with_occlusions(image_a, image_b, mask_a, mask_b, matches_a, matches_b):
+    """
+    This function will take image_a and image_b and "merge" them.
+
+    It will do this by:
+    - randomly selecting either image_a or image_b to be the background
+    - using the mask for the image that is not the background, it will put the other image on top.
+    - critically there are two separate sets of matches, one is associated with image_a and some other image,
+        and the other is associated with image_b and some other image.
+    - both of these sets of matches must be pruned for any occlusions that occur.
+
+    :param image_a, image_b: the two images to merge
+    :type image_a, image_b: each a PIL.image.image
+    :param mask_a, mask_b: the masks for these images
+    :type mask_a, mask_b: each a PIL.image.image
+    :param matches_a, matches_b:
+    :type matches_a, mathces_b: each a tuple of torch Tensors, each of length n, i.e:
+
+        (u_pixel_positions, v_pixel_positions)
+
+        Where each of the elements of the tuple are torch Tensors of length n
+
+        Note: only support torch.LongTensors
+
+    :return: merged Image
+    :rtype: PIL.image.image
+
+    """
+
+    if random.random() < 0.5:
+        background_image, background_mask, background_matches = image_a, mask_a, matches_a
+        foreground_image, foreground_mask, foreground_matches = image_b, mask_b, matches_b
+    else:
+        background_image, background_mask, background_matches = image_b, mask_b, matches_b
+        foreground_image, foreground_mask, foreground_matches = image_a, mask_a, matches_a
+
+    # First, mask the foreground rgb image
+    foreground_image_numpy = np.asarray(foreground_image)
+    foreground_mask_numpy  = np.asarray(foreground_mask)
+    three_channel_mask = np.zeros_like(foreground_image_numpy)
+    three_channel_mask[:,:,0] = three_channel_mask[:,:,1] = three_channel_mask[:,:,2] = foreground_mask
+    foreground_image_numpy = foreground_image_numpy * three_channel_mask
+
+    # Next, zero out this portion in the background image
+    background_image_numpy = np.asarray(background_image)
+    three_channel_mask_complement = np.ones_like(three_channel_mask) - three_channel_mask
+    background_image_numpy = three_channel_mask_complement * background_image_numpy
+
+    # Finally, merge these two images
+    merged_image_numpy = foreground_image_numpy + background_image_numpy
+
+    return Image.fromarray(merged_image_numpy)
+
+
+
     
 

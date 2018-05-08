@@ -831,10 +831,15 @@ class SpartanDataset(DenseCorrespondenceDataset):
         image_b1_mask, image_b2_mask, uv_b1, uv_b2 =\
          self.get_within_scene_data(scene_name_b, metadata, for_synthetic_multi_object=True)
 
+
+        merged_rgb = correspondence_augmentation.merge_images_with_occlusions(image_a1_rgb, image_b1_rgb, image_a1_mask, image_b1_mask, None, None)
+
+        
         if self.debug:
             import correspondence_plotter
             num_matches_to_plot = 10
 
+            print "PRE-MERGING"
             plot_uv_a1, plot_uv_a2 = SpartanDataset.subsample_tuple_pair(uv_a1, uv_a2, num_samples=num_matches_to_plot)
 
             correspondence_plotter.plot_correspondences_direct(image_a1_rgb, np.asarray(image_a1_depth), 
@@ -842,7 +847,21 @@ class SpartanDataset(DenseCorrespondenceDataset):
                                                                    plot_uv_a1, plot_uv_a2,
                                                                    circ_color='g', show=True)
 
-            # plot_uv_a1, plot_uv_a2 = SD.subsample_tuple_pair(uv_a1, uv_a2, num_samples=num_matches_to_plot*10)
+            plot_uv_b1, plot_uv_b2 = SpartanDataset.subsample_tuple_pair(uv_b1, uv_b2, num_samples=num_matches_to_plot)
+
+            correspondence_plotter.plot_correspondences_direct(image_b1_rgb, np.asarray(image_b1_depth), 
+                                                                   image_b2_rgb, np.asarray(image_b2_depth),
+                                                                   plot_uv_b1, plot_uv_b2,
+                                                                   circ_color='g', show=True)
+
+            print "MERGED"
+            correspondence_plotter.plot_correspondences_direct(merged_rgb, np.asarray(image_b1_depth), 
+                                                                   image_b2_rgb, np.asarray(image_b2_depth),
+                                                                   plot_uv_b1, plot_uv_b2,
+                                                                   circ_color='g', show=True)
+
+        
+
 
         return None
 
