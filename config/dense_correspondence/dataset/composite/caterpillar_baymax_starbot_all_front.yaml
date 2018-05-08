@@ -1,0 +1,9 @@
+logs_root_path: code/data_volume/pdc/logs_proto
+
+single_object_scenes_config_files:
+- caterpillar_9_train.yaml
+- baymax_front.yaml
+- star_bot_front.yaml
+
+multi_object_scenes_config_files:
+- caterpillar_baymax_starbot_front_only.yaml
