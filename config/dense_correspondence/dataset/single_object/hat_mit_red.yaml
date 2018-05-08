@@ -3,8 +3,15 @@ object_id: "hat_mit_red"
 train:
 - "2018-04-23-13-49-47" # pointing down
 - "2018-04-25-18-33-44" # pointing down left, slight deformation
+- "2018-05-08-17-15-34" # pointing up, squished
+- "2018-05-08-17-18-03" # pointing right
 test:
 - "2018-04-23-13-49-47" # pointing down
 - "2018-04-25-18-33-44" # pointing down left, slight deformation
+- "2018-05-08-17-15-34" # pointing up, squished
+- "2018-05-08-17-18-03" # pointing right
+- "2018-05-08-17-32-39" # another pointing up
+- "2018-05-08-17-34-18" # another pointing to side
+- "2018-05-08-17-36-07" # another pointing down
 evaluation_labeled_data_path: 
 - "nowhereyet"

@@ -4,9 +4,11 @@ train:
 - "2018-04-23-13-51-51" # pointing down
 - "2018-04-25-18-43-01" # pointing left, squished
 - "2018-04-25-21-12-15" # pointing down right
+- "2018-05-08-17-48-47" # pointing up
 test:
 - "2018-04-23-13-51-51" # pointing down
 - "2018-04-25-18-43-01" # pointing left, squished
 - "2018-04-25-21-12-15" # pointing down right
+- "2018-05-08-17-48-47" # pointing up
 evaluation_labeled_data_path: 
 - "nowhereyet"

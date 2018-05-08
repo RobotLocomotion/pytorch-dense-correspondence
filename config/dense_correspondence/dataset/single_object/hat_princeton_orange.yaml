@@ -3,8 +3,12 @@ object_id: "hat_princeton_orange"
 train:
 - "2018-04-23-13-42-37" # pointing down
 - "2018-04-25-18-06-59" # pointing down, back tucked in
+- "2018-05-08-17-38-21" # pointing up
+- "2018-05-08-17-40-14" # pointing left
 test:
 - "2018-04-23-13-42-37" # pointing down
 - "2018-04-25-18-06-59" # pointing down, back tucked in
+- "2018-05-08-17-38-21" # pointing up
+- "2018-05-08-17-40-14" # pointing left
 evaluation_labeled_data_path: 
 - "nowhereyet"
