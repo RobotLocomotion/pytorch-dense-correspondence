@@ -11,28 +11,43 @@ sys.path.append(os.path.join(dc_source_dir, "dense_correspondence", "corresponde
 from dense_correspondence.dataset.spartan_dataset_masked import SpartanDataset, ImageType
 
 config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence', 
-                               'dataset', 'composite', 'caterpillar_only.yaml')
+                               'dataset', 'composite', 'star_bot_front_only.yaml')
 config = utils.getDictFromYamlFilename(config_filename)
 sd = SpartanDataset(config=config)
+sd.set_train_mode()
+
+
+USE_FIRST_IMAGE = False # force using first image in each log
+RANDOMIZE_TEST_TRAIN = False # randomize seletcting
 
 def numpy_to_cv2(numpy_img):
     return numpy_img[:, :, ::-1].copy() # open and convert between BGR and RGB
 
 def pil_image_to_cv2(pil_image):
     return np.array(pil_image)[:, :, ::-1].copy() # open and convert between BGR and RGB
-
 def get_cv2_img_pair_from_spartan():
     scene_name_a = sd.get_random_scene_name()
     num_attempts = 50
     for i in range(num_attempts):
+        if (i % 2) == 0 and RANDOMIZE_TEST_TRAIN:
+            sd.set_train_mode()
+        else:
+            sd.set_test_mode()
+
         scene_name_b = sd.get_random_scene_name()
         if scene_name_b != scene_name_a:
             break    
         if i == (num_attempts - 1):
             print "Failed at randomly getting two different scenes"
             exit()
-    image_a_idx = sd.get_random_image_index(scene_name_a)
-    image_b_idx = sd.get_random_image_index(scene_name_b)
+    
+    if USE_FIRST_IMAGE:
+        image_a_idx = 0
+        image_b_idx = 0
+    else:
+        image_a_idx = sd.get_random_image_index(scene_name_a)
+        image_b_idx = sd.get_random_image_index(scene_name_b)
+
     img_a = sd.get_rgb_image_from_scene_name_and_idx(scene_name_a, image_a_idx)
     img_b = sd.get_rgb_image_from_scene_name_and_idx(scene_name_b, image_b_idx)
     img_a, img_b = pil_image_to_cv2(img_a), pil_image_to_cv2(img_b)

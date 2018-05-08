@@ -65,8 +65,10 @@ def draw_correspondence_points_cv2(img, pixels):
     :rtype: a cv2 image
     """
     label_colors = [(255,0,0), (0,255,0), (0,0,255), (255,0,255), (0,125,125), (125,125,0), (200,255,50), (255, 125, 220), (10, 125, 255)]
+    num_colors = len(label_colors)
     for index, pixel in enumerate(pixels):
-        img = draw_reticle_cv2(img, int(pixel["u"]), int(pixel["v"]), label_colors[index])
+        color = label_colors[index % num_colors]
+        img = draw_reticle_cv2(img, int(pixel["u"]), int(pixel["v"]), color)
     return img
 
 def draw_reticle_cv2(img, u, v, label_color):
