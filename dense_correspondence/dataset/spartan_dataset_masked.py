@@ -852,10 +852,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
         matches_1 = correspondence_augmentation.merge_matches(uv_a1, uv_b1)
         matches_2 = correspondence_augmentation.merge_matches(uv_a2, uv_b2)
-        print "len matches_1[0]", len(matches_1[0])
-        print "len matches_2[0]", len(matches_2[0])
 
-        
         if self.debug:
             import correspondence_plotter
             num_matches_to_plot = 10
@@ -883,8 +880,6 @@ class SpartanDataset(DenseCorrespondenceDataset):
                                                                    circ_color='g', show=True)
 
         
-
-
         return None
 
 
