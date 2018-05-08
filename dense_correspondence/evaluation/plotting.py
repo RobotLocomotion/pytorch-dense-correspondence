@@ -32,15 +32,59 @@ def normalize_descriptor_pair(res_a, res_b):
     :return: numpy.array, numpy.array
         normalized descriptors
     """
-    both_min = min(np.min(res_a), np.min(res_b))
-    normed_res_a = res_a - both_min
-    normed_res_b = res_b - both_min
 
-    both_max = max(np.max(normed_res_a), np.max(normed_res_b))
-    normed_res_a = normed_res_a / both_max
-    normed_res_b = normed_res_b / both_max
+    # needs to be per-channel
+    D = np.shape(res_a)[-1]
+    normed_res_a = np.zeros_like(res_a)
+    normed_res_b = np.zeros_like(res_b)
 
+    for d in xrange(D):
+        both_min = min(np.min(res_a[:,:,d]), np.min(res_b[:,:,d]))
+        both_max = max(np.max(res_a[:,:,d]), np.max(res_b[:,:,d]))
+        scale_factor = both_max - both_min
+        normed_res_a[:,:,d] = (res_a[:,:,d] - both_min)/scale_factor
+        normed_res_b[:,:,d] = (res_b[:,:,d] - both_min)/scale_factor
+
+        
     return normed_res_a, normed_res_b
+
+def normalize_masked_descriptor_pair(res_a, res_b, mask_a, mask_b):
+    # needs to be per-channel
+    D = np.shape(res_a)[-1]
+
+    mask_a= np.repeat(mask_a[:,:,np.newaxis], D, axis=2)
+    mask_b = np.repeat(mask_b[:,:,np.newaxis], D, axis=2)
+
+    res_a_temp = res_a * mask_a
+    res_b_temp = res_b * mask_b
+
+    normed_res_a = np.zeros_like(res_a)
+    normed_res_b = np.zeros_like(res_b)
+
+    for d in xrange(D):
+        res_a_d = res_a_temp[:,:,d]
+        res_b_d = res_b_temp[:,:,d]
+
+
+
+        res_a_min = np.min(res_a_d[np.nonzero(res_a_d)])
+        res_b_min = np.min(res_b_d[np.nonzero(res_b_d)])
+
+        res_a_max = np.max(res_a_d[np.nonzero(res_a_d)])
+        res_b_max = np.max(res_b_d[np.nonzero(res_b_d)])
+
+        both_min = min(res_a_min, res_b_min)
+        both_max = max(res_a_max, res_b_max)
+        scale_factor = both_max - both_min
+        normed_res_a[:,:,d] = (res_a[:,:,d] - both_min)/scale_factor
+        normed_res_b[:,:,d] = (res_b[:,:,d] - both_min)/scale_factor
+
+
+    normed_res_a = normed_res_a * mask_a
+    normed_res_b = normed_res_b * mask_b
+        
+    return normed_res_a, normed_res_b
+
 
 def pil_image_to_cv2(pil_image):
     """
