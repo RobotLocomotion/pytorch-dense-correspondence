@@ -405,6 +405,7 @@ class DenseCorrespondenceEvaluation(object):
         fig.set_figheight(5)
         fig.set_figwidth(15)
 
+        
         if descriptor_image_stats is None:
             res_a_norm, res_b_norm = dc_plotting.normalize_descriptor_pair(res_a, res_b)
         else:
@@ -441,7 +442,7 @@ class DenseCorrespondenceEvaluation(object):
             res_b_mask = mask_b_repeat * res_b 
 
             if descriptor_image_stats is None:
-                res_a_norm_mask, res_b_norm_mask = dc_plotting.normalize_descriptor_pair(res_a_mask, res_b_mask)
+                res_a_norm_mask, res_b_norm_mask = dc_plotting.normalize_masked_descriptor_pair(res_a, res_b, mask_a, mask_b)
             else:
                 res_a_norm_mask = dc_plotting.normalize_descriptor(res_a_mask, descriptor_image_stats['mask_image'])
                 res_b_norm_mask = dc_plotting.normalize_descriptor(res_b_mask, descriptor_image_stats['mask_image'])
