@@ -1,0 +1,51 @@
+training:
+  # Optimizer config
+  learning_rate: 1.0e-4
+  learning_rate_decay: 0.9
+  steps_between_learning_rate_decay: 250 # decay the learning rate after this many steps
+  weight_decay: 1.0e-4
+  num_iterations: 3500 # number of iterations to train for
+  # Dataset loader config
+  num_workers: 5 # num threads/workers for dataset loading
+  compute_test_loss: False
+  compute_test_loss_rate: 500 # how often to compute the test loss
+  test_loss_num_iterations: 50 # how many samples to use to compute the test loss
+  logging_rate: 10 # how often to print out
+  garbage_collect_rate: 1
+  save_rate: 500 # how often to save the network
+  batch_size: 1
+  # Datset config
+  domain_randomize: True
+  num_non_matches_per_match: 150
+  fraction_masked_non_matches: 0.5
+  fraction_background_non_matches: 0.5
+  use_image_b_mask_inv: True
+  cross_scene_num_samples: 10000
+  use_SINGLE_OBJECT_WITHIN_SCENE: True
+  use_SINGLE_OBJECT_ACROSS_SCENE: False
+  use_DIFFERENT_OBJECT: False
+  use_MULTI_OBJECT: False
+  # Loss function config
+  loss_function: pixelwise_contrastive_loss # not currently used
+  # Logging config
+  logging_rate: 10 # how often to print out
+  save_rate: 500 # how often to save the network
+  logging_dir_name: test # overwrites if this is here
+  logging_dir: code/data_volume/pdc/trained_models # where to store trained models
+
+dense_correspondence_network:
+  descriptor_dimension: 3
+  image_width: 640
+  image_height: 480
+
+loss_function:
+  M_masked: 0.5 # margin for masked non-match desciptor distance
+  M_background: 2.0 # margin for background
+  M_pixel: 50 # Clamp for pixel distance
+  match_loss_weight: 1.0
+  non_match_loss_weight: 1.0
+  use_l2_pixel_loss_on_masked_non_matches: True
+  use_l2_pixel_loss_on_background_non_matches: False
+  scale_by_hard_negatives: True
+  alpha_triplet: 0.1
+
