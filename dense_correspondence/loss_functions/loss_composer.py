@@ -97,7 +97,13 @@ def get_within_scene_loss(pixelwise_contrastive_loss, image_a_pred, image_b_pred
     loss = pcl._config["match_loss_weight"] * match_loss + \
     pcl._config["non_match_loss_weight"] * non_match_loss
 
-    return loss, match_loss, masked_non_match_loss, background_non_match_loss, blind_non_match_loss
+    masked_non_match_loss_scaled = masked_non_match_loss*1.0/max(num_masked_hard_negatives, 1)
+
+    background_non_match_loss_scaled = background_non_match_loss*1.0/max(num_background_hard_negatives, 1)
+
+    blind_non_match_loss_scaled = blind_non_match_loss*1.0/max(num_blind_hard_negatives, 1)
+
+    return loss, match_loss, masked_non_match_loss_scaled, background_non_match_loss_scaled, blind_non_match_loss_scaled
 
 def get_within_scene_loss_triplet(pixelwise_contrastive_loss, image_a_pred, image_b_pred,
                                         matches_a,    matches_b,
@@ -127,10 +133,15 @@ def get_different_object_loss(pixelwise_contrastive_loss, image_a_pred, image_b_
     """
     blind_non_match_loss = zero_loss()
     if not (SpartanDataset.is_empty(blind_non_matches_a.data)):
-        blind_non_match_loss =\
+        M_descriptor = pixelwise_contrastive_loss.config["M_background"]
+
+        blind_non_match_loss, num_hard_negatives =\
             pixelwise_contrastive_loss.non_match_loss_descriptor_only(image_a_pred, image_b_pred,
                                                                     blind_non_matches_a, blind_non_matches_b,
-                                                                    M_descriptor=0.5)
+                                                                    M_descriptor=M_descriptor)
+
+        scale_factor = max(num_hard_negatives, 1)
+        blind_non_match_loss = 1.0/scale_factor * blind_non_match_loss
     loss = blind_non_match_loss
     return loss, zero_loss(), zero_loss(), zero_loss(), blind_non_match_loss
 
