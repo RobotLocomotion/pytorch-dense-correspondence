@@ -1,0 +1,11 @@
+logs_root_path: code/data_volume/pdc/logs_proto
+object_id: "hat_mit_black"
+train:
+- "2018-04-25-21-19-47" # pointing down
+- "2018-05-08-17-04-17" # pointing up
+- "2018-05-08-17-06-39" # pointing left
+- "2018-05-08-17-12-30" # pointing right down
+test:
+- "2018-05-08-17-26-26" # another pointing up
+evaluation_labeled_data_path: 
+- "nowhereyet"
