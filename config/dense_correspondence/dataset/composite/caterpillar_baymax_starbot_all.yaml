@@ -5,5 +5,4 @@ single_object_scenes_config_files:
 - baymax.yaml
 - star_bot.yaml
 
-multi_object_scenes_config_files:
-- caterpillar_baymax_starbot.yaml
+multi_object_scenes_config_files: []
