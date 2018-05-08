@@ -214,7 +214,7 @@ def add_noise(rgb_image):
     return rgb_image + get_random_entire_image(rgb_image.shape, max_noise_to_add_or_subtract) - get_random_entire_image(rgb_image.shape, max_noise_to_add_or_subtract) 
 
 
-def merge_images_with_occlusions(image_a, image_b, mask_a, mask_b, matches_a, matches_b):
+def merge_images_with_occlusions(image_a, image_b, mask_a, mask_b, matches_pair_a, matches_pair_b):
     """
     This function will take image_a and image_b and "merge" them.
 
@@ -238,17 +238,19 @@ def merge_images_with_occlusions(image_a, image_b, mask_a, mask_b, matches_a, ma
 
         Note: only support torch.LongTensors
 
-    :return: merged Image
-    :rtype: PIL.image.image
+    :return: merged image, merged_mask, pruned_matches_a, pruned_matches_b
+    :rtype: PIL.image.image, PIL.image.image, same types as matches_a and matches_b
 
     """
 
     if random.random() < 0.5:
-        background_image, background_mask, background_matches = image_a, mask_a, matches_a
-        foreground_image, foreground_mask, foreground_matches = image_b, mask_b, matches_b
+        foreground = "B"
+        background_image, background_mask, background_matches_pair = image_a, mask_a, matches_pair_a
+        foreground_image, foreground_mask, foreground_matches_pair = image_b, mask_b, matches_pair_b
     else:
-        background_image, background_mask, background_matches = image_b, mask_b, matches_b
-        foreground_image, foreground_mask, foreground_matches = image_a, mask_a, matches_a
+        foreground = "A"
+        background_image, background_mask, background_matches_pair = image_b, mask_b, matches_pair_b
+        foreground_image, foreground_mask, foreground_matches_pair = image_a, mask_a, matches_pair_a
 
     # First, mask the foreground rgb image
     foreground_image_numpy = np.asarray(foreground_image)
@@ -265,7 +267,86 @@ def merge_images_with_occlusions(image_a, image_b, mask_a, mask_b, matches_a, ma
     # Finally, merge these two images
     merged_image_numpy = foreground_image_numpy + background_image_numpy
 
-    return Image.fromarray(merged_image_numpy)
+    # Prune occluded matches
+    background_matches_pair = prune_matches_if_occluded(foreground_mask_numpy, background_matches_pair)
+
+
+    # Merge matches
+    # merged_matches = merge_matches(foreground_matches_pair[0], background_matches_pair[0])
+    
+    if foreground == "A":
+        matches_a            = foreground_matches_pair[0]
+        associated_matches_a = foreground_matches_pair[1]
+        matches_b            = background_matches_pair[0]
+        associated_matches_b = background_matches_pair[1]
+    elif foreground == "B":
+        matches_a            = background_matches_pair[0]
+        associated_matches_a = background_matches_pair[1]
+        matches_b            = foreground_matches_pair[0]
+        associated_matches_b = foreground_matches_pair[1]
+    else:
+        raise ValueError("Should not be here?")
+
+    return Image.fromarray(merged_image_numpy), matches_a, associated_matches_a, matches_b, associated_matches_b
+
+
+def prune_matches_if_occluded(foreground_mask_numpy, background_matches_pair):
+    """
+    Checks if any of the matches have been occluded.
+
+    If yes, prunes them from the list of matches.
+
+    NOTE:
+    - background_matches is a tuple
+    - the first element of the tuple HAS to be the one that we are actually checking for occlusions
+    - the second element of the tuple must also get pruned
+
+    :param foreground_mask_numpy: The mask of the foreground image
+    :type foreground_mask_numpy: numpy 2d array of shape (H,W)
+    :param background_matches: a tuple of torch Tensors, each of length n, i.e:
+
+        (u_pixel_positions, v_pixel_positions)
+
+        Where each of the elements of the tuple are torch Tensors of length n
+
+        Note: only support torch.LongTensors
+    """
+
+    background_matches_a = background_matches_pair[0] 
+    background_matches_b = background_matches_pair[1]
+
+    idxs_to_keep  = []
+    
+    # this is slow but works
+    for i in range(len(background_matches_a[0])):
+        u = background_matches_a[0][i]
+        v = background_matches_a[1][i]
+
+        if foreground_mask_numpy[v,u] == 0:
+            idxs_to_keep.append(i)
+
+    idxs_to_keep = torch.LongTensor(idxs_to_keep)
+    background_matches_a = (torch.index_select(background_matches_a[0], 0, idxs_to_keep), torch.index_select(background_matches_a[1], 0, idxs_to_keep))
+    background_matches_b = (torch.index_select(background_matches_b[0], 0, idxs_to_keep), torch.index_select(background_matches_b[1], 0, idxs_to_keep) )
+
+    return (background_matches_a, background_matches_b)
+
+def merge_matches(matches_one, matches_two):
+    """
+    :param matches_one, matches_two: each a tuple of torch Tensors, each of length n, i.e:
+
+        (u_pixel_positions, v_pixel_positions)
+
+        Where each of the elements of the tuple are torch Tensors of length n
+
+        Note: only support torch.LongTensors
+    """
+    concatenated_u = torch.cat((matches_one[0], matches_two[0]))
+    concatenated_v = torch.cat((matches_one[1], matches_two[1]))
+    return (concatenated_u, concatenated_v)
+
+
+
 
 
 

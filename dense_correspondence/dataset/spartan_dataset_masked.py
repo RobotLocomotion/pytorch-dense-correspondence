@@ -831,8 +831,29 @@ class SpartanDataset(DenseCorrespondenceDataset):
         image_b1_mask, image_b2_mask, uv_b1, uv_b2 =\
          self.get_within_scene_data(scene_name_b, metadata, for_synthetic_multi_object=True)
 
+        uv_a1 = (uv_a1[0].long(), uv_a1[1].long())
+        uv_a2 = (uv_a2[0].long(), uv_a2[1].long())
+        uv_b1 = (uv_b1[0].long(), uv_b1[1].long())
+        uv_b2 = (uv_b2[0].long(), uv_b2[1].long())
 
-        merged_rgb = correspondence_augmentation.merge_images_with_occlusions(image_a1_rgb, image_b1_rgb, image_a1_mask, image_b1_mask, None, None)
+        matches_pair_a = (uv_a1, uv_a2)
+        matches_pair_b = (uv_b1, uv_b2)
+        merged_rgb_1, uv_a1, uv_a2, uv_b1, uv_b2 =\
+         correspondence_augmentation.merge_images_with_occlusions(image_a1_rgb, image_b1_rgb, 
+                                                                  image_a1_mask, image_b1_mask, 
+                                                                  matches_pair_a, matches_pair_b)
+
+        matches_pair_a = (uv_a2, uv_a1)
+        matches_pair_b = (uv_b2, uv_b1)
+        merged_rgb_2, uv_a2, uv_a1, uv_b2, uv_b1 =\
+         correspondence_augmentation.merge_images_with_occlusions(image_a2_rgb, image_b2_rgb, 
+                                                                  image_a2_mask, image_b2_mask, 
+                                                                  matches_pair_a, matches_pair_b)
+
+        matches_1 = correspondence_augmentation.merge_matches(uv_a1, uv_b1)
+        matches_2 = correspondence_augmentation.merge_matches(uv_a2, uv_b2)
+        print "len matches_1[0]", len(matches_1[0])
+        print "len matches_2[0]", len(matches_2[0])
 
         
         if self.debug:
@@ -842,22 +863,23 @@ class SpartanDataset(DenseCorrespondenceDataset):
             print "PRE-MERGING"
             plot_uv_a1, plot_uv_a2 = SpartanDataset.subsample_tuple_pair(uv_a1, uv_a2, num_samples=num_matches_to_plot)
 
-            correspondence_plotter.plot_correspondences_direct(image_a1_rgb, np.asarray(image_a1_depth), 
-                                                                   image_a2_rgb, np.asarray(image_a2_depth),
-                                                                   plot_uv_a1, plot_uv_a2,
-                                                                   circ_color='g', show=True)
+            # correspondence_plotter.plot_correspondences_direct(image_a1_rgb, np.asarray(image_a1_depth), 
+            #                                                        image_a2_rgb, np.asarray(image_a2_depth),
+            #                                                        plot_uv_a1, plot_uv_a2,
+            #                                                        circ_color='g', show=True)
 
             plot_uv_b1, plot_uv_b2 = SpartanDataset.subsample_tuple_pair(uv_b1, uv_b2, num_samples=num_matches_to_plot)
 
-            correspondence_plotter.plot_correspondences_direct(image_b1_rgb, np.asarray(image_b1_depth), 
-                                                                   image_b2_rgb, np.asarray(image_b2_depth),
-                                                                   plot_uv_b1, plot_uv_b2,
-                                                                   circ_color='g', show=True)
+            # correspondence_plotter.plot_correspondences_direct(image_b1_rgb, np.asarray(image_b1_depth), 
+            #                                                        image_b2_rgb, np.asarray(image_b2_depth),
+            #                                                        plot_uv_b1, plot_uv_b2,
+            #                                                        circ_color='g', show=True)
 
             print "MERGED"
-            correspondence_plotter.plot_correspondences_direct(merged_rgb, np.asarray(image_b1_depth), 
-                                                                   image_b2_rgb, np.asarray(image_b2_depth),
-                                                                   plot_uv_b1, plot_uv_b2,
+            plot_uv_1, plot_uv_2 = SpartanDataset.subsample_tuple_pair(matches_1, matches_2, num_samples=num_matches_to_plot)
+            correspondence_plotter.plot_correspondences_direct(merged_rgb_1, np.asarray(image_b1_depth), 
+                                                                   merged_rgb_2, np.asarray(image_b2_depth),
+                                                                   plot_uv_1, plot_uv_2,
                                                                    circ_color='g', show=True)
 
         
