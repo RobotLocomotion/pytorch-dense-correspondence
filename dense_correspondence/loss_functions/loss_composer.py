@@ -70,7 +70,7 @@ def get_within_scene_loss(pixelwise_contrastive_loss, image_a_pred, image_b_pred
 
     if pcl._config["use_l2_pixel_loss_on_background_non_matches"]:
         background_non_match_loss, num_background_hard_negatives =\
-            pixelwise_contrastive_loss.non_match_loss_with_l2_pixel_norm(image_a_pred, image_b_pred, matches_b, background_non_matches_a, background_non_matches_b)    
+            pixelwise_contrastive_loss.non_match_loss_with_l2_pixel_norm(image_a_pred, image_b_pred, matches_b, background_non_matches_a, background_non_matches_b, M_descriptor=pcl._config["M_background"])    
         
     else:
         background_non_match_loss, num_background_hard_negatives =\
