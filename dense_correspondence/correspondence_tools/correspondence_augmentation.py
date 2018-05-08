@@ -238,8 +238,8 @@ def merge_images_with_occlusions(image_a, image_b, mask_a, mask_b, matches_pair_
 
         Note: only support torch.LongTensors
 
-    :return: merged image, merged_mask, pruned_matches_a, pruned_matches_b
-    :rtype: PIL.image.image, PIL.image.image, same types as matches_a and matches_b
+    :return: merged image, merged_mask, pruned_matches_a, pruned_associated_matches_a, pruned_matches_b, pruned_associated_matches_b
+    :rtype: PIL.image.image, PIL.image.image, rest are same types as matches_a and matches_b
 
     """
 
@@ -269,11 +269,7 @@ def merge_images_with_occlusions(image_a, image_b, mask_a, mask_b, matches_pair_
 
     # Prune occluded matches
     background_matches_pair = prune_matches_if_occluded(foreground_mask_numpy, background_matches_pair)
-
-
-    # Merge matches
-    # merged_matches = merge_matches(foreground_matches_pair[0], background_matches_pair[0])
-    
+ 
     if foreground == "A":
         matches_a            = foreground_matches_pair[0]
         associated_matches_a = foreground_matches_pair[1]
@@ -327,7 +323,7 @@ def prune_matches_if_occluded(foreground_mask_numpy, background_matches_pair):
 
     idxs_to_keep = torch.LongTensor(idxs_to_keep)
     background_matches_a = (torch.index_select(background_matches_a[0], 0, idxs_to_keep), torch.index_select(background_matches_a[1], 0, idxs_to_keep))
-    background_matches_b = (torch.index_select(background_matches_b[0], 0, idxs_to_keep), torch.index_select(background_matches_b[1], 0, idxs_to_keep) )
+    background_matches_b = (torch.index_select(background_matches_b[0], 0, idxs_to_keep), torch.index_select(background_matches_b[1], 0, idxs_to_keep))
 
     return (background_matches_a, background_matches_b)
 
