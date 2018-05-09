@@ -470,6 +470,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
         metadata = dict()
         metadata["object_id"] = object_id
+        metadata["object_id_int"] = self._single_object_scene_dict.keys().index(object_id)
         metadata["scene_name"] = scene_name
         metadata["type"] = SpartanDatasetDataType.SINGLE_OBJECT_WITHIN_SCENE
 
