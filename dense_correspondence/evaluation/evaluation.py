@@ -1877,7 +1877,7 @@ class DenseCorrespondenceEvaluation(object):
 
     @staticmethod
     def run_evaluation_on_network(model_folder, num_image_pairs=100,
-                                  num_matches_per_image_pair=100):
+                                  num_matches_per_image_pair=100, cross_scene=True):
         """
         Runs all the quantitative evaluations on the model folder
         Creates a folder model_folder/analysis that stores the information.
@@ -1938,17 +1938,18 @@ class DenseCorrespondenceEvaluation(object):
         df.to_csv(test_csv)
 
 
-        logging.info("Evaluating network on cross scene data")
-        df = DCE.evaluate_network_cross_scene(dcn=dcn, dataset=dataset, save=False)
-        cross_scene_csv = os.path.join(cross_scene_output_dir, "data.csv")
-        df.to_csv(cross_scene_csv)
-
+        if cross_scene:
+            logging.info("Evaluating network on cross scene data")
+            df = DCE.evaluate_network_cross_scene(dcn=dcn, dataset=dataset, save=False)
+            cross_scene_csv = os.path.join(cross_scene_output_dir, "data.csv")
+            df.to_csv(cross_scene_csv)
 
         logging.info("Making plots")
         DCEP = DenseCorrespondenceEvaluationPlotter
         fig_axes = DCEP.run_on_single_dataframe(train_csv, label="train", save=False)
         fig_axes = DCEP.run_on_single_dataframe(test_csv, label="test", save=False, previous_fig_axes=fig_axes)
-        fig_axes = DCEP.run_on_single_dataframe(cross_scene_csv, label="cross_scene", save=False, previous_fig_axes=fig_axes)
+        if cross_scene:
+            fig_axes = DCEP.run_on_single_dataframe(cross_scene_csv, label="cross_scene", save=False, previous_fig_axes=fig_axes)
 
         fig, _ = fig_axes        
         save_fig_file = os.path.join(output_dir, "quant_plots.png")
@@ -1963,7 +1964,7 @@ class DenseCorrespondenceEvaluation(object):
             df = DCE.evaluate_network_across_objects(dcn=dcn, dataset=dataset)
             across_object_csv = os.path.join(across_object_output_dir, "data.csv")
             df.to_csv(across_object_csv)
-            DCEP.run_on_single_dataframe_across_objects(across_object_csv, label="cross_scene", save=True)
+            DCEP.run_on_single_dataframe_across_objects(across_object_csv, label="across_object", save=True)
 
 
         logging.info("Finished running evaluation on network")
