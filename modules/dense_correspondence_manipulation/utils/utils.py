@@ -9,6 +9,7 @@ import socket
 import getpass
 import fnmatch
 import random
+import torch
 
 import dense_correspondence_manipulation.utils.transformations as transformations
 
