@@ -333,7 +333,8 @@ class DenseCorrespondenceNetwork(nn.Module):
         return dcn
 
     @staticmethod
-    def from_model_folder(model_folder, load_stored_params=True, model_param_file=None):
+    def from_model_folder(model_folder, load_stored_params=True, model_param_file=None,
+        iteration=None):
         """
         Loads a DenseCorrespondenceNetwork from a model folder
         :param model_folder: the path to the folder where the model is stored. This direction contains
@@ -350,7 +351,7 @@ class DenseCorrespondenceNetwork(nn.Module):
         model_folder = utils.convert_to_absolute_path(model_folder)
 
         if model_param_file is None:
-            model_param_file, _, _ = utils.get_model_param_file_from_directory(model_folder)
+            model_param_file, _, _ = utils.get_model_param_file_from_directory(model_folder, iteration=iteration)
 
         model_param_file = utils.convert_to_absolute_path(model_param_file)
 
