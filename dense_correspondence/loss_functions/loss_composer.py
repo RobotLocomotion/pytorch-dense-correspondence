@@ -81,6 +81,7 @@ def get_within_scene_loss(pixelwise_contrastive_loss, image_a_pred, image_b_pred
         
 
     blind_non_match_loss = zero_loss()
+    num_blind_hard_negatives = 1
     if not (SpartanDataset.is_empty(blind_non_matches_a.data)):
         blind_non_match_loss, num_blind_hard_negatives =\
             pixelwise_contrastive_loss.non_match_loss_descriptor_only(image_a_pred, image_b_pred,
