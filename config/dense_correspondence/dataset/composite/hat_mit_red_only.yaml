@@ -1,0 +1,6 @@
+logs_root_path: code/data_volume/pdc/logs_proto
+
+single_object_scenes_config_files:
+- hat_mit_red.yaml
+
+multi_object_scenes_config_files: []
