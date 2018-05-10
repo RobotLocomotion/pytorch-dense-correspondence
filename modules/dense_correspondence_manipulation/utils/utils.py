@@ -8,6 +8,7 @@ import time
 import socket
 import getpass
 import fnmatch
+import random
 
 import dense_correspondence_manipulation.utils.transformations as transformations
 
@@ -265,6 +266,12 @@ def uv_to_flattened_pixel_locations(uv_tuple, image_width):
     """
     flat_pixel_locations = uv_tuple[1]*image_width + uv_tuple[0]
     return flat_pixel_locations
+
+def reset_random_seed():
+    SEED = 1
+    random.seed(SEED)
+    np.random.seed(SEED)
+    torch.manual_seed(SEED)
 
 class CameraIntrinsics(object):
     """
