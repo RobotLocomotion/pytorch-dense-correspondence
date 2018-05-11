@@ -355,7 +355,6 @@ class DenseCorrespondenceTraining(object):
                     :rtype:
                     """
 
-
                     learning_rate = DenseCorrespondenceTraining.get_learning_rate(optimizer)
                     self._logging_dict['train']['learning_rate'].append(learning_rate)
                     self._visdom_plots['learning_rate'].log(loss_current_iteration, learning_rate)
@@ -405,6 +404,9 @@ class DenseCorrespondenceTraining(object):
                     else:
                         raise ValueError("unknown data type")
 
+
+                    if data_type == SpartanDatasetDataType.DIFFERENT_OBJECT:
+                        self._tensorboard_logger.log_value("train different object", loss.data[0], loss_current_iteration)
 
                     # #non_match_type = metadata['non_match_type'][0]
                     # fraction_hard_negatives = pixelwise_contrastive_loss.debug_data['fraction_hard_negatives']

@@ -142,13 +142,11 @@ def get_different_object_loss(pixelwise_contrastive_loss, image_a_pred, image_b_
             pixelwise_contrastive_loss.non_match_loss_descriptor_only(image_a_pred, image_b_pred,
                                                                     blind_non_matches_a, blind_non_matches_b,
                                                                     M_descriptor=M_descriptor)
-
         
         if scale_by_hard_negatives:
             scale_factor = max(num_hard_negatives, 1)
         else:
             scale_factor = max(len(blind_non_matches_a), 1)
-
 
         blind_non_match_loss = 1.0/scale_factor * blind_non_match_loss
     loss = blind_non_match_loss

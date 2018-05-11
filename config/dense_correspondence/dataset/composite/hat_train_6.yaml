@@ -1,0 +1,11 @@
+logs_root_path: code/data_volume/pdc/logs_proto
+
+single_object_scenes_config_files:
+- hat_banjo_camp_north.yaml
+- hat_ihmc_black.yaml
+- hat_mit_black.yaml
+- hat_mit_red.yaml
+- hat_princeton_orange.yaml
+- hat_san_francisco_giants.yaml
+
+multi_object_scenes_config_files: []
