@@ -2,7 +2,7 @@
 
 
 import os
-import dense_correspondence_manipulation.utils.ut
+import dense_correspondence_manipulation.utils.utils as utils
 import logging
 utils.add_dense_correspondence_to_python_path()
 import matplotlib.pyplot as plt
