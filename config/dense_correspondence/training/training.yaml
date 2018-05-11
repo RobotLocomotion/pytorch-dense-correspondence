@@ -15,7 +15,9 @@ training:
   save_rate: 500 # how often to save the network
   batch_size: 1
   # Datset config
-  domain_randomize: False
+  domain_randomize: True
+  num_matching_attempts: 10000
+  sample_matches_only_off_mask: True
   num_non_matches_per_match: 150
   fraction_masked_non_matches: 0.5
   fraction_background_non_matches: 0.5
@@ -25,6 +27,7 @@ training:
   use_SINGLE_OBJECT_ACROSS_SCENE: False
   use_DIFFERENT_OBJECT: False
   use_MULTI_OBJECT: False
+  use_SYNTHETIC_MULTI_OBJECT: False
   # Loss function config
   loss_function: pixelwise_contrastive_loss # not currently used
   # Logging config

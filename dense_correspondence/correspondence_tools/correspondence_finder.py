@@ -380,22 +380,19 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
         uv_a_vec_flattened = uv_a_vec[1]*image_width+uv_a_vec[0]
     else:
         img_a_mask = torch.from_numpy(img_a_mask).type(dtype_float)  
-        mask_a = img_a_mask.squeeze(0)
-        mask_a = mask_a/torch.max(mask_a)
-        nonzero = (torch.nonzero(mask_a)).type(dtype_long)
-        uv_a_vec = (nonzero[:,1], nonzero[:,0])
+        
+        # Option A: This next line samples from img mask
+        uv_a_vec = random_sample_from_masked_image_torch(img_a_mask, num_samples=num_attempts)
+        
+        # Option B: These 4 lines grab ALL from img mask
+        # mask_a = img_a_mask.squeeze(0)
+        # mask_a = mask_a/torch.max(mask_a)
+        # nonzero = (torch.nonzero(mask_a)).type(dtype_long)
+        # uv_a_vec = (nonzero[:,1], nonzero[:,0])
+
+        # Always use this line        
         uv_a_vec_flattened = uv_a_vec[1]*image_width+uv_a_vec[0]
 
-        # This code would randomly subsample from the mask
-        # mask_a = mask_a.view(image_width*image_height,1).squeeze(1)
-        # mask_a_indices_flat = torch.nonzero(mask_a)
-        # if len(mask_a_indices_flat) == 0:
-        #     return (None, None)
-        # num_samples = 10000
-        # rand_numbers_a = torch.rand(num_samples)*len(mask_a_indices_flat)
-        # rand_indices_a = torch.floor(rand_numbers_a).type(dtype_long)
-        # uv_a_vec_flattened = torch.index_select(mask_a_indices_flat, 0, rand_indices_a).squeeze(1)
-        # uv_a_vec = (uv_a_vec_flattened/image_width, uv_a_vec_flattened%image_width)
 
     if K is None:
         K = get_default_K_matrix()

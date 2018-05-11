@@ -61,14 +61,20 @@ class DCNEvaluationPandaTemplate(PandaDataFrameWrapper):
              'img_a_idx',
              'img_b_idx',
             'is_valid',
+            'is_valid_masked',
             'norm_diff_descriptor_ground_truth',
             'norm_diff_descriptor',
+            'norm_diff_descriptor_masked',
             'norm_diff_ground_truth_3d',
             'norm_diff_pred_3d',
+            'norm_diff_pred_3d_masked',
             'pixel_match_error_l2',
+            'pixel_match_error_l2_masked',
             'pixel_match_error_l1',
             'fraction_pixels_closer_than_ground_truth',
-            'average_l2_distance_for_false_positives']
+            'fraction_pixels_closer_than_ground_truth_masked',
+            'average_l2_distance_for_false_positives',
+            'average_l2_distance_for_false_positives_masked']
 
     def __init__(self):
         PandaDataFrameWrapper.__init__(self, DCNEvaluationPandaTemplate.columns)
@@ -540,9 +546,10 @@ class DenseCorrespondenceEvaluation(object):
 
             # Reminder: this function wants only a single uv_a, uv_b
             pd_template = DenseCorrespondenceEvaluation.compute_descriptor_match_statistics(depth_a,
-                                                        depth_b, uv_a, uv_b, pose_a,pose_b, res_a,
+                                                        depth_b, mask_a, mask_b, uv_a, uv_b, pose_a,pose_b, res_a,
                                                         res_b, camera_intrinsics_matrix,
                                                         rgb_a=rgb_a, rgb_b=rgb_b, debug=False)
+
             pd_template.set_value('scene_name', scene_name_a+"+"+scene_name_b)
             pd_template.set_value('img_a_idx', int(img_a_idx))
             pd_template.set_value('img_b_idx', int(img_b_idx))
@@ -574,6 +581,7 @@ class DenseCorrespondenceEvaluation(object):
                     continue
                 diff_rgb_a, diff_depth_a, diff_mask_a, diff_pose_a = dataset.get_rgbd_mask_pose(scene_name_a, different_view_a_idx)
                 diff_depth_a = np.asarray(diff_depth_a)
+                diff_mask_a = np.asarray(diff_mask_a)
                 (uv_a_vec, diff_uv_a_vec) = correspondence_finder.batch_find_pixel_correspondences(depth_a, pose_a, diff_depth_a, diff_pose_a,
                                                                uv_a=uv_a)
                 if uv_a_vec is None:
@@ -587,7 +595,7 @@ class DenseCorrespondenceEvaluation(object):
                 diff_uv_a = DCE.clip_pixel_to_image_size_and_round(diff_uv_a, image_width, image_height)
 
                 pd_template = DenseCorrespondenceEvaluation.compute_descriptor_match_statistics(diff_depth_a,
-                                                        depth_b, diff_uv_a, uv_b, diff_pose_a, pose_b, 
+                                                        depth_b, diff_mask_a, mask_b, diff_uv_a, uv_b, diff_pose_a, pose_b, 
                                                         diff_res_a, res_b, camera_intrinsics_matrix,
                                                         rgb_a=diff_rgb_a, rgb_b=rgb_b, debug=False)
                 pd_template.set_value('scene_name', scene_name_a+"+"+scene_name_b)
@@ -604,6 +612,7 @@ class DenseCorrespondenceEvaluation(object):
                     continue
                 diff_rgb_b, diff_depth_b, diff_mask_b, diff_pose_b = dataset.get_rgbd_mask_pose(scene_name_b, different_view_b_idx)
                 diff_depth_b = np.asarray(diff_depth_b)
+                diff_mask_b = np.asarray(diff_mask_b)
                 (uv_b_vec, diff_uv_b_vec) = correspondence_finder.batch_find_pixel_correspondences(depth_b, pose_b, diff_depth_b, diff_pose_b,
                                                                uv_a=uv_b)
                 if uv_b_vec is None:
@@ -617,7 +626,7 @@ class DenseCorrespondenceEvaluation(object):
                 diff_uv_b = DCE.clip_pixel_to_image_size_and_round(diff_uv_b, image_width, image_height)
 
                 pd_template = DenseCorrespondenceEvaluation.compute_descriptor_match_statistics(depth_a,
-                                                        diff_depth_b, uv_a, diff_uv_b, pose_a, diff_pose_b, 
+                                                        diff_depth_b, mask_a, diff_mask_b, uv_a, diff_uv_b, pose_a, diff_pose_b, 
                                                         res_a, diff_res_b, camera_intrinsics_matrix,
                                                         rgb_a=rgb_a, rgb_b=diff_rgb_b, debug=False)
                 pd_template.set_value('scene_name', scene_name_a+"+"+scene_name_b)
@@ -781,6 +790,8 @@ class DenseCorrespondenceEvaluation(object):
 
             pd_template = DCE.compute_descriptor_match_statistics(depth_a,
                                                                   depth_b,
+                                                                  mask_a,
+                                                                  mask_b,
                                                                   uv_a,
                                                                   uv_b,
                                                                   pose_a,
@@ -847,7 +858,7 @@ class DenseCorrespondenceEvaluation(object):
 
 
     @staticmethod
-    def compute_descriptor_match_statistics(depth_a, depth_b, uv_a, uv_b, pose_a, pose_b,
+    def compute_descriptor_match_statistics(depth_a, depth_b, mask_a, mask_b, uv_a, uv_b, pose_a, pose_b,
                                             res_a, res_b, camera_matrix, params=None,
                                             rgb_a=None, rgb_b=None, debug=False):
         """
@@ -890,9 +901,20 @@ class DenseCorrespondenceEvaluation(object):
             DenseCorrespondenceNetwork.find_best_match(uv_a, res_a,
                                                        res_b, debug=debug)
 
-        
+        # norm_diffs shape is (H,W)
+
+        # compute best match on mask only
+        mask_b_inv = 1-mask_b
+        masked_norm_diffs = norm_diffs + mask_b_inv*1e6
+
+        best_match_flattened_idx_masked = np.argmin(masked_norm_diffs)
+        best_match_xy_masked = np.unravel_index(best_match_flattened_idx_masked, masked_norm_diffs.shape)
+        best_match_diff_masked = masked_norm_diffs[best_match_xy_masked]
+        uv_b_pred_masked = (best_match_xy_masked[1], best_match_xy_masked[0])
+
         # compute pixel space difference
         pixel_match_error_l2 = np.linalg.norm((np.array(uv_b) - np.array(uv_b_pred)), ord=2)
+        pixel_match_error_l2_masked = np.linalg.norm((np.array(uv_b) - np.array(uv_b_pred_masked)), ord=2)
         pixel_match_error_l1 = np.linalg.norm((np.array(uv_b) - np.array(uv_b_pred)), ord=1)
 
 
@@ -912,6 +934,11 @@ class DenseCorrespondenceEvaluation(object):
         num_pixels_in_image = res_a.shape[0] * res_a.shape[1]
         fraction_pixels_closer_than_ground_truth = num_pixels_closer_than_ground_truth*1.0/num_pixels_in_image
 
+        (v_indices_better_than_ground_truth_masked, u_indices_better_than_ground_truth_masked) = np.where(masked_norm_diffs < norm_diff_descriptor_ground_truth)
+        num_pixels_closer_than_ground_truth_masked = len(u_indices_better_than_ground_truth_masked) 
+        num_pixels_in_masked_image = len(np.nonzero(mask_b)[0])
+        fraction_pixels_closer_than_ground_truth_masked = num_pixels_closer_than_ground_truth_masked*1.0/num_pixels_in_masked_image
+
         # new metric: average l2 distance of the pixels better than ground truth
         if num_pixels_closer_than_ground_truth == 0:
             average_l2_distance_for_false_positives = 0.0
@@ -919,20 +946,32 @@ class DenseCorrespondenceEvaluation(object):
             l2_distances = np.sqrt((u_indices_better_than_ground_truth - uv_b[0])**2 + (v_indices_better_than_ground_truth - uv_b[1])**2)
             average_l2_distance_for_false_positives = np.average(l2_distances)
 
+        # new metric: average l2 distance of the pixels better than ground truth
+        if num_pixels_closer_than_ground_truth_masked == 0:
+            average_l2_distance_for_false_positives_masked = 0.0
+        else:
+            l2_distances_masked = np.sqrt((u_indices_better_than_ground_truth_masked - uv_b[0])**2 + (v_indices_better_than_ground_truth_masked - uv_b[1])**2)
+            average_l2_distance_for_false_positives_masked = np.average(l2_distances_masked)
+
         # extract depth values, note the indexing order of u,v has to be reversed
         uv_a_depth = depth_a[uv_a[1], uv_a[0]] / DEPTH_IM_SCALE # check if this is not None
         uv_b_depth = depth_b[uv_b[1], uv_b[0]] / DEPTH_IM_SCALE
         uv_b_pred_depth = depth_b[uv_b_pred[1], uv_b_pred[0]] / DEPTH_IM_SCALE
         uv_b_pred_depth_is_valid = DenseCorrespondenceEvaluation.is_depth_valid(uv_b_pred_depth)
+        uv_b_pred_depth_masked = depth_b[uv_b_pred_masked[1], uv_b_pred_masked[0]] / DEPTH_IM_SCALE
+        uv_b_pred_depth_is_valid_masked = DenseCorrespondenceEvaluation.is_depth_valid(uv_b_pred_depth_masked)
         is_valid = uv_b_pred_depth_is_valid
+        is_valid_masked = uv_b_pred_depth_is_valid_masked
 
         uv_a_pos = DCE.compute_3d_position(uv_a, uv_a_depth, camera_matrix, pose_a)
         uv_b_pos = DCE.compute_3d_position(uv_b, uv_b_depth, camera_matrix, pose_b)
         uv_b_pred_pos = DCE.compute_3d_position(uv_b_pred, uv_b_pred_depth, camera_matrix, pose_b)
+        uv_b_pred_pos_masked = DCE.compute_3d_position(uv_b_pred_masked, uv_b_pred_depth_masked, camera_matrix, pose_b)
 
         diff_ground_truth_3d = uv_b_pos - uv_a_pos
 
         diff_pred_3d = uv_b_pos - uv_b_pred_pos
+        diff_pred_3d_masked = uv_b_pos - uv_b_pred_pos_masked
 
         if DCE.is_depth_valid(uv_b_depth):
             norm_diff_ground_truth_3d = np.linalg.norm(diff_ground_truth_3d)
@@ -943,6 +982,11 @@ class DenseCorrespondenceEvaluation(object):
             norm_diff_pred_3d = np.linalg.norm(diff_pred_3d)
         else:
             norm_diff_pred_3d = np.nan
+
+        if DCE.is_depth_valid(uv_b_depth) and DCE.is_depth_valid(uv_b_pred_depth_masked):
+            norm_diff_pred_3d_masked = np.linalg.norm(diff_pred_3d_masked)
+        else:
+            norm_diff_pred_3d_masked = np.nan
 
         if debug:
 
@@ -957,7 +1001,9 @@ class DenseCorrespondenceEvaluation(object):
 
         pd_template = DCNEvaluationPandaTemplate()
         pd_template.set_value('norm_diff_descriptor', best_match_diff)
+        pd_template.set_value('norm_diff_descriptor_masked', best_match_diff_masked)
         pd_template.set_value('is_valid', is_valid)
+        pd_template.set_value('is_valid_masked', is_valid_masked)
 
         pd_template.set_value('norm_diff_ground_truth_3d', norm_diff_ground_truth_3d)
 
@@ -966,13 +1012,21 @@ class DenseCorrespondenceEvaluation(object):
         else:
             pd_template.set_value('norm_diff_pred_3d', np.nan)
 
+        if is_valid_masked:
+            pd_template.set_value('norm_diff_pred_3d_masked', norm_diff_pred_3d_masked)
+        else:
+            pd_template.set_value('norm_diff_pred_3d_masked', np.nan)
+
         pd_template.set_value('norm_diff_descriptor_ground_truth', norm_diff_descriptor_ground_truth)
 
         pd_template.set_value('pixel_match_error_l2', pixel_match_error_l2)
+        pd_template.set_value('pixel_match_error_l2_masked', pixel_match_error_l2_masked)
         pd_template.set_value('pixel_match_error_l1', pixel_match_error_l1)
 
         pd_template.set_value('fraction_pixels_closer_than_ground_truth', fraction_pixels_closer_than_ground_truth)
+        pd_template.set_value('fraction_pixels_closer_than_ground_truth_masked', fraction_pixels_closer_than_ground_truth_masked)
         pd_template.set_value('average_l2_distance_for_false_positives', average_l2_distance_for_false_positives)
+        pd_template.set_value('average_l2_distance_for_false_positives_masked', average_l2_distance_for_false_positives_masked)
 
 
         return pd_template
@@ -2212,7 +2266,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
         return plot
 
     @staticmethod
-    def make_pixel_match_error_plot(ax, df, label=None, num_bins=100):
+    def make_pixel_match_error_plot(ax, df, label=None, num_bins=100, masked=False):
         """
         :param ax: axis of a matplotlib plot to plot on
         :param df: pandas dataframe, i.e. generated from quantitative 
@@ -2223,10 +2277,19 @@ class DenseCorrespondenceEvaluationPlotter(object):
         """
         DCEP = DenseCorrespondenceEvaluationPlotter
 
-        data = df['pixel_match_error_l2']
+        
+        if masked:
+            data_string = 'pixel_match_error_l2_masked'
+        else:
+            data_string = 'pixel_match_error_l2' 
+
+        data = df[data_string]
 
         plot = DCEP.make_cdf_plot(ax, data, num_bins=num_bins, label=label)
-        ax.set_xlabel('Pixel match error, L2 (pixel distance)')
+        if masked:
+            ax.set_xlabel('Pixel match error (masked), L2 (pixel distance)')
+        else:
+            ax.set_xlabel('Pixel match error, L2 (pixel distance)')
         ax.set_ylabel('Fraction of images')
 
         # ax.set_xlim([0,200])
@@ -2252,7 +2315,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
         return plot
 
     @staticmethod
-    def make_descriptor_accuracy_plot(ax, df, label=None, num_bins=100):
+    def make_descriptor_accuracy_plot(ax, df, label=None, num_bins=100, masked=False):
         """
         Makes a plot of best match accuracy.
         Drops nans
@@ -2266,18 +2329,27 @@ class DenseCorrespondenceEvaluationPlotter(object):
         """
         DCEP = DenseCorrespondenceEvaluationPlotter
 
-        data = df['norm_diff_pred_3d']
+        if masked:
+            data_string = 'norm_diff_pred_3d_masked'
+        else:
+            data_string = 'norm_diff_pred_3d' 
+
+
+        data = df[data_string]
         data = data.dropna()
         data *= 100 # convert to cm
 
         plot = DCEP.make_cdf_plot(ax, data, num_bins=num_bins, label=label)
-        ax.set_xlabel('3D match error, L2 (cm)')
+        if masked:
+            ax.set_xlabel('3D match error (masked), L2 (cm)')
+        else:
+            ax.set_xlabel('3D match error, L2 (cm)')
         ax.set_ylabel('Fraction of images')
         #ax.set_title("3D Norm Diff Best Match")
         return plot
 
     @staticmethod
-    def make_norm_diff_ground_truth_plot(ax, df, label=None, num_bins=100):
+    def make_norm_diff_ground_truth_plot(ax, df, label=None, num_bins=100, masked=False):
         """
         :param ax: axis of a matplotlib plot to plot on
         :param df:
@@ -2297,7 +2369,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
         return plot
 
     @staticmethod
-    def make_fraction_false_positives_plot(ax, df, label=None, num_bins=100):
+    def make_fraction_false_positives_plot(ax, df, label=None, num_bins=100, masked=False):
         """
         :param ax: axis of a matplotlib plot to plot on
         :param df:
@@ -2309,17 +2381,27 @@ class DenseCorrespondenceEvaluationPlotter(object):
         """
         DCEP = DenseCorrespondenceEvaluationPlotter
 
-        data = df['fraction_pixels_closer_than_ground_truth']
+        if masked:
+            data_string = 'fraction_pixels_closer_than_ground_truth_masked'
+        else:
+            data_string = 'fraction_pixels_closer_than_ground_truth' 
+
+        data = df[data_string]
         
         plot = DCEP.make_cdf_plot(ax, data, num_bins=num_bins, label=label)
-        ax.set_xlabel('Fraction false positives')
+        
+        if masked:
+            ax.set_xlabel('Fraction false positives (masked)')
+        else:
+            ax.set_xlabel('Fraction false positives')    
+
         ax.set_ylabel('Fraction of images')
         ax.set_xlim([0, 1])
         ax.set_ylim([0, 1])
         return plot
 
     @staticmethod
-    def make_average_l2_false_positives_plot(ax, df, label=None, num_bins=100):
+    def make_average_l2_false_positives_plot(ax, df, label=None, num_bins=100, masked=False):
         """
         :param ax: axis of a matplotlib plot to plot on
         :param df:
@@ -2331,10 +2413,18 @@ class DenseCorrespondenceEvaluationPlotter(object):
         """
         DCEP = DenseCorrespondenceEvaluationPlotter
 
-        data = df['average_l2_distance_for_false_positives']
+        if masked:
+            data_string = 'average_l2_distance_for_false_positives_masked'
+        else:
+            data_string = 'average_l2_distance_for_false_positives'
+
+        data = df[data_string]
         
         plot = DCEP.make_cdf_plot(ax, data, num_bins=num_bins, label=label)
-        ax.set_xlabel('Average l2 pixel distance for false positives')
+        if masked:
+            ax.set_xlabel('Average l2 pixel distance for false positives (masked)')
+        else:
+            ax.set_xlabel('Average l2 pixel distance for false positives')
         ax.set_ylabel('Fraction of images')
         # ax.set_xlim([0,200])
         return plot
@@ -2399,35 +2489,65 @@ class DenseCorrespondenceEvaluationPlotter(object):
 
         df = pd.read_csv(path_to_csv, index_col=0, parse_dates=True)
 
+        if 'is_valid_masked' not in df:
+            use_masked_plots = False
+        else:
+            use_masked_plots = True
+
+
         if previous_fig_axes==None:
             N = 5
-            fig, axes = plt.subplots(N, figsize=(10,N*5))
+            if use_masked_plots:
+                fig, axes = plt.subplots(nrows=N, ncols=2, figsize=(15,N*5))
+            else:
+                fig, axes = plt.subplots(N, figsize=(10,N*5))
         else:
             [fig, axes] = previous_fig_axes
         
         
+        def get_ax(axes, index):
+            if use_masked_plots:
+                return axes[index,0]
+            else:
+                return axes[index]
+
         # pixel match error
-        plot = DCEP.make_pixel_match_error_plot(axes[0], df, label=label)
-        axes[0].legend()
+        ax = get_ax(axes, 0)
+        plot = DCEP.make_pixel_match_error_plot(ax, df, label=label)
+        if use_masked_plots:
+            plot = DCEP.make_pixel_match_error_plot(axes[0,1], df, label=label, masked=True)
+        ax.legend()
        
         # 3D match error
-        plot = DCEP.make_descriptor_accuracy_plot(axes[1], df, label=label)
-        if save:
-            fig_file = os.path.join(output_dir, "norm_diff_pred_3d.png")
-            fig.savefig(fig_file)
+        ax = get_ax(axes, 1)
+        plot = DCEP.make_descriptor_accuracy_plot(ax, df, label=label)
+        if use_masked_plots:
+            plot = DCEP.make_descriptor_accuracy_plot(axes[1,1], df, label=label, masked=True)            
+
+
+        # if save:
+        #     fig_file = os.path.join(output_dir, "norm_diff_pred_3d.png")
+        #     fig.savefig(fig_file)
 
         aac = DCEP.compute_area_above_curve(df, 'norm_diff_pred_3d')
         d = dict()
         d['norm_diff_3d_area_above_curve'] = float(aac)
 
         # norm difference of the ground truth match (should be 0)
-        plot = DCEP.make_norm_diff_ground_truth_plot(axes[2], df, label=label)
+        ax = get_ax(axes,2)
+        plot = DCEP.make_norm_diff_ground_truth_plot(ax, df, label=label)
 
         # fraction false positives
-        plot = DCEP.make_fraction_false_positives_plot(axes[3], df, label=label)
+        ax = get_ax(axes,3)
+        plot = DCEP.make_fraction_false_positives_plot(ax, df, label=label)
+        if use_masked_plots:
+            plot = DCEP.make_fraction_false_positives_plot(axes[3,1], df, label=label, masked=True)
 
         # average l2 false positives
-        plot = DCEP.make_average_l2_false_positives_plot(axes[4], df, label=label)
+        ax = get_ax(axes, 4)
+        plot = DCEP.make_average_l2_false_positives_plot(ax, df, label=label)
+        if use_masked_plots:
+            plot = DCEP.make_average_l2_false_positives_plot(axes[4,1], df, label=label, masked=True)
 
         yaml_file = os.path.join(output_dir, 'stats.yaml')
         utils.saveToYaml(d, yaml_file)

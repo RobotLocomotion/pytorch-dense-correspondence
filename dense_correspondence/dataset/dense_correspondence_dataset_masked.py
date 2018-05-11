@@ -534,6 +534,9 @@ class DenseCorrespondenceDataset(data.Dataset):
 
         # self._training_config = copy.deepcopy(training_config["training"])
 
+        self.num_matching_attempts = int(training_config['training']['num_matching_attempts'])
+        self.sample_matches_only_off_mask = training_config['training']['sample_matches_only_off_mask']
+
         self.num_non_matches_per_match = training_config['training']["num_non_matches_per_match"]
 
 
@@ -556,6 +559,8 @@ class DenseCorrespondenceDataset(data.Dataset):
             self._data_load_types.append(SpartanDatasetDataType.DIFFERENT_OBJECT)
         if training_config["training"]["use_MULTI_OBJECT"]:
             self._data_load_types.append(SpartanDatasetDataType.MULTI_OBJECT)
+        if training_config["training"]["use_SYNTHETIC_MULTI_OBJECT"]:
+            self._data_load_types.append(SpartanDatasetDataType.SYNTHETIC_MULTI_OBJECT)
 
     def set_train_mode(self):
         self.mode = "train"
