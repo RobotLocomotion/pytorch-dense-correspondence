@@ -2,7 +2,7 @@
 
 
 import os
-import dense_correspondence_manipulation.utils.utils as utils
+import dense_correspondence_manipulation.utils.ut
 import logging
 utils.add_dense_correspondence_to_python_path()
 import matplotlib.pyplot as plt
@@ -262,6 +262,8 @@ class DenseCorrespondenceEvaluation(object):
         and use pairs of images that have been human-labeled across scenes.
         """
 
+        utils.reset_random_seed()
+
         cross_scene_data = DenseCorrespondenceEvaluation.parse_cross_scene_data(dataset)
         
         pd_dataframe_list = []
@@ -303,6 +305,8 @@ class DenseCorrespondenceEvaluation(object):
         """
         This grabs different objects and computes a small set of statistics on their distribution.
         """
+
+        utils.reset_random_seed()
         
         pd_dataframe_list = []
         for i in xrange(num_image_pairs):
@@ -337,6 +341,8 @@ class DenseCorrespondenceEvaluation(object):
             the dataset to draw samples from
         :return:
         """
+        utils.reset_random_seed()
+
         DCE = DenseCorrespondenceEvaluation
         dcn.eval()
 
@@ -404,7 +410,6 @@ class DenseCorrespondenceEvaluation(object):
         fig, axes = plt.subplots(nrows=nrows, ncols=ncols)
         fig.set_figheight(5)
         fig.set_figwidth(15)
-
         
         if descriptor_image_stats is None:
             res_a_norm, res_b_norm = dc_plotting.normalize_descriptor_pair(res_a, res_b)
@@ -1741,6 +1746,8 @@ class DenseCorrespondenceEvaluation(object):
         :rtype:
         """
 
+        utils.reset_random_seed()
+
         dcn.eval()
         to_tensor = transforms.ToTensor()
 
@@ -1877,7 +1884,9 @@ class DenseCorrespondenceEvaluation(object):
 
     @staticmethod
     def run_evaluation_on_network(model_folder, num_image_pairs=100,
-                                  num_matches_per_image_pair=100, cross_scene=True):
+                                  num_matches_per_image_pair=100,
+                                  save_folder_name="analysis",
+                                  compute_descriptor_statistics=True, cross_scene=True):
         """
         Runs all the quantitative evaluations on the model folder
         Creates a folder model_folder/analysis that stores the information.
@@ -1895,12 +1904,14 @@ class DenseCorrespondenceEvaluation(object):
         :rtype:
         """
 
+        utils.reset_random_seed()
+
         DCE = DenseCorrespondenceEvaluation
 
         model_folder = utils.convert_to_absolute_path(model_folder)
 
         # save it to a csv file
-        output_dir = os.path.join(model_folder, 'analysis')
+        output_dir = os.path.join(model_folder, save_folder_name)
         train_output_dir = os.path.join(output_dir, "train")
         test_output_dir = os.path.join(output_dir, "test")
         cross_scene_output_dir = os.path.join(output_dir, "cross_scene")
@@ -1916,8 +1927,9 @@ class DenseCorrespondenceEvaluation(object):
         dataset = dcn.load_training_dataset()
 
         # compute dataset statistics
-        logging.info("Computing descriptor statistics on dataset")
-        DCE.compute_descriptor_statistics_on_dataset(dcn, dataset, num_images=100, save_to_file=True)
+        if compute_descriptor_statistics:
+            logging.info("Computing descriptor statistics on dataset")
+            DCE.compute_descriptor_statistics_on_dataset(dcn, dataset, num_images=100, save_to_file=True)
 
 
         # evaluate on training data and on test data
@@ -2217,6 +2229,8 @@ class DenseCorrespondenceEvaluationPlotter(object):
         plot = DCEP.make_cdf_plot(ax, data, num_bins=num_bins, label=label)
         ax.set_xlabel('Pixel match error, L2 (pixel distance)')
         ax.set_ylabel('Fraction of images')
+
+        # ax.set_xlim([0,200])
         return plot
 
     @staticmethod
@@ -2323,6 +2337,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
         plot = DCEP.make_cdf_plot(ax, data, num_bins=num_bins, label=label)
         ax.set_xlabel('Average l2 pixel distance for false positives')
         ax.set_ylabel('Fraction of images')
+        # ax.set_xlim([0,200])
         return plot
 
     @staticmethod

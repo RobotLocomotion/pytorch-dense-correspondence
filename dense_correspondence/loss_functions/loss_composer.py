@@ -132,6 +132,8 @@ def get_different_object_loss(pixelwise_contrastive_loss, image_a_pred, image_b_
     """
     Simple wrapper for pixelwise_contrastive_loss functions.  Args and return args documented above in get_loss()
     """
+
+    scale_by_hard_negatives = pixelwise_contrastive_loss.config["scale_by_hard_negatives_DIFFERENT_OBJECT"]
     blind_non_match_loss = zero_loss()
     if not (SpartanDataset.is_empty(blind_non_matches_a.data)):
         M_descriptor = pixelwise_contrastive_loss.config["M_background"]
@@ -140,8 +142,12 @@ def get_different_object_loss(pixelwise_contrastive_loss, image_a_pred, image_b_
             pixelwise_contrastive_loss.non_match_loss_descriptor_only(image_a_pred, image_b_pred,
                                                                     blind_non_matches_a, blind_non_matches_b,
                                                                     M_descriptor=M_descriptor)
+        
+        if scale_by_hard_negatives:
+            scale_factor = max(num_hard_negatives, 1)
+        else:
+            scale_factor = max(len(blind_non_matches_a), 1)
 
-        scale_factor = max(num_hard_negatives, 1)
         blind_non_match_loss = 1.0/scale_factor * blind_non_match_loss
     loss = blind_non_match_loss
     return loss, zero_loss(), zero_loss(), zero_loss(), blind_non_match_loss
@@ -155,12 +161,14 @@ def get_same_object_across_scene_loss(pixelwise_contrastive_loss, image_a_pred, 
     if not (SpartanDataset.is_empty(blind_non_matches_a.data)):
         blind_non_match_loss =\
             pixelwise_contrastive_loss.non_match_loss_descriptor_only(image_a_pred, image_b_pred,
-                                                                    blind_non_matches_a, blind_non_matches_b,
-                                                                    M_descriptor=0.5, invert=True)
+                                                                    blind_non_matches_a, blind_non_matches_b,M_descriptor=0.5, invert=True)
     loss = blind_non_match_loss
     return loss, zero_loss(), zero_loss(), zero_loss(), blind_non_match_loss
 
 def zero_loss():
     return Variable(torch.FloatTensor([0]).cuda())
+
+def is_zero_loss(loss):
+    return loss.data[0] < 1e-20
 
 

@@ -355,36 +355,55 @@ class DenseCorrespondenceTraining(object):
                     :rtype:
                     """
 
-
-                    # visdom
-                    self._logging_dict['train']['iteration'].append(loss_current_iteration)
-                    self._logging_dict['train']['loss'].append(loss.data[0])
-                    self._logging_dict['train']['match_loss'].append(match_loss.data[0])
-                    self._logging_dict['train']['masked_non_match_loss'].append(masked_non_match_loss.data[0])
-                    self._logging_dict['train']['background_non_match_loss'].append(background_non_match_loss.data[0])
-                    self._logging_dict['train']['blind_non_match_loss'].append(blind_non_match_loss.data[0])
-
                     learning_rate = DenseCorrespondenceTraining.get_learning_rate(optimizer)
                     self._logging_dict['train']['learning_rate'].append(learning_rate)
-
-                    self._visdom_plots['train']['loss'].log(loss_current_iteration, loss.data[0])
-                    self._visdom_plots['train']['match_loss'].log(loss_current_iteration, match_loss.data[0])
-                    self._visdom_plots['train']['masked_non_match_loss'].log(loss_current_iteration,
-                                                             masked_non_match_loss.data[0])
-                    self._visdom_plots['train']['background_non_match_loss'].log(loss_current_iteration,
-                                                             background_non_match_loss.data[0])
-                    self._visdom_plots['train']['blind_non_match_loss'].log(loss_current_iteration,
-                                                             blind_non_match_loss.data[0])
-
                     self._visdom_plots['learning_rate'].log(loss_current_iteration, learning_rate)
-
-                    # tensorboard
-                    self._tensorboard_logger.log_value('train loss', loss.data[0], loss_current_iteration)
-                    self._tensorboard_logger.log_value("train match loss", match_loss.data[0], loss_current_iteration)
-                    self._tensorboard_logger.log_value("train masked non match loss", masked_non_match_loss.data[0], loss_current_iteration)
-                    self._tensorboard_logger.log_value("train background non match loss", background_non_match_loss.data[0], loss_current_iteration)
-                    self._tensorboard_logger.log_value("train blind non match loss", blind_non_match_loss.data[0], loss_current_iteration)
                     self._tensorboard_logger.log_value("learning rate", learning_rate, loss_current_iteration)
+
+
+                    # Don't update any plots if the entry corresponding to that term
+                    # is a zero loss
+                    if not loss_composer.is_zero_loss(match_loss):
+                        self._logging_dict['train']['match_loss'].append(match_loss.data[0])
+                        self._visdom_plots['train']['match_loss'].log(loss_current_iteration, match_loss.data[0])
+                        self._tensorboard_logger.log_value("train match loss", match_loss.data[0], loss_current_iteration)
+
+                    if not loss_composer.is_zero_loss(masked_non_match_loss):
+                        self._logging_dict['train']['masked_non_match_loss'].append(masked_non_match_loss.data[0])
+                        self._visdom_plots['train']['masked_non_match_loss'].log(loss_current_iteration,
+                                                             masked_non_match_loss.data[0])
+                        self._tensorboard_logger.log_value("train masked non match loss", masked_non_match_loss.data[0], loss_current_iteration)
+
+                    if not loss_composer.is_zero_loss(background_non_match_loss):
+                        self._logging_dict['train']['background_non_match_loss'].append(background_non_match_loss.data[0])
+                        self._visdom_plots['train']['background_non_match_loss'].log(loss_current_iteration,
+                                                             background_non_match_loss.data[0])
+                        self._tensorboard_logger.log_value("train background non match loss", background_non_match_loss.data[0], loss_current_iteration)
+
+                    if not loss_composer.is_zero_loss(blind_non_match_loss):
+
+                        if data_type == SpartanDatasetDataType.SINGLE_OBJECT_WITHIN_SCENE:
+                            self._tensorboard_logger.log_value("train blind SINGLE_OBJECT_WITHIN_SCENE", blind_non_match_loss.data[0], loss_current_iteration)
+
+                        if data_type == SpartanDatasetDataType.DIFFERENT_OBJECT:
+                            self._tensorboard_logger.log_value("train blind DIFFERENT_OBJECT", blind_non_match_loss.data[0], loss_current_iteration)
+
+
+                    # loss is never zero
+                    if data_type == SpartanDatasetDataType.SINGLE_OBJECT_WITHIN_SCENE:
+                        self._tensorboard_logger.log_value("train loss SINGLE_OBJECT_WITHIN_SCENE", loss.data[0], loss_current_iteration)
+
+                    elif data_type == SpartanDatasetDataType.DIFFERENT_OBJECT:
+                        self._tensorboard_logger.log_value("train loss DIFFERENT_OBJECT", loss.data[0], loss_current_iteration)
+
+                    elif data_type == SpartanDatasetDataType.SINGLE_OBJECT_ACROSS_SCENE:
+                        self._tensorboard_logger.log_value("train loss SINGLE_OBJECT_ACROSS_SCENE", loss.data[0], loss_current_iteration)
+
+                    elif data_type == SpartanDatasetDataType.MULTI_OBJECT:
+                        self._tensorboard_logger.log_value("train loss MULTI_OBJECT", loss.data[0], loss_current_iteration)
+                    else:
+                        raise ValueError("unknown data type")
+
 
                     if data_type == SpartanDatasetDataType.DIFFERENT_OBJECT:
                         self._tensorboard_logger.log_value("train different object", loss.data[0], loss_current_iteration)
