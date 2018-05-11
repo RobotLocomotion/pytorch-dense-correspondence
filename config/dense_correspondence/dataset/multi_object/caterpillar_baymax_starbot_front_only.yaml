@@ -5,16 +5,16 @@ train:
 - "2018-05-04-20-19-47" # cluttered
 - "2018-05-04-20-22-22" # singulated (mostly)
 - "2018-05-04-20-35-49" # singulated
-2018-05-11-17-18-02 # cluttered
-2018-05-11-17-19-45 # cluttered
-2018-05-11-17-21-25 # singulated
-2018-05-11-17-23-28 # cluttered
-2018-05-11-17-25-46 # singulated
-2018-05-11-17-28-06 # singulated
-2018-05-11-17-33-51 # cluttered - stacked like 3 pancakes
-2018-05-11-17-36-28 # cluttered
-2018-05-11-17-39-04 # cluttered
-2018-05-11-17-41-14 # singulated
+- "2018-05-11-17-18-02" # cluttered
+- "2018-05-11-17-19-45" # cluttered
+- "2018-05-11-17-21-25" # singulated
+- "2018-05-11-17-23-28" # cluttered
+- "2018-05-11-17-25-46" # singulated
+- "2018-05-11-17-28-06" # singulated
+- "2018-05-11-17-33-51" # cluttered - stacked like 3 pancakes
+- "2018-05-11-17-36-28" # cluttered
+- "2018-05-11-17-39-04" # cluttered
+- "2018-05-11-17-41-14" # singulated
 
 test:
 - "2018-05-04-20-12-25"
