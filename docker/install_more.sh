@@ -16,3 +16,5 @@ sudo pip install opencv-contrib-python
 
 sudo pip install tensorboard_logger \
     tensorflow
+
+sudo apt install python-tk
