@@ -200,11 +200,11 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
         self._data_load_types = []
         if self.debug:
-            # self._data_load_types.append(SpartanDatasetDataType.SINGLE_OBJECT_WITHIN_SCENE)
+            self._data_load_types.append(SpartanDatasetDataType.SINGLE_OBJECT_WITHIN_SCENE)
             # self._data_load_types.append(SpartanDatasetDataType.SINGLE_OBJECT_ACROSS_SCENE)
             # self._data_load_types.append(SpartanDatasetDataType.DIFFERENT_OBJECT)
             # self._data_load_types.append(SpartanDatasetDataType.MULTI_OBJECT)
-            self._data_load_types.append(SpartanDatasetDataType.SYNTHETIC_MULTI_OBJECT)
+            # self._data_load_types.append(SpartanDatasetDataType.SYNTHETIC_MULTI_OBJECT)
 
     def _get_data_load_type(self):
         """
