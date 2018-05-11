@@ -70,7 +70,8 @@ def get_within_scene_loss(pixelwise_contrastive_loss, image_a_pred, image_b_pred
 
     if pcl._config["use_l2_pixel_loss_on_background_non_matches"]:
         background_non_match_loss, num_background_hard_negatives =\
-            pixelwise_contrastive_loss.non_match_loss_with_l2_pixel_norm(image_a_pred, image_b_pred, matches_b, background_non_matches_a, background_non_matches_b, M_descriptor=pcl._config["M_background"])    
+            pixelwise_contrastive_loss.non_match_loss_with_l2_pixel_norm(image_a_pred, image_b_pred, matches_b, 
+                background_non_matches_a, background_non_matches_b, M_descriptor=pcl._config["M_background"])    
         
     else:
         background_non_match_loss, num_background_hard_negatives =\
@@ -86,7 +87,7 @@ def get_within_scene_loss(pixelwise_contrastive_loss, image_a_pred, image_b_pred
         blind_non_match_loss, num_blind_hard_negatives =\
             pixelwise_contrastive_loss.non_match_loss_descriptor_only(image_a_pred, image_b_pred,
                                                                     blind_non_matches_a, blind_non_matches_b,
-                                                                    M_descriptor=0.5)
+                                                                    M_descriptor=pcl._config["M_masked"])
         
 
 
@@ -118,10 +119,12 @@ def get_within_scene_loss_triplet(pixelwise_contrastive_loss, image_a_pred, imag
     pcl = pixelwise_contrastive_loss
 
     masked_triplet_loss =\
-        pixelwise_contrastive_loss.get_triplet_loss(image_a_pred, image_b_pred, matches_a, matches_b, masked_non_matches_a, masked_non_matches_b, pcl._config["alpha_triplet"])
+        pixelwise_contrastive_loss.get_triplet_loss(image_a_pred, image_b_pred, matches_a, 
+            matches_b, masked_non_matches_a, masked_non_matches_b, pcl._config["alpha_triplet"])
         
     background_triplet_loss =\
-        pixelwise_contrastive_loss.get_triplet_loss(image_a_pred, image_b_pred, matches_a, matches_b, background_non_matches_a, background_non_matches_b, pcl._config["alpha_triplet"])
+        pixelwise_contrastive_loss.get_triplet_loss(image_a_pred, image_b_pred, matches_a, 
+            matches_b, background_non_matches_a, background_non_matches_b, pcl._config["alpha_triplet"])
 
     total_loss = masked_triplet_loss + background_triplet_loss
 
@@ -161,7 +164,9 @@ def get_same_object_across_scene_loss(pixelwise_contrastive_loss, image_a_pred, 
     if not (SpartanDataset.is_empty(blind_non_matches_a.data)):
         blind_non_match_loss =\
             pixelwise_contrastive_loss.non_match_loss_descriptor_only(image_a_pred, image_b_pred,
-                                                                    blind_non_matches_a, blind_non_matches_b,M_descriptor=0.5, invert=True)
+                                                                    blind_non_matches_a, blind_non_matches_b,
+                                                                    M_descriptor=pcl._config["M_masked"], invert=True)
+
     loss = blind_non_match_loss
     return loss, zero_loss(), zero_loss(), zero_loss(), blind_non_match_loss
 
