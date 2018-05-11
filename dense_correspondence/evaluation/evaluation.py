@@ -409,8 +409,8 @@ class DenseCorrespondenceEvaluation(object):
         if descriptor_image_stats is None:
             res_a_norm, res_b_norm = dc_plotting.normalize_descriptor_pair(res_a, res_b)
         else:
-            res_a_norm = dc_plotting.normalize_descriptor(res_a, descriptor_image_stats['mask_image'])
-            res_b_norm = dc_plotting.normalize_descriptor(res_b, descriptor_image_stats['mask_image'])
+            res_a_norm = dc_plotting.normalize_descriptor(res_a, descriptor_image_stats['entire_image'])
+            res_b_norm = dc_plotting.normalize_descriptor(res_b, descriptor_image_stats['entire_image'])
 
 
         if plot_masked:
