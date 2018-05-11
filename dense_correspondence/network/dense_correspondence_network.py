@@ -386,7 +386,7 @@ class DenseCorrespondenceNetwork(nn.Module):
         return dcn
 
     @staticmethod
-    def find_best_match(pixel_a, res_a, res_b, debug=False):
+    def find_best_match(pixel_a, res_a, res_b, descriptor=None, debug=False):
         """
         Compute the correspondences between the pixel_a location in image_a
         and image_b
@@ -400,8 +400,12 @@ class DenseCorrespondenceNetwork(nn.Module):
 
         """
 
-        descriptor_at_pixel = res_a[pixel_a[1], pixel_a[0]]
-        height, width, _ = res_a.shape
+        if descriptor is not None:
+            descriptor_at_pixel = descriptor
+        else:
+            descriptor_at_pixel = res_a[pixel_a[1], pixel_a[0]]
+            
+        height, width, _ = res_b.shape
 
         if debug:
             print "height: ", height
