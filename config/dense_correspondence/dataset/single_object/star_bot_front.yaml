@@ -5,9 +5,12 @@ train:
 - "2018-05-04-20-04-43" # head towards robot
 - "2018-05-07-18-46-43" # head pointing left
 - "2018-05-04-20-08-47" # head pointing right and forwards
+- "2018-05-11-18-35-26" # head pointg up left
+- "2018-05-11-18-29-31" # head pointing up right
+- "2018-05-11-18-27-23" # head pointing right
+- "2018-05-11-18-25-30" # head pointing down right
 test:
-- "2018-05-04-20-08-47" # head pointing right and forwards
 - "2018-05-07-18-38-43" # head towards robot
-
+- "2018-05-11-18-37-50" # head pointing left
 evaluation_labeled_data_path: 
 - "code/data_volume/pdc/evaluation_labeled_data/star_bot_front_cross_scene_labels.yaml"
