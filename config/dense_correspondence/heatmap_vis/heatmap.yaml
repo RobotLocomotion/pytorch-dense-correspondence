@@ -1,0 +1,9 @@
+norm_diff_threshold: 0.25
+heatmap_vis_upper_bound: 0.75
+blend_weight_original_image: 0.3
+randomize_images: False
+networks:
+- "caterpillar_background_0.5_3"
+- "caterpillar_stable_3"
+- "caterpillar_background_5_3"
+
