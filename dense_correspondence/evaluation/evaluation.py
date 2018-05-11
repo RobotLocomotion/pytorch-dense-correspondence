@@ -1972,15 +1972,24 @@ class DenseCorrespondenceEvaluation(object):
 
 
     @staticmethod
-    def make_2d_cluster_plot(dcn, dataset):
+    def make_2d_cluster_plot(dcn, dataset, plot_background=False):
         """
         This function randomly samples many points off of different objects and the background,
         and makes an object-labeled scatter plot of where these descriptors are.
         """
 
-        print "Checking to make sure this is a 2D descriptor"
+        print "Checking to make sure this is a 2D or 3D descriptor"
         print "If you'd like you could add projection methods for higher dimension descriptors"
-        assert dcn.descriptor_dimension == 2
+        assert ((dcn.descriptor_dimension == 2) or (dcn.descriptor_dimension == 3))
+
+        if dcn.descriptor_dimension == 3:
+            use_3d = True
+            d = 3
+            print "This descriptor_dimension is 3d"
+            print "I'm going to make 3 plots for you: xy, yz, xz"
+        else:
+            use_3d = False
+            d = 2
 
         # randomly grab object ID, and scene
 
@@ -1988,9 +1997,19 @@ class DenseCorrespondenceEvaluation(object):
         np.random.seed(19680801)
 
         descriptors_known_objects_samples = dict()
-        descriptors_background_samples = np.zeros((0,2))
-        num_objects = dataset.get_number_of_unique_single_objects()
+        if use_3d:
+            descriptors_known_objects_samples_xy = dict()
+            descriptors_known_objects_samples_yz = dict()
+            descriptors_known_objects_samples_xz = dict()
 
+        descriptors_background_samples = np.zeros((0,d))
+
+        if use_3d:
+            descriptors_background_samples_xy = np.zeros((0,2))
+            descriptors_background_samples_yz = np.zeros((0,2))
+            descriptors_background_samples_xz = np.zeros((0,2))
+
+        num_objects = dataset.get_number_of_unique_single_objects()
         num_samples_per_image = 100
 
         for i in range(100):
@@ -2023,13 +2042,30 @@ class DenseCorrespondenceEvaluation(object):
             res = dcn.forward_single_image_tensor(img_tensor)  # [H, W, D]
             res = res.data.cpu().numpy()
 
-            descriptors_object = np.zeros((len(object_u_samples),2))
+            descriptors_object = np.zeros((len(object_u_samples),d))
             for j in range(len(object_u_samples)):
                 descriptors_object[j,:] = res[object_v_samples[j], object_u_samples[j], :]
+            if use_3d:
+                descriptors_object_xy = np.zeros((len(object_u_samples),2))
+                descriptors_object_yz = np.zeros((len(object_u_samples),2))
+                descriptors_object_xz = np.zeros((len(object_u_samples),2))
+                for j in range(len(object_u_samples)):
+                    descriptors_object_xy[j,:] = res[object_v_samples[j], object_u_samples[j], 0:2]
+                    descriptors_object_yz[j,:] = res[object_v_samples[j], object_u_samples[j], 1:3]
+                    descriptors_object_xz[j,:] = res[object_v_samples[j], object_u_samples[j], 0::2]
 
-            descriptors_background = np.zeros((len(background_u_samples),2))
+            descriptors_background = np.zeros((len(background_u_samples),d))
             for j in range(len(background_u_samples)):
                 descriptors_background[j,:] = res[background_v_samples[j], background_u_samples[j], :]
+            if use_3d:
+                descriptors_background_xy = np.zeros((len(background_u_samples),2))
+                descriptors_background_yz = np.zeros((len(background_u_samples),2))
+                descriptors_background_xz = np.zeros((len(background_u_samples),2))
+                for j in range(len(background_u_samples)):
+                    descriptors_background_xy[j,:] = res[background_v_samples[j], background_u_samples[j], 0:2]
+                    descriptors_background_yz[j,:] = res[background_v_samples[j], background_u_samples[j], 1:3]
+                    descriptors_background_xz[j,:] = res[background_v_samples[j], background_u_samples[j], 0::2]
+
 
             # This snippet will plot the descriptors just from this image
             # plt.scatter(descriptors_object[:,0], descriptors_object[:,1], c="g", alpha=0.5, label=object_id)
@@ -2039,19 +2075,57 @@ class DenseCorrespondenceEvaluation(object):
 
             if object_id not in descriptors_known_objects_samples:
                 descriptors_known_objects_samples[object_id] = descriptors_object
+                if use_3d:
+                    descriptors_known_objects_samples_xy[object_id] = descriptors_object_xy
+                    descriptors_known_objects_samples_yz[object_id] = descriptors_object_yz
+                    descriptors_known_objects_samples_xz[object_id] = descriptors_object_xz
             else:
                 descriptors_known_objects_samples[object_id] = np.vstack((descriptors_known_objects_samples[object_id], descriptors_object))
+                if use_3d:
+                    descriptors_known_objects_samples_xy[object_id] = np.vstack((descriptors_known_objects_samples_xy[object_id], descriptors_object_xy))
+                    descriptors_known_objects_samples_yz[object_id] = np.vstack((descriptors_known_objects_samples_yz[object_id], descriptors_object_yz))
+                    descriptors_known_objects_samples_xz[object_id] = np.vstack((descriptors_known_objects_samples_xz[object_id], descriptors_object_xz))
 
             descriptors_background_samples = np.vstack((descriptors_background_samples, descriptors_background))
+            if use_3d:
+                descriptors_background_samples_xy = np.vstack((descriptors_background_samples_xy, descriptors_background_xy))
+                descriptors_background_samples_yz = np.vstack((descriptors_background_samples_yz, descriptors_background_yz))
+                descriptors_background_samples_xz = np.vstack((descriptors_background_samples_xz, descriptors_background_xz))
+
 
 
         print "ALL"
-        for key, value in descriptors_known_objects_samples.iteritems():
-            plt.scatter(value[:,0], value[:,1], alpha=0.5, label=key)
+        if not use_3d:
+            for key, value in descriptors_known_objects_samples.iteritems():
+                plt.scatter(value[:,0], value[:,1], alpha=0.5, label=key)
 
-        #plt.scatter(descriptors_background_samples[:,0], descriptors_background_samples[:,1], alpha=0.5, label="background")
-        plt.legend()
-        plt.show()
+            if plot_background:
+                plt.scatter(descriptors_background_samples[:,0], descriptors_background_samples[:,1], alpha=0.5, label="background")
+            plt.legend()
+            plt.show()
+        
+        if use_3d:
+            for key, value in descriptors_known_objects_samples_xy.iteritems():
+                plt.scatter(value[:,0], value[:,1], alpha=0.5, label=key)
+            if plot_background:
+                plt.scatter(descriptors_background_samples_xy[:,0], descriptors_background_samples_xy[:,1], alpha=0.5, label="background")
+            plt.legend()
+            plt.show()
+
+            for key, value in descriptors_known_objects_samples_yz.iteritems():
+                plt.scatter(value[:,0], value[:,1], alpha=0.5, label=key)
+            if plot_background:
+                plt.scatter(descriptors_background_samples_yz[:,0], descriptors_background_samples_yz[:,1], alpha=0.5, label="background")
+            plt.legend()
+            plt.show()
+
+            for key, value in descriptors_known_objects_samples_xz.iteritems():
+                plt.scatter(value[:,0], value[:,1], alpha=0.5, label=key)
+            if plot_background:
+                plt.scatter(descriptors_background_samples_xz[:,0], descriptors_background_samples_xz[:,1], alpha=0.5, label="background")
+            plt.legend()
+            plt.show()
+
         print "done"
 
     @staticmethod
