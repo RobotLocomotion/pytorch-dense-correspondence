@@ -546,7 +546,7 @@ class DenseCorrespondenceEvaluation(object):
 
             # Reminder: this function wants only a single uv_a, uv_b
             pd_template = DenseCorrespondenceEvaluation.compute_descriptor_match_statistics(depth_a,
-                                                        depth_b, uv_a, uv_b, pose_a,pose_b, res_a,
+                                                        depth_b, mask_a, maks_b, uv_a, uv_b, pose_a,pose_b, res_a,
                                                         res_b, camera_intrinsics_matrix,
                                                         rgb_a=rgb_a, rgb_b=rgb_b, debug=False)
             pd_template.set_value('scene_name', scene_name_a+"+"+scene_name_b)
