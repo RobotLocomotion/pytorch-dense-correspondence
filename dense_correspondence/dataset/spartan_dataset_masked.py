@@ -25,6 +25,7 @@ class SpartanDatasetDataType:
     SINGLE_OBJECT_ACROSS_SCENE = 1
     DIFFERENT_OBJECT = 2
     MULTI_OBJECT = 3
+    SYNTHETIC_MULTI_OBJECT = 4
 
 
 class SpartanDataset(DenseCorrespondenceDataset):
@@ -127,6 +128,11 @@ class SpartanDataset(DenseCorrespondenceDataset):
             print "Multi object"
             return self.get_multi_object_within_scene_data()
 
+        # Case 4: Synthetic multi object
+        if data_load_type == SpartanDatasetDataType.SYNTHETIC_MULTI_OBJECT:
+            print "Multi object"
+            return self.get_synthetic_multi_object_within_scene_data()
+
 
     def _setup_scene_data(self, config):
         """
@@ -196,8 +202,9 @@ class SpartanDataset(DenseCorrespondenceDataset):
         if self.debug:
             self._data_load_types.append(SpartanDatasetDataType.SINGLE_OBJECT_WITHIN_SCENE)
             # self._data_load_types.append(SpartanDatasetDataType.SINGLE_OBJECT_ACROSS_SCENE)
-            # self._data_load_types.append(SpartanDatasetDataType.DIFFERENT_OBJECT)
+            self._data_load_types.append(SpartanDatasetDataType.DIFFERENT_OBJECT)
             # self._data_load_types.append(SpartanDatasetDataType.MULTI_OBJECT)
+            # self._data_load_types.append(SpartanDatasetDataType.SYNTHETIC_MULTI_OBJECT)
 
     def _get_data_load_type(self):
         """
@@ -357,6 +364,17 @@ class SpartanDataset(DenseCorrespondenceDataset):
         object_id_list = self._single_object_scene_dict.keys()
         return random.choice(object_id_list)
 
+    def get_random_object_id_and_int(self):
+        """
+        Returns a random object_id (a string) and its "int" (i.e. numerical unique id)
+        :return:
+        :rtype:
+        """
+        object_id_list = self._single_object_scene_dict.keys()
+        random_object_id = random.choice(object_id_list)
+        object_id_int = sorted(self._single_object_scene_dict.keys()).index(random_object_id)
+        return random_object_id, object_id_int
+        
     def get_random_single_object_scene_name(self, object_id):
         """
         Returns a random scene name for that object
@@ -492,8 +510,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
         return self.get_within_scene_data(scene_name, metadata)
 
-
-    def get_within_scene_data(self, scene_name, metadata):
+    def get_within_scene_data(self, scene_name, metadata, for_synthetic_multi_object=False):
         """
         The method through which the dataset is accessed for training.
 
@@ -566,6 +583,9 @@ class SpartanDataset(DenseCorrespondenceDataset):
         uv_a, uv_b = correspondence_finder.batch_find_pixel_correspondences(image_a_depth_numpy, image_a_pose,
                                                                             image_b_depth_numpy, image_b_pose,
                                                                             img_a_mask=np.asarray(image_a_mask))
+
+        if for_synthetic_multi_object:
+            return image_a_rgb, image_b_rgb, image_a_depth, image_b_depth, image_a_mask, image_b_mask, uv_a, uv_b
 
 
         if uv_a is None:
@@ -798,6 +818,84 @@ class SpartanDataset(DenseCorrespondenceDataset):
         metadata["scene_name_b"] = scene_name_b
         metadata["type"] = SpartanDatasetDataType.DIFFERENT_OBJECT
         return self.get_across_scene_data(scene_name_a, scene_name_b, metadata)
+
+    def get_synthetic_multi_object_within_scene_data(self):
+        """
+        Synthetic case
+        """
+
+        object_id_a, object_id_b = self.get_two_different_object_ids()
+        scene_name_a = self.get_random_single_object_scene_name(object_id_a)
+        scene_name_b = self.get_random_single_object_scene_name(object_id_b)
+        
+        metadata = dict()
+        metadata["object_id_a"]  = object_id_a
+        metadata["scene_name_a"] = scene_name_a
+        metadata["object_id_b"]  = object_id_b
+        metadata["scene_name_b"] = scene_name_b
+        metadata["type"] = SpartanDatasetDataType.SYNTHETIC_MULTI_OBJECT
+
+        image_a1_rgb, image_a2_rgb, image_a1_depth, image_a2_depth,\
+        image_a1_mask, image_a2_mask, uv_a1, uv_a2 =\
+         self.get_within_scene_data(scene_name_a, metadata, for_synthetic_multi_object=True)
+
+        image_b1_rgb, image_b2_rgb, image_b1_depth, image_b2_depth,\
+        image_b1_mask, image_b2_mask, uv_b1, uv_b2 =\
+         self.get_within_scene_data(scene_name_b, metadata, for_synthetic_multi_object=True)
+
+        uv_a1 = (uv_a1[0].long(), uv_a1[1].long())
+        uv_a2 = (uv_a2[0].long(), uv_a2[1].long())
+        uv_b1 = (uv_b1[0].long(), uv_b1[1].long())
+        uv_b2 = (uv_b2[0].long(), uv_b2[1].long())
+
+        matches_pair_a = (uv_a1, uv_a2)
+        matches_pair_b = (uv_b1, uv_b2)
+        merged_rgb_1, uv_a1, uv_a2, uv_b1, uv_b2 =\
+         correspondence_augmentation.merge_images_with_occlusions(image_a1_rgb, image_b1_rgb, 
+                                                                  image_a1_mask, image_b1_mask, 
+                                                                  matches_pair_a, matches_pair_b)
+
+        matches_pair_a = (uv_a2, uv_a1)
+        matches_pair_b = (uv_b2, uv_b1)
+        merged_rgb_2, uv_a2, uv_a1, uv_b2, uv_b1 =\
+         correspondence_augmentation.merge_images_with_occlusions(image_a2_rgb, image_b2_rgb, 
+                                                                  image_a2_mask, image_b2_mask, 
+                                                                  matches_pair_a, matches_pair_b)
+
+        matches_1 = correspondence_augmentation.merge_matches(uv_a1, uv_b1)
+        matches_2 = correspondence_augmentation.merge_matches(uv_a2, uv_b2)
+
+        if self.debug:
+            import correspondence_plotter
+            num_matches_to_plot = 10
+
+            print "PRE-MERGING"
+            plot_uv_a1, plot_uv_a2 = SpartanDataset.subsample_tuple_pair(uv_a1, uv_a2, num_samples=num_matches_to_plot)
+
+            # correspondence_plotter.plot_correspondences_direct(image_a1_rgb, np.asarray(image_a1_depth), 
+            #                                                        image_a2_rgb, np.asarray(image_a2_depth),
+            #                                                        plot_uv_a1, plot_uv_a2,
+            #                                                        circ_color='g', show=True)
+
+            plot_uv_b1, plot_uv_b2 = SpartanDataset.subsample_tuple_pair(uv_b1, uv_b2, num_samples=num_matches_to_plot)
+
+            # correspondence_plotter.plot_correspondences_direct(image_b1_rgb, np.asarray(image_b1_depth), 
+            #                                                        image_b2_rgb, np.asarray(image_b2_depth),
+            #                                                        plot_uv_b1, plot_uv_b2,
+            #                                                        circ_color='g', show=True)
+
+            print "MERGED"
+            plot_uv_1, plot_uv_2 = SpartanDataset.subsample_tuple_pair(matches_1, matches_2, num_samples=num_matches_to_plot)
+            correspondence_plotter.plot_correspondences_direct(merged_rgb_1, np.asarray(image_b1_depth), 
+                                                                   merged_rgb_2, np.asarray(image_b2_depth),
+                                                                   plot_uv_1, plot_uv_2,
+                                                                   circ_color='g', show=True)
+
+        
+        return None
+
+
+
 
     def get_across_scene_data(self, scene_name_a, scene_name_b, metadata):
         """

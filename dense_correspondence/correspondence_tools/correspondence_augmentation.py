@@ -212,5 +212,139 @@ def add_noise(rgb_image):
     """
     max_noise_to_add_or_subtract = 50
     return rgb_image + get_random_entire_image(rgb_image.shape, max_noise_to_add_or_subtract) - get_random_entire_image(rgb_image.shape, max_noise_to_add_or_subtract) 
+
+
+def merge_images_with_occlusions(image_a, image_b, mask_a, mask_b, matches_pair_a, matches_pair_b):
+    """
+    This function will take image_a and image_b and "merge" them.
+
+    It will do this by:
+    - randomly selecting either image_a or image_b to be the background
+    - using the mask for the image that is not the background, it will put the other image on top.
+    - critically there are two separate sets of matches, one is associated with image_a and some other image,
+        and the other is associated with image_b and some other image.
+    - both of these sets of matches must be pruned for any occlusions that occur.
+
+    :param image_a, image_b: the two images to merge
+    :type image_a, image_b: each a PIL.image.image
+    :param mask_a, mask_b: the masks for these images
+    :type mask_a, mask_b: each a PIL.image.image
+    :param matches_a, matches_b:
+    :type matches_a, mathces_b: each a tuple of torch Tensors, each of length n, i.e:
+
+        (u_pixel_positions, v_pixel_positions)
+
+        Where each of the elements of the tuple are torch Tensors of length n
+
+        Note: only support torch.LongTensors
+
+    :return: merged image, merged_mask, pruned_matches_a, pruned_associated_matches_a, pruned_matches_b, pruned_associated_matches_b
+    :rtype: PIL.image.image, PIL.image.image, rest are same types as matches_a and matches_b
+
+    """
+
+    if random.random() < 0.5:
+        foreground = "B"
+        background_image, background_mask, background_matches_pair = image_a, mask_a, matches_pair_a
+        foreground_image, foreground_mask, foreground_matches_pair = image_b, mask_b, matches_pair_b
+    else:
+        foreground = "A"
+        background_image, background_mask, background_matches_pair = image_b, mask_b, matches_pair_b
+        foreground_image, foreground_mask, foreground_matches_pair = image_a, mask_a, matches_pair_a
+
+    # First, mask the foreground rgb image
+    foreground_image_numpy = np.asarray(foreground_image)
+    foreground_mask_numpy  = np.asarray(foreground_mask)
+    three_channel_mask = np.zeros_like(foreground_image_numpy)
+    three_channel_mask[:,:,0] = three_channel_mask[:,:,1] = three_channel_mask[:,:,2] = foreground_mask
+    foreground_image_numpy = foreground_image_numpy * three_channel_mask
+
+    # Next, zero out this portion in the background image
+    background_image_numpy = np.asarray(background_image)
+    three_channel_mask_complement = np.ones_like(three_channel_mask) - three_channel_mask
+    background_image_numpy = three_channel_mask_complement * background_image_numpy
+
+    # Finally, merge these two images
+    merged_image_numpy = foreground_image_numpy + background_image_numpy
+
+    # Prune occluded matches
+    background_matches_pair = prune_matches_if_occluded(foreground_mask_numpy, background_matches_pair)
+ 
+    if foreground == "A":
+        matches_a            = foreground_matches_pair[0]
+        associated_matches_a = foreground_matches_pair[1]
+        matches_b            = background_matches_pair[0]
+        associated_matches_b = background_matches_pair[1]
+    elif foreground == "B":
+        matches_a            = background_matches_pair[0]
+        associated_matches_a = background_matches_pair[1]
+        matches_b            = foreground_matches_pair[0]
+        associated_matches_b = foreground_matches_pair[1]
+    else:
+        raise ValueError("Should not be here?")
+
+    return Image.fromarray(merged_image_numpy), matches_a, associated_matches_a, matches_b, associated_matches_b
+
+
+def prune_matches_if_occluded(foreground_mask_numpy, background_matches_pair):
+    """
+    Checks if any of the matches have been occluded.
+
+    If yes, prunes them from the list of matches.
+
+    NOTE:
+    - background_matches is a tuple
+    - the first element of the tuple HAS to be the one that we are actually checking for occlusions
+    - the second element of the tuple must also get pruned
+
+    :param foreground_mask_numpy: The mask of the foreground image
+    :type foreground_mask_numpy: numpy 2d array of shape (H,W)
+    :param background_matches: a tuple of torch Tensors, each of length n, i.e:
+
+        (u_pixel_positions, v_pixel_positions)
+
+        Where each of the elements of the tuple are torch Tensors of length n
+
+        Note: only support torch.LongTensors
+    """
+
+    background_matches_a = background_matches_pair[0] 
+    background_matches_b = background_matches_pair[1]
+
+    idxs_to_keep  = []
+    
+    # this is slow but works
+    for i in range(len(background_matches_a[0])):
+        u = background_matches_a[0][i]
+        v = background_matches_a[1][i]
+
+        if foreground_mask_numpy[v,u] == 0:
+            idxs_to_keep.append(i)
+
+    idxs_to_keep = torch.LongTensor(idxs_to_keep)
+    background_matches_a = (torch.index_select(background_matches_a[0], 0, idxs_to_keep), torch.index_select(background_matches_a[1], 0, idxs_to_keep))
+    background_matches_b = (torch.index_select(background_matches_b[0], 0, idxs_to_keep), torch.index_select(background_matches_b[1], 0, idxs_to_keep))
+
+    return (background_matches_a, background_matches_b)
+
+def merge_matches(matches_one, matches_two):
+    """
+    :param matches_one, matches_two: each a tuple of torch Tensors, each of length n, i.e:
+
+        (u_pixel_positions, v_pixel_positions)
+
+        Where each of the elements of the tuple are torch Tensors of length n
+
+        Note: only support torch.LongTensors
+    """
+    concatenated_u = torch.cat((matches_one[0], matches_two[0]))
+    concatenated_v = torch.cat((matches_one[1], matches_two[1]))
+    return (concatenated_u, concatenated_v)
+
+
+
+
+
+
     
 

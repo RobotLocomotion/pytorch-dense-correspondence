@@ -2,7 +2,7 @@
 
 
 import os
-import dense_correspondence_manipulation.utils.utils as utils
+import dense_correspondence_manipulation.utils.ut
 import logging
 utils.add_dense_correspondence_to_python_path()
 import matplotlib.pyplot as plt
@@ -262,6 +262,8 @@ class DenseCorrespondenceEvaluation(object):
         and use pairs of images that have been human-labeled across scenes.
         """
 
+        utils.reset_random_seed()
+
         cross_scene_data = DenseCorrespondenceEvaluation.parse_cross_scene_data(dataset)
         
         pd_dataframe_list = []
@@ -303,6 +305,8 @@ class DenseCorrespondenceEvaluation(object):
         """
         This grabs different objects and computes a small set of statistics on their distribution.
         """
+
+        utils.reset_random_seed()
         
         pd_dataframe_list = []
         for i in xrange(num_image_pairs):
@@ -337,6 +341,8 @@ class DenseCorrespondenceEvaluation(object):
             the dataset to draw samples from
         :return:
         """
+        utils.reset_random_seed()
+
         DCE = DenseCorrespondenceEvaluation
         dcn.eval()
 
@@ -404,7 +410,6 @@ class DenseCorrespondenceEvaluation(object):
         fig, axes = plt.subplots(nrows=nrows, ncols=ncols)
         fig.set_figheight(5)
         fig.set_figwidth(15)
-
         
         if descriptor_image_stats is None:
             res_a_norm, res_b_norm = dc_plotting.normalize_descriptor_pair(res_a, res_b)
@@ -1741,6 +1746,8 @@ class DenseCorrespondenceEvaluation(object):
         :rtype:
         """
 
+        utils.reset_random_seed()
+
         dcn.eval()
         to_tensor = transforms.ToTensor()
 
@@ -1877,7 +1884,9 @@ class DenseCorrespondenceEvaluation(object):
 
     @staticmethod
     def run_evaluation_on_network(model_folder, num_image_pairs=100,
-                                  num_matches_per_image_pair=100, cross_scene=True):
+                                  num_matches_per_image_pair=100,
+                                  save_folder_name="analysis",
+                                  compute_descriptor_statistics=True, cross_scene=True):
         """
         Runs all the quantitative evaluations on the model folder
         Creates a folder model_folder/analysis that stores the information.
@@ -1895,12 +1904,14 @@ class DenseCorrespondenceEvaluation(object):
         :rtype:
         """
 
+        utils.reset_random_seed()
+
         DCE = DenseCorrespondenceEvaluation
 
         model_folder = utils.convert_to_absolute_path(model_folder)
 
         # save it to a csv file
-        output_dir = os.path.join(model_folder, 'analysis')
+        output_dir = os.path.join(model_folder, save_folder_name)
         train_output_dir = os.path.join(output_dir, "train")
         test_output_dir = os.path.join(output_dir, "test")
         cross_scene_output_dir = os.path.join(output_dir, "cross_scene")
@@ -1916,8 +1927,9 @@ class DenseCorrespondenceEvaluation(object):
         dataset = dcn.load_training_dataset()
 
         # compute dataset statistics
-        logging.info("Computing descriptor statistics on dataset")
-        DCE.compute_descriptor_statistics_on_dataset(dcn, dataset, num_images=100, save_to_file=True)
+        if compute_descriptor_statistics:
+            logging.info("Computing descriptor statistics on dataset")
+            DCE.compute_descriptor_statistics_on_dataset(dcn, dataset, num_images=100, save_to_file=True)
 
 
         # evaluate on training data and on test data
@@ -1969,6 +1981,163 @@ class DenseCorrespondenceEvaluation(object):
 
         logging.info("Finished running evaluation on network")
 
+
+    @staticmethod
+    def make_2d_cluster_plot(dcn, dataset, plot_background=False):
+        """
+        This function randomly samples many points off of different objects and the background,
+        and makes an object-labeled scatter plot of where these descriptors are.
+        """
+
+        print "Checking to make sure this is a 2D or 3D descriptor"
+        print "If you'd like you could add projection methods for higher dimension descriptors"
+        assert ((dcn.descriptor_dimension == 2) or (dcn.descriptor_dimension == 3))
+
+        if dcn.descriptor_dimension == 3:
+            use_3d = True
+            d = 3
+            print "This descriptor_dimension is 3d"
+            print "I'm going to make 3 plots for you: xy, yz, xz"
+        else:
+            use_3d = False
+            d = 2
+
+        # randomly grab object ID, and scene
+
+        # Fixing random state for reproducibility
+        np.random.seed(19680801)
+
+        descriptors_known_objects_samples = dict()
+        if use_3d:
+            descriptors_known_objects_samples_xy = dict()
+            descriptors_known_objects_samples_yz = dict()
+            descriptors_known_objects_samples_xz = dict()
+
+        descriptors_background_samples = np.zeros((0,d))
+
+        if use_3d:
+            descriptors_background_samples_xy = np.zeros((0,2))
+            descriptors_background_samples_yz = np.zeros((0,2))
+            descriptors_background_samples_xz = np.zeros((0,2))
+
+        num_objects = dataset.get_number_of_unique_single_objects()
+        num_samples_per_image = 100
+
+        for i in range(100):
+            object_id, object_id_int = dataset.get_random_object_id_and_int()
+
+            scene_name = dataset.get_random_single_object_scene_name(object_id)
+            img_idx = dataset.get_random_image_index(scene_name)
+            rgb = dataset.get_rgb_image_from_scene_name_and_idx(scene_name, img_idx)
+            mask = dataset.get_mask_image_from_scene_name_and_idx(scene_name, img_idx)
+
+            mask_torch = torch.from_numpy(np.asarray(mask)).long()
+            mask_inv = 1 - mask_torch
+
+            object_uv_samples     = correspondence_finder.random_sample_from_masked_image_torch(mask_torch, num_samples_per_image)
+            background_uv_samples = correspondence_finder.random_sample_from_masked_image_torch(mask_inv, num_samples_per_image/num_objects)
+
+            object_u_samples = object_uv_samples[0].numpy()
+            object_v_samples = object_uv_samples[1].numpy()
+
+            background_u_samples = background_uv_samples[0].numpy()
+            background_v_samples = background_uv_samples[1].numpy()
+
+            # This snippet will plot where the samples are coming from in the image
+            # plt.scatter(object_u_samples, object_v_samples, c="g", alpha=0.5, label="object")
+            # plt.scatter(background_u_samples, background_v_samples, c="k", alpha=0.5, label="background")
+            # plt.legend()
+            # plt.show()
+
+            img_tensor = dataset.rgb_image_to_tensor(rgb)
+            res = dcn.forward_single_image_tensor(img_tensor)  # [H, W, D]
+            res = res.data.cpu().numpy()
+
+            descriptors_object = np.zeros((len(object_u_samples),d))
+            for j in range(len(object_u_samples)):
+                descriptors_object[j,:] = res[object_v_samples[j], object_u_samples[j], :]
+            if use_3d:
+                descriptors_object_xy = np.zeros((len(object_u_samples),2))
+                descriptors_object_yz = np.zeros((len(object_u_samples),2))
+                descriptors_object_xz = np.zeros((len(object_u_samples),2))
+                for j in range(len(object_u_samples)):
+                    descriptors_object_xy[j,:] = res[object_v_samples[j], object_u_samples[j], 0:2]
+                    descriptors_object_yz[j,:] = res[object_v_samples[j], object_u_samples[j], 1:3]
+                    descriptors_object_xz[j,:] = res[object_v_samples[j], object_u_samples[j], 0::2]
+
+            descriptors_background = np.zeros((len(background_u_samples),d))
+            for j in range(len(background_u_samples)):
+                descriptors_background[j,:] = res[background_v_samples[j], background_u_samples[j], :]
+            if use_3d:
+                descriptors_background_xy = np.zeros((len(background_u_samples),2))
+                descriptors_background_yz = np.zeros((len(background_u_samples),2))
+                descriptors_background_xz = np.zeros((len(background_u_samples),2))
+                for j in range(len(background_u_samples)):
+                    descriptors_background_xy[j,:] = res[background_v_samples[j], background_u_samples[j], 0:2]
+                    descriptors_background_yz[j,:] = res[background_v_samples[j], background_u_samples[j], 1:3]
+                    descriptors_background_xz[j,:] = res[background_v_samples[j], background_u_samples[j], 0::2]
+
+
+            # This snippet will plot the descriptors just from this image
+            # plt.scatter(descriptors_object[:,0], descriptors_object[:,1], c="g", alpha=0.5, label=object_id)
+            # plt.scatter(descriptors_background[:,0], descriptors_background[:,1], c="k", alpha=0.5, label="background")
+            # plt.legend()
+            # plt.show()
+
+            if object_id not in descriptors_known_objects_samples:
+                descriptors_known_objects_samples[object_id] = descriptors_object
+                if use_3d:
+                    descriptors_known_objects_samples_xy[object_id] = descriptors_object_xy
+                    descriptors_known_objects_samples_yz[object_id] = descriptors_object_yz
+                    descriptors_known_objects_samples_xz[object_id] = descriptors_object_xz
+            else:
+                descriptors_known_objects_samples[object_id] = np.vstack((descriptors_known_objects_samples[object_id], descriptors_object))
+                if use_3d:
+                    descriptors_known_objects_samples_xy[object_id] = np.vstack((descriptors_known_objects_samples_xy[object_id], descriptors_object_xy))
+                    descriptors_known_objects_samples_yz[object_id] = np.vstack((descriptors_known_objects_samples_yz[object_id], descriptors_object_yz))
+                    descriptors_known_objects_samples_xz[object_id] = np.vstack((descriptors_known_objects_samples_xz[object_id], descriptors_object_xz))
+
+            descriptors_background_samples = np.vstack((descriptors_background_samples, descriptors_background))
+            if use_3d:
+                descriptors_background_samples_xy = np.vstack((descriptors_background_samples_xy, descriptors_background_xy))
+                descriptors_background_samples_yz = np.vstack((descriptors_background_samples_yz, descriptors_background_yz))
+                descriptors_background_samples_xz = np.vstack((descriptors_background_samples_xz, descriptors_background_xz))
+
+
+
+        print "ALL"
+        if not use_3d:
+            for key, value in descriptors_known_objects_samples.iteritems():
+                plt.scatter(value[:,0], value[:,1], alpha=0.5, label=key)
+
+            if plot_background:
+                plt.scatter(descriptors_background_samples[:,0], descriptors_background_samples[:,1], alpha=0.5, label="background")
+            plt.legend()
+            plt.show()
+        
+        if use_3d:
+            for key, value in descriptors_known_objects_samples_xy.iteritems():
+                plt.scatter(value[:,0], value[:,1], alpha=0.5, label=key)
+            if plot_background:
+                plt.scatter(descriptors_background_samples_xy[:,0], descriptors_background_samples_xy[:,1], alpha=0.5, label="background")
+            plt.legend()
+            plt.show()
+
+            for key, value in descriptors_known_objects_samples_yz.iteritems():
+                plt.scatter(value[:,0], value[:,1], alpha=0.5, label=key)
+            if plot_background:
+                plt.scatter(descriptors_background_samples_yz[:,0], descriptors_background_samples_yz[:,1], alpha=0.5, label="background")
+            plt.legend()
+            plt.show()
+
+            for key, value in descriptors_known_objects_samples_xz.iteritems():
+                plt.scatter(value[:,0], value[:,1], alpha=0.5, label=key)
+            if plot_background:
+                plt.scatter(descriptors_background_samples_xz[:,0], descriptors_background_samples_xz[:,1], alpha=0.5, label="background")
+            plt.legend()
+            plt.show()
+
+        print "done"
 
     @staticmethod
     def make_default():
@@ -2059,6 +2228,8 @@ class DenseCorrespondenceEvaluationPlotter(object):
         plot = DCEP.make_cdf_plot(ax, data, num_bins=num_bins, label=label)
         ax.set_xlabel('Pixel match error, L2 (pixel distance)')
         ax.set_ylabel('Fraction of images')
+
+        # ax.set_xlim([0,200])
         return plot
 
     @staticmethod
@@ -2165,6 +2336,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
         plot = DCEP.make_cdf_plot(ax, data, num_bins=num_bins, label=label)
         ax.set_xlabel('Average l2 pixel distance for false positives')
         ax.set_ylabel('Fraction of images')
+        # ax.set_xlim([0,200])
         return plot
 
     @staticmethod
@@ -2295,6 +2467,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
             fig.savefig(fig_file)
         
         return [fig, ax]
+        
 
 
 def run():
