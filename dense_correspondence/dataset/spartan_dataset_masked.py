@@ -71,6 +71,8 @@ class SpartanDataset(DenseCorrespondenceDataset):
             self.num_background_non_matches_per_match = 5
             self.cross_scene_num_samples = 1000
             self._use_image_b_mask_inv = True
+            self.num_matching_attempts = 10000
+            self.sample_matches_only_off_mask = True
 
         if config is not None:
             self._setup_scene_data(config)
@@ -202,7 +204,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         if self.debug:
             self._data_load_types.append(SpartanDatasetDataType.SINGLE_OBJECT_WITHIN_SCENE)
             # self._data_load_types.append(SpartanDatasetDataType.SINGLE_OBJECT_ACROSS_SCENE)
-            self._data_load_types.append(SpartanDatasetDataType.DIFFERENT_OBJECT)
+            # self._data_load_types.append(SpartanDatasetDataType.DIFFERENT_OBJECT)
             # self._data_load_types.append(SpartanDatasetDataType.MULTI_OBJECT)
             # self._data_load_types.append(SpartanDatasetDataType.SYNTHETIC_MULTI_OBJECT)
 
@@ -579,10 +581,16 @@ class SpartanDataset(DenseCorrespondenceDataset):
         image_a_depth_numpy = np.asarray(image_a_depth)
         image_b_depth_numpy = np.asarray(image_b_depth)
 
+        if self.sample_matches_only_off_mask:
+            correspondence_mask = np.asarray(image_a_mask)
+        else:
+            correspondence_mask = None
+
         # find correspondences
         uv_a, uv_b = correspondence_finder.batch_find_pixel_correspondences(image_a_depth_numpy, image_a_pose,
                                                                             image_b_depth_numpy, image_b_pose,
-                                                                            img_a_mask=np.asarray(image_a_mask))
+                                                                            img_a_mask=correspondence_mask,
+                                                                            num_attempts=self.num_matching_attempts)
 
         if for_synthetic_multi_object:
             return image_a_rgb, image_b_rgb, image_a_depth, image_b_depth, image_a_mask, image_b_mask, uv_a, uv_b
