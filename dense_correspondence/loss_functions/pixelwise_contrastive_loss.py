@@ -20,6 +20,10 @@ class PixelwiseContrastiveLoss(object):
     def debug(self):
         return self._debug
 
+    @property
+    def config(self):
+        return self._config
+
     @debug.setter
     def debug(self, value):
         self._debug = value
@@ -209,7 +213,7 @@ class PixelwiseContrastiveLoss(object):
         return non_match_loss, num_hard_negatives, non_matches_a_descriptors, non_matches_b_descriptors
 
     def non_match_loss_with_l2_pixel_norm(self, image_a_pred, image_b_pred, matches_b,
-                                          non_matches_a, non_matches_b, M_descriptor=None,
+                                          non_matches_a, non_matches_b, M_descriptor=0.5,
                                           M_pixel=None):
 
         """

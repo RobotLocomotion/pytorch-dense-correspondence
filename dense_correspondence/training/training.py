@@ -35,7 +35,7 @@ from pytorch_segmentation_detection.transforms import (ComposeJoint,
                                                        RandomCropJoint,
                                                        Split2D)
 
-from dense_correspondence.dataset.spartan_dataset_masked import SpartanDataset
+from dense_correspondence.dataset.spartan_dataset_masked import SpartanDataset, SpartanDatasetDataType
 from dense_correspondence.network.dense_correspondence_network import DenseCorrespondenceNetwork
 
 from dense_correspondence.loss_functions.pixelwise_contrastive_loss import PixelwiseContrastiveLoss
@@ -275,7 +275,8 @@ class DenseCorrespondenceTraining(object):
                                            "masked_non_match_loss": [], 
                                            "background_non_match_loss": [],
                                            "blind_non_match_loss": [],
-                                           "learning_rate": []}
+                                           "learning_rate": [],
+                                           "different_object_non_match_loss": []}
 
         self._logging_dict['test'] = {"iteration": [], "loss": [], "match_loss": [],
                                            "non_match_loss": []}
@@ -302,6 +303,9 @@ class DenseCorrespondenceTraining(object):
                     print "\n empty data, continuing \n"
                     continue
 
+
+                data_type = metadata["type"][0]
+                
                 img_a = Variable(img_a.cuda(), requires_grad=False)
                 img_b = Variable(img_b.cuda(), requires_grad=False)
 
@@ -351,6 +355,7 @@ class DenseCorrespondenceTraining(object):
                     :rtype:
                     """
 
+
                     # visdom
                     self._logging_dict['train']['iteration'].append(loss_current_iteration)
                     self._logging_dict['train']['loss'].append(loss.data[0])
@@ -380,6 +385,9 @@ class DenseCorrespondenceTraining(object):
                     self._tensorboard_logger.log_value("train background non match loss", background_non_match_loss.data[0], loss_current_iteration)
                     self._tensorboard_logger.log_value("train blind non match loss", blind_non_match_loss.data[0], loss_current_iteration)
                     self._tensorboard_logger.log_value("learning rate", learning_rate, loss_current_iteration)
+
+                    if data_type == SpartanDatasetDataType.DIFFERENT_OBJECT:
+                        self._tensorboard_logger.log_value("train different object", loss.data[0], loss_current_iteration)
 
                     # #non_match_type = metadata['non_match_type'][0]
                     # fraction_hard_negatives = pixelwise_contrastive_loss.debug_data['fraction_hard_negatives']

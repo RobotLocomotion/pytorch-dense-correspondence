@@ -202,7 +202,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         if self.debug:
             self._data_load_types.append(SpartanDatasetDataType.SINGLE_OBJECT_WITHIN_SCENE)
             # self._data_load_types.append(SpartanDatasetDataType.SINGLE_OBJECT_ACROSS_SCENE)
-            # self._data_load_types.append(SpartanDatasetDataType.DIFFERENT_OBJECT)
+            self._data_load_types.append(SpartanDatasetDataType.DIFFERENT_OBJECT)
             # self._data_load_types.append(SpartanDatasetDataType.MULTI_OBJECT)
             # self._data_load_types.append(SpartanDatasetDataType.SYNTHETIC_MULTI_OBJECT)
 
@@ -364,6 +364,17 @@ class SpartanDataset(DenseCorrespondenceDataset):
         object_id_list = self._single_object_scene_dict.keys()
         return random.choice(object_id_list)
 
+    def get_random_object_id_and_int(self):
+        """
+        Returns a random object_id (a string) and its "int" (i.e. numerical unique id)
+        :return:
+        :rtype:
+        """
+        object_id_list = self._single_object_scene_dict.keys()
+        random_object_id = random.choice(object_id_list)
+        object_id_int = sorted(self._single_object_scene_dict.keys()).index(random_object_id)
+        return random_object_id, object_id_int
+        
     def get_random_single_object_scene_name(self, object_id):
         """
         Returns a random scene name for that object
