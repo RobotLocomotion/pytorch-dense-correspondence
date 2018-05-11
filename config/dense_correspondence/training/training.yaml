@@ -27,6 +27,7 @@ training:
   use_SINGLE_OBJECT_ACROSS_SCENE: False
   use_DIFFERENT_OBJECT: False
   use_MULTI_OBJECT: False
+  use_SYNTHETIC_MULTI_OBJECT: False
   # Loss function config
   loss_function: pixelwise_contrastive_loss # not currently used
   # Logging config
