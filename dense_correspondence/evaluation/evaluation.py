@@ -1956,7 +1956,6 @@ class DenseCorrespondenceEvaluation(object):
             cross_scene_csv = os.path.join(cross_scene_output_dir, "data.csv")
             df.to_csv(cross_scene_csv)
 
-
         logging.info("Making plots")
         DCEP = DenseCorrespondenceEvaluationPlotter
         fig_axes = DCEP.run_on_single_dataframe(train_csv, label="train", save=False)
@@ -1977,7 +1976,7 @@ class DenseCorrespondenceEvaluation(object):
             df = DCE.evaluate_network_across_objects(dcn=dcn, dataset=dataset)
             across_object_csv = os.path.join(across_object_output_dir, "data.csv")
             df.to_csv(across_object_csv)
-            DCEP.run_on_single_dataframe_across_objects(across_object_csv, label="cross_scene", save=True)
+            DCEP.run_on_single_dataframe_across_objects(across_object_csv, label="across_object", save=True)
 
 
         logging.info("Finished running evaluation on network")
