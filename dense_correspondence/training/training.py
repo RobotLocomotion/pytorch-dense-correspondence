@@ -401,6 +401,9 @@ class DenseCorrespondenceTraining(object):
 
                     elif data_type == SpartanDatasetDataType.MULTI_OBJECT:
                         self._tensorboard_logger.log_value("train loss MULTI_OBJECT", loss.data[0], loss_current_iteration)
+                    
+                    elif data_type == SpartanDatasetDataType.SYNTHETIC_MULTI_OBJECT:
+                        self._tensorboard_logger.log_value("train loss SYNTHETIC_MULTI_OBJECT", loss.data[0], loss_current_iteration)
                     else:
                         raise ValueError("unknown data type")
 

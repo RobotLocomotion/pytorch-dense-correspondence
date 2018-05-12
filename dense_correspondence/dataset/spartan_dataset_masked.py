@@ -132,7 +132,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
         # Case 4: Synthetic multi object
         if data_load_type == SpartanDatasetDataType.SYNTHETIC_MULTI_OBJECT:
-            print "Multi object"
+            print "Synthetic multi object"
             return self.get_synthetic_multi_object_within_scene_data()
 
 
@@ -889,7 +889,6 @@ class SpartanDataset(DenseCorrespondenceDataset):
         image_b_shape = merged_mask_2_torch.shape
         image_width = image_b_shape[1]
         image_height = image_b_shape[0]
-        print image_width, image_height
 
         matches_2_masked_non_matches = \
             correspondence_finder.create_non_correspondences(matches_2,
@@ -981,9 +980,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
                                                                circ_color='b')
 
         
-        return None
-
-
+        return metadata["type"], merged_rgb_1, merged_rgb_2, matches_a, matches_b, masked_non_matches_a, masked_non_matches_b, background_non_matches_a, background_non_matches_b, SD.empty_tensor(), SD.empty_tensor(), metadata
 
 
     def get_across_scene_data(self, scene_name_a, scene_name_b, metadata):
