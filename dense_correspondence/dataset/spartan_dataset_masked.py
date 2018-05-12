@@ -856,10 +856,10 @@ class SpartanDataset(DenseCorrespondenceDataset):
         image_b1_mask, image_b2_mask, uv_b1, uv_b2 =\
          self.get_within_scene_data(scene_name_b, metadata, for_synthetic_multi_object=True)
 
-        if uv_a2 is None:
+        if uv_b1 is None:
             logging.info("no matches found, returning")
-            image_a2_rgb_tensor = self.rgb_image_to_tensor(image_a2_rgb)
-            return self.return_empty_data(image_a2_rgb_tensor, image_a2_rgb_tensor)
+            image_b1_rgb_tensor = self.rgb_image_to_tensor(image_b1_rgb)
+            return self.return_empty_data(image_b1_rgb_tensor, image_b1_rgb_tensor)
 
         uv_a1 = (uv_a1[0].long(), uv_a1[1].long())
         uv_a2 = (uv_a2[0].long(), uv_a2[1].long())
