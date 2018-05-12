@@ -239,7 +239,7 @@ def merge_images_with_occlusions(image_a, image_b, mask_a, mask_b, matches_pair_
         Note: only support torch.LongTensors
 
     :return: merged image, merged_mask, pruned_matches_a, pruned_associated_matches_a, pruned_matches_b, pruned_associated_matches_b
-    :rtype: PIL.image.image, PIL.image.image, rest are same types as matches_a and matches_b
+    :rtype: PIL.image.image, numpy array, rest are same types as matches_a and matches_b
 
     """
 
@@ -283,7 +283,9 @@ def merge_images_with_occlusions(image_a, image_b, mask_a, mask_b, matches_pair_
     else:
         raise ValueError("Should not be here?")
 
-    return Image.fromarray(merged_image_numpy), matches_a, associated_matches_a, matches_b, associated_matches_b
+    merged_masked_numpy = foreground_mask_numpy + np.asarray(background_mask)
+    merged_masked_numpy = merged_masked_numpy.clip(0,1) # in future, could preserve identities of masks
+    return Image.fromarray(merged_image_numpy), merged_masked_numpy, matches_a, associated_matches_a, matches_b, associated_matches_b
 
 
 def prune_matches_if_occluded(foreground_mask_numpy, background_matches_pair):

@@ -203,12 +203,12 @@ class SpartanDataset(DenseCorrespondenceDataset):
         self._data_load_types = []
         self._data_load_type_probabilities = []
         if self.debug:
-            self._data_load_types.append(SpartanDatasetDataType.SINGLE_OBJECT_WITHIN_SCENE)
-            self._data_load_type_probabilities.append(1)
+            #self._data_load_types.append(SpartanDatasetDataType.SINGLE_OBJECT_WITHIN_SCENE)
             # self._data_load_types.append(SpartanDatasetDataType.SINGLE_OBJECT_ACROSS_SCENE)
             # self._data_load_types.append(SpartanDatasetDataType.DIFFERENT_OBJECT)
             # self._data_load_types.append(SpartanDatasetDataType.MULTI_OBJECT)
-            # self._data_load_types.append(SpartanDatasetDataType.SYNTHETIC_MULTI_OBJECT)
+            self._data_load_types.append(SpartanDatasetDataType.SYNTHETIC_MULTI_OBJECT)
+            self._data_load_type_probabilities.append(1)
 
     def _get_data_load_type(self):
         """
@@ -657,36 +657,15 @@ class SpartanDataset(DenseCorrespondenceDataset):
         matches_a = SD.flatten_uv_tensor(uv_a, image_width)
         matches_b = SD.flatten_uv_tensor(uv_b, image_width)
 
-
-        def create_non_matches(uv_a, uv_b_non_matches, multiplier):
-            """
-            Simple inline wrapper for repeated code
-            :param uv_a:
-            :type uv_a:
-            :param uv_b_non_matches:
-            :type uv_b_non_matches:
-            :param multiplier:
-            :type multiplier:
-            :return:
-            :rtype:
-            """
-            uv_a_long = (torch.t(uv_a[0].repeat(multiplier, 1)).contiguous().view(-1, 1),
-                         torch.t(uv_a[1].repeat(multiplier, 1)).contiguous().view(-1, 1))
-
-            uv_b_non_matches_long = (uv_b_non_matches[0].view(-1, 1), uv_b_non_matches[1].view(-1, 1))
-
-            return uv_a_long, uv_b_non_matches_long
-
-
         # Masked non-matches
-        uv_a_masked_long, uv_b_masked_non_matches_long = create_non_matches(uv_a, uv_b_masked_non_matches, self.num_masked_non_matches_per_match)
+        uv_a_masked_long, uv_b_masked_non_matches_long = self.create_non_matches(uv_a, uv_b_masked_non_matches, self.num_masked_non_matches_per_match)
 
         masked_non_matches_a = SD.flatten_uv_tensor(uv_a_masked_long, image_width).squeeze(1)
         masked_non_matches_b = SD.flatten_uv_tensor(uv_b_masked_non_matches_long, image_width).squeeze(1)
 
 
         # Non-masked non-matches
-        uv_a_background_long, uv_b_background_non_matches_long = create_non_matches(uv_a, uv_b_background_non_matches,
+        uv_a_background_long, uv_b_background_non_matches_long = self.create_non_matches(uv_a, uv_b_background_non_matches,
                                                                             self.num_background_non_matches_per_match)
 
         background_non_matches_a = SD.flatten_uv_tensor(uv_a_background_long, image_width).squeeze(1)
@@ -799,6 +778,25 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
         return metadata["type"], image_a_rgb, image_b_rgb, matches_a, matches_b, masked_non_matches_a, masked_non_matches_b, background_non_matches_a, background_non_matches_b, blind_non_matches_a, blind_non_matches_b, metadata
 
+    def create_non_matches(self, uv_a, uv_b_non_matches, multiplier):
+        """
+        Simple wrapper for repeated code
+        :param uv_a:
+        :type uv_a:
+        :param uv_b_non_matches:
+        :type uv_b_non_matches:
+        :param multiplier:
+        :type multiplier:
+        :return:
+        :rtype:
+        """
+        uv_a_long = (torch.t(uv_a[0].repeat(multiplier, 1)).contiguous().view(-1, 1),
+                     torch.t(uv_a[1].repeat(multiplier, 1)).contiguous().view(-1, 1))
+
+        uv_b_non_matches_long = (uv_b_non_matches[0].view(-1, 1), uv_b_non_matches[1].view(-1, 1))
+
+        return uv_a_long, uv_b_non_matches_long
+
     def get_single_object_across_scene_data(self):
         """
         Simple wrapper for get_across_scene_data(), for the single object case
@@ -849,9 +847,19 @@ class SpartanDataset(DenseCorrespondenceDataset):
         image_a1_mask, image_a2_mask, uv_a1, uv_a2 =\
          self.get_within_scene_data(scene_name_a, metadata, for_synthetic_multi_object=True)
 
+        if uv_a1 is None:
+            logging.info("no matches found, returning")
+            image_a1_rgb_tensor = self.rgb_image_to_tensor(image_a1_rgb)
+            return self.return_empty_data(image_a1_rgb_tensor, image_a1_rgb_tensor)
+
         image_b1_rgb, image_b2_rgb, image_b1_depth, image_b2_depth,\
         image_b1_mask, image_b2_mask, uv_b1, uv_b2 =\
          self.get_within_scene_data(scene_name_b, metadata, for_synthetic_multi_object=True)
+
+        if uv_a2 is None:
+            logging.info("no matches found, returning")
+            image_a2_rgb_tensor = self.rgb_image_to_tensor(image_a2_rgb)
+            return self.return_empty_data(image_a2_rgb_tensor, image_a2_rgb_tensor)
 
         uv_a1 = (uv_a1[0].long(), uv_a1[1].long())
         uv_a2 = (uv_a2[0].long(), uv_a2[1].long())
@@ -860,20 +868,68 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
         matches_pair_a = (uv_a1, uv_a2)
         matches_pair_b = (uv_b1, uv_b2)
-        merged_rgb_1, uv_a1, uv_a2, uv_b1, uv_b2 =\
+        merged_rgb_1, merged_mask_1, uv_a1, uv_a2, uv_b1, uv_b2 =\
          correspondence_augmentation.merge_images_with_occlusions(image_a1_rgb, image_b1_rgb, 
                                                                   image_a1_mask, image_b1_mask, 
                                                                   matches_pair_a, matches_pair_b)
 
         matches_pair_a = (uv_a2, uv_a1)
         matches_pair_b = (uv_b2, uv_b1)
-        merged_rgb_2, uv_a2, uv_a1, uv_b2, uv_b1 =\
+        merged_rgb_2, merged_mask_2, uv_a2, uv_a1, uv_b2, uv_b1 =\
          correspondence_augmentation.merge_images_with_occlusions(image_a2_rgb, image_b2_rgb, 
                                                                   image_a2_mask, image_b2_mask, 
                                                                   matches_pair_a, matches_pair_b)
 
         matches_1 = correspondence_augmentation.merge_matches(uv_a1, uv_b1)
         matches_2 = correspondence_augmentation.merge_matches(uv_a2, uv_b2)
+        matches_2 = (matches_2[0].float(), matches_2[1].float())
+
+        # find non_correspondences
+        merged_mask_2_torch = torch.from_numpy(merged_mask_2).type(torch.FloatTensor)
+        image_b_shape = merged_mask_2_torch.shape
+        image_width = image_b_shape[1]
+        image_height = image_b_shape[0]
+        print image_width, image_height
+
+        matches_2_masked_non_matches = \
+            correspondence_finder.create_non_correspondences(matches_2,
+                                                             image_b_shape,
+                                                             num_non_matches_per_match=self.num_masked_non_matches_per_match,
+                                                                            img_b_mask=merged_mask_2_torch)
+        if self._use_image_b_mask_inv:
+            merged_mask_2_torch_inv = 1 - merged_mask_2_torch
+        else:
+            merged_mask_2_torch_inv = None
+
+        matches_2_background_non_matches = correspondence_finder.create_non_correspondences(matches_2,
+                                                                            image_b_shape,
+                                                                            num_non_matches_per_match=self.num_background_non_matches_per_match,
+                                                                            img_b_mask=merged_mask_2_torch_inv)
+
+
+        SD = SpartanDataset
+        # convert PIL.Image to torch.FloatTensor
+        merged_rgb_1_PIL = merged_rgb_1
+        merged_rgb_2_PIL = merged_rgb_2
+        merged_rgb_1 = self.rgb_image_to_tensor(merged_rgb_1)
+        merged_rgb_2 = self.rgb_image_to_tensor(merged_rgb_2)
+
+        matches_a = SD.flatten_uv_tensor(matches_1, image_width)
+        matches_b = SD.flatten_uv_tensor(matches_2, image_width)
+
+        # Masked non-matches
+        uv_a_masked_long, uv_b_masked_non_matches_long = self.create_non_matches(matches_1, matches_2_masked_non_matches, self.num_masked_non_matches_per_match)
+
+        masked_non_matches_a = SD.flatten_uv_tensor(uv_a_masked_long, image_width).squeeze(1)
+        masked_non_matches_b = SD.flatten_uv_tensor(uv_b_masked_non_matches_long, image_width).squeeze(1)
+
+        # Non-masked non-matches
+        uv_a_background_long, uv_b_background_non_matches_long = self.create_non_matches(matches_1, matches_2_background_non_matches,
+                                                                            self.num_background_non_matches_per_match)
+
+        background_non_matches_a = SD.flatten_uv_tensor(uv_a_background_long, image_width).squeeze(1)
+        background_non_matches_b = SD.flatten_uv_tensor(uv_b_background_non_matches_long, image_width).squeeze(1)
+
 
         if self.debug:
             import correspondence_plotter
@@ -896,10 +952,33 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
             print "MERGED"
             plot_uv_1, plot_uv_2 = SpartanDataset.subsample_tuple_pair(matches_1, matches_2, num_samples=num_matches_to_plot)
-            correspondence_plotter.plot_correspondences_direct(merged_rgb_1, np.asarray(image_b1_depth), 
-                                                                   merged_rgb_2, np.asarray(image_b2_depth),
+            plot_uv_a_masked_long, plot_uv_b_masked_non_matches_long =\
+                SpartanDataset.subsample_tuple_pair(uv_a_masked_long, uv_b_masked_non_matches_long, num_samples=num_matches_to_plot)
+
+            plot_uv_a_background_long, plot_uv_b_background_non_matches_long =\
+                SpartanDataset.subsample_tuple_pair(uv_a_background_long, uv_b_background_non_matches_long, num_samples=num_matches_to_plot)
+            
+            fig, axes = correspondence_plotter.plot_correspondences_direct(merged_rgb_1_PIL, np.asarray(image_b1_depth), 
+                                                                   merged_rgb_2_PIL, np.asarray(image_b2_depth),
                                                                    plot_uv_1, plot_uv_2,
-                                                                   circ_color='g', show=True)
+                                                                   circ_color='g', show=False)
+
+            correspondence_plotter.plot_correspondences_direct(merged_rgb_1_PIL, np.asarray(image_b1_depth), 
+                                                               merged_rgb_2_PIL, np.asarray(image_b2_depth),
+                                                               plot_uv_a_masked_long, plot_uv_b_masked_non_matches_long,
+                                                               use_previous_plot=(fig, axes),
+                                                               circ_color='r', show=True)
+
+            fig, axes = correspondence_plotter.plot_correspondences_direct(merged_rgb_1_PIL, np.asarray(image_b1_depth), 
+                                                                   merged_rgb_2_PIL, np.asarray(image_b2_depth),
+                                                                   plot_uv_1, plot_uv_2,
+                                                                   circ_color='g', show=False)
+
+            correspondence_plotter.plot_correspondences_direct(merged_rgb_1_PIL, np.asarray(image_b1_depth), 
+                                                               merged_rgb_2_PIL, np.asarray(image_b2_depth),
+                                                               plot_uv_a_background_long, plot_uv_b_background_non_matches_long,
+                                                               use_previous_plot=(fig, axes),
+                                                               circ_color='b')
 
         
         return None
