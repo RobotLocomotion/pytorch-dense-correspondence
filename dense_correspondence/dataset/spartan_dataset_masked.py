@@ -873,12 +873,22 @@ class SpartanDataset(DenseCorrespondenceDataset):
                                                                   image_a1_mask, image_b1_mask, 
                                                                   matches_pair_a, matches_pair_b)
 
+        if (uv_a1 is None) or (uv_a2 is None) or (uv_b1 is None) or (uv_b2 is None):
+            logging.info("something got fully occluded, returning")
+            image_b1_rgb_tensor = self.rgb_image_to_tensor(image_b1_rgb)
+            return self.return_empty_data(image_b1_rgb_tensor, image_b1_rgb_tensor)
+
         matches_pair_a = (uv_a2, uv_a1)
         matches_pair_b = (uv_b2, uv_b1)
         merged_rgb_2, merged_mask_2, uv_a2, uv_a1, uv_b2, uv_b1 =\
          correspondence_augmentation.merge_images_with_occlusions(image_a2_rgb, image_b2_rgb, 
                                                                   image_a2_mask, image_b2_mask, 
                                                                   matches_pair_a, matches_pair_b)
+
+        if (uv_a1 is None) or (uv_a2 is None) or (uv_b1 is None) or (uv_b2 is None):
+            logging.info("something got fully occluded, returning")
+            image_b1_rgb_tensor = self.rgb_image_to_tensor(image_b1_rgb)
+            return self.return_empty_data(image_b1_rgb_tensor, image_b1_rgb_tensor)
 
         matches_1 = correspondence_augmentation.merge_matches(uv_a1, uv_b1)
         matches_2 = correspondence_augmentation.merge_matches(uv_a2, uv_b2)
