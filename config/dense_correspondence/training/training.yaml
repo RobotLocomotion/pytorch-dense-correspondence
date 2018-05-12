@@ -23,11 +23,12 @@ training:
   fraction_background_non_matches: 0.5
   use_image_b_mask_inv: True
   cross_scene_num_samples: 10000
-  use_SINGLE_OBJECT_WITHIN_SCENE: True
-  use_SINGLE_OBJECT_ACROSS_SCENE: False
-  use_DIFFERENT_OBJECT: False
-  use_MULTI_OBJECT: False
-  use_SYNTHETIC_MULTI_OBJECT: False
+  data_type_probabilities:
+    SINGLE_OBJECT_WITHIN_SCENE: 1
+    SINGLE_OBJECT_ACROSS_SCENE: 0
+    DIFFERENT_OBJECT: 0
+    MULTI_OBJECT: 0
+    SYNTHETIC_MULTI_OBJECT: 0
   # Loss function config
   loss_function: pixelwise_contrastive_loss # not currently used
   # Logging config
@@ -50,5 +51,6 @@ loss_function:
   use_l2_pixel_loss_on_masked_non_matches: False
   use_l2_pixel_loss_on_background_non_matches: False
   scale_by_hard_negatives: True
+  scale_by_hard_negatives_DIFFERENT_OBJECT: True
   alpha_triplet: 0.1
 

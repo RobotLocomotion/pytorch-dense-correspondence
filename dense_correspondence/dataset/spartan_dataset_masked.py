@@ -201,8 +201,10 @@ class SpartanDataset(DenseCorrespondenceDataset):
     def _setup_data_load_types(self):
 
         self._data_load_types = []
+        self._data_load_type_probabilities = []
         if self.debug:
             self._data_load_types.append(SpartanDatasetDataType.SINGLE_OBJECT_WITHIN_SCENE)
+            self._data_load_type_probabilities.append(1)
             # self._data_load_types.append(SpartanDatasetDataType.SINGLE_OBJECT_ACROSS_SCENE)
             # self._data_load_types.append(SpartanDatasetDataType.DIFFERENT_OBJECT)
             # self._data_load_types.append(SpartanDatasetDataType.MULTI_OBJECT)
@@ -214,7 +216,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         :return: SpartanDatasetDataType
         :rtype:
         """
-        return random.choice(self._data_load_types)
+        return np.random.choice(self._data_load_types, 1, p=self._data_load_type_probabilities)[0]
 
     def scene_generator(self, mode=None):
         """
