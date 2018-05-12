@@ -551,16 +551,41 @@ class DenseCorrespondenceDataset(data.Dataset):
 
         from spartan_dataset_masked import SpartanDatasetDataType
 
-        if training_config["training"]["use_SINGLE_OBJECT_WITHIN_SCENE"]:
+        self._data_load_types = []
+        self._data_load_type_probabilities = []
+
+        p = training_config["training"]["data_type_probabilities"]["SINGLE_OBJECT_WITHIN_SCENE"] 
+        if p > 0:
+            print "using SINGLE_OBJECT_WITHIN_SCENE"
             self._data_load_types.append(SpartanDatasetDataType.SINGLE_OBJECT_WITHIN_SCENE)
-        if training_config["training"]["use_SINGLE_OBJECT_ACROSS_SCENE"]:
+            self._data_load_type_probabilities.append(p)
+
+        p = training_config["training"]["data_type_probabilities"]["SINGLE_OBJECT_ACROSS_SCENE"]
+        if p > 0:
+            print "using SINGLE_OBJECT_ACROSS_SCENE"
             self._data_load_types.append(SpartanDatasetDataType.SINGLE_OBJECT_ACROSS_SCENE)
-        if training_config["training"]["use_DIFFERENT_OBJECT"]:
+            self._data_load_type_probabilities.append(p)
+
+        p = training_config["training"]["data_type_probabilities"]["DIFFERENT_OBJECT"]
+        if p > 0:
+            print "using DIFFERENT_OBJECT"
             self._data_load_types.append(SpartanDatasetDataType.DIFFERENT_OBJECT)
-        if training_config["training"]["use_MULTI_OBJECT"]:
+            self._data_load_type_probabilities.append(p)
+
+        p = training_config["training"]["data_type_probabilities"]["MULTI_OBJECT"]
+        if p > 0:
+            print "using MULTI_OBJECT"
             self._data_load_types.append(SpartanDatasetDataType.MULTI_OBJECT)
-        if training_config["training"]["use_SYNTHETIC_MULTI_OBJECT"]:
+            self._data_load_type_probabilities.append(p)
+
+        p = training_config["training"]["data_type_probabilities"]["SYNTHETIC_MULTI_OBJECT"]
+        if p > 0:
+            print "using SYNTHETIC_MULTI_OBJECT"
             self._data_load_types.append(SpartanDatasetDataType.SYNTHETIC_MULTI_OBJECT)
+            self._data_load_type_probabilities.append(p)
+
+        self._data_load_type_probabilities = np.array(self._data_load_type_probabilities)
+        self._data_load_type_probabilities /= np.sum(self._data_load_type_probabilities)
 
     def set_train_mode(self):
         self.mode = "train"
