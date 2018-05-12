@@ -323,6 +323,9 @@ def prune_matches_if_occluded(foreground_mask_numpy, background_matches_pair):
         if foreground_mask_numpy[v,u] == 0:
             idxs_to_keep.append(i)
 
+    if len(idxs_to_keep) == 0:
+        return (None, None)
+
     idxs_to_keep = torch.LongTensor(idxs_to_keep)
     background_matches_a = (torch.index_select(background_matches_a[0], 0, idxs_to_keep), torch.index_select(background_matches_a[1], 0, idxs_to_keep))
     background_matches_b = (torch.index_select(background_matches_b[0], 0, idxs_to_keep), torch.index_select(background_matches_b[1], 0, idxs_to_keep))
