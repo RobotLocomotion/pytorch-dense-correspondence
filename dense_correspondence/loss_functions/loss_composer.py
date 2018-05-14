@@ -100,18 +100,38 @@ def get_within_scene_loss(pixelwise_contrastive_loss, image_a_pred, image_b_pred
 
 
     total_num_hard_negatives = num_masked_hard_negatives + num_background_hard_negatives
-    if total_num_hard_negatives == 0:
-        total_num_hard_negatives = 1
-    non_match_loss = 1.0/total_num_hard_negatives * (masked_non_match_loss + background_non_match_loss)
+    total_num_hard_negatives = max(total_num_hard_negatives, 1)
+
+    if pcl._config["scale_by_hard_negatives"]:
+        scale_factor = total_num_hard_negatives
+
+        masked_non_match_loss_scaled = masked_non_match_loss*1.0/max(num_masked_hard_negatives, 1)
+
+        background_non_match_loss_scaled = background_non_match_loss*1.0/max(num_background_hard_negatives, 1)
+
+        blind_non_match_loss_scaled = blind_non_match_loss*1.0/max(num_blind_hard_negatives, 1)
+    else:
+        # we are not currently using blind non-matches
+        num_masked_non_matches = max(len(masked_non_matches_a),1)
+        num_background_non_matches = max(len(background_non_matches_a),1)
+        num_blind_non_matches = max(len(blind_non_matches_a),1)
+        scale_factor = num_masked_non_matches + num_background_non_matches
+
+
+        masked_non_match_loss_scaled = masked_non_match_loss*1.0/num_masked_non_matches
+
+        background_non_match_loss_scaled = background_non_match_loss*1.0/num_background_non_matches
+
+        blind_non_match_loss_scaled = blind_non_match_loss*1.0/num_blind_non_matches
+
+
+
+    non_match_loss = 1.0/scale_factor * (masked_non_match_loss + background_non_match_loss)
 
     loss = pcl._config["match_loss_weight"] * match_loss + \
     pcl._config["non_match_loss_weight"] * non_match_loss
 
-    masked_non_match_loss_scaled = masked_non_match_loss*1.0/max(num_masked_hard_negatives, 1)
-
-    background_non_match_loss_scaled = background_non_match_loss*1.0/max(num_background_hard_negatives, 1)
-
-    blind_non_match_loss_scaled = blind_non_match_loss*1.0/max(num_blind_hard_negatives, 1)
+    
 
     return loss, match_loss, masked_non_match_loss_scaled, background_non_match_loss_scaled, blind_non_match_loss_scaled
 
@@ -170,12 +190,18 @@ def get_same_object_across_scene_loss(pixelwise_contrastive_loss, image_a_pred, 
     """
     blind_non_match_loss = zero_loss()
     if not (SpartanDataset.is_empty(blind_non_matches_a.data)):
-        blind_non_match_loss =\
+        blind_non_match_loss, num_hard_negatives =\
             pixelwise_contrastive_loss.non_match_loss_descriptor_only(image_a_pred, image_b_pred,
                                                                     blind_non_matches_a, blind_non_matches_b,
                                                                     M_descriptor=pcl._config["M_masked"], invert=True)
 
-    loss = blind_non_match_loss
+    if pixelwise_contrastive_loss._config["scale_by_hard_negatives"]:
+        scale_factor = max(num_hard_negatives, 1)
+    else:
+        scale_factor = max(len(blind_non_matches_a), 1)
+
+    loss = 1.0/scale_factor * blind_non_match_loss
+    blind_non_match_loss_scaled = 1.0/scale_factor * blind_non_match_loss
     return loss, zero_loss(), zero_loss(), zero_loss(), blind_non_match_loss
 
 def zero_loss():
