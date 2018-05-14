@@ -12,14 +12,15 @@ import glob
 from PIL import Image
 
 import sys
-sys.path.insert(0, '../../pytorch-segmentation-detection/vision/')
-from torchvision import transforms
-sys.path.append('../../pytorch-segmentation-detection/')
-from pytorch_segmentation_detection.transforms import ComposeJoint
-sys.path.append('../correspondence_tools/')
-import correspondence_finder
-import correspondence_augmentation
 import dense_correspondence_manipulation.utils.utils as utils
+utils.add_dense_correspondence_to_python_path()
+
+from torchvision import transforms
+from pytorch_segmentation_detection.transforms import ComposeJoint
+import dense_correspondence.correspondence_tools.correspondence_finder as correspondence_finder
+import dense_correspondence.correspondence_tools.correspondence_augmentation as correspondence_augmentation
+
+
 
 # This implements a subclass for a data.Dataset class in PyTorch
 # to load in data for dense descriptor training
