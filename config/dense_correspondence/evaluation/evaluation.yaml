@@ -8,6 +8,10 @@ networks:
     descriptor_dimension: 3
     image_width: 640
     image_height: 480
+  caterpillar_standard_params_3:
+    path_to_network_params: code/data_volume/pdc/trained_models/stable/caterpillar_standard_params_3/003500.pth
+
+
 
 dataset: [] # which dataset to use, not used for now
 
