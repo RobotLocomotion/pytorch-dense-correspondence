@@ -41,9 +41,11 @@ def draw_points(img, img_points_picked):
 
 # mouse callback function
 def pick_point_from_image1(event,x,y,flags,param):
+    global img1
     if event == cv2.EVENT_LBUTTONDOWN:
         u = x
         v = y
+        draw_reticle(img1, u, v, (0,255,0))
         print u, v
         print res_a[v,u,:]
         print "is your descriptor"
