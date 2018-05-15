@@ -30,8 +30,7 @@ network_name = "caterpillar_standard_params_3"
 dcn = dce.load_network_from_config(network_name)
 sd = dcn.load_training_dataset()
 
-
-annotated_data_yaml_filename = "/home/peteflo/code/data_volume/pdc/evaluation_labeled_data/caterpillar_cross_scene_labels.yaml"
+annotated_data_yaml_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), "data_volume/pdc/evaluation_labeled_data/caterpillar_cross_scene_labels.yaml")
 annotated_data = utils.getDictFromYamlFilename(annotated_data_yaml_filename)
 
 index_of_pair_to_display = 0
@@ -80,8 +79,12 @@ def next_image_from_datset():
 next_image_from_datset()
 
 cv2.namedWindow('image1')
+cv2.moveWindow('image1', 0, 0)
+cv2.moveWindow('image1', 200, 200)
 cv2.setMouseCallback('image1', pick_point_from_image1)
 cv2.namedWindow('image1_descriptors')
+cv2.moveWindow('image1_descriptors', 0, 0)
+cv2.moveWindow('image1_descriptors', 200+640, 200)
 
 
 while(1):
