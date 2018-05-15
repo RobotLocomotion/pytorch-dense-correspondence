@@ -47,6 +47,23 @@ def pick_point_from_image1(event,x,y,flags,param):
         print u, v
         print res_a[v,u,:]
         print "is your descriptor"
+        save_descriptor_to_yaml(res_a[v,u,:])
+
+def save_descriptor_to_yaml(descriptor):
+    """
+    This function saves the descriptor to a yaml file.
+
+    The descriptor is some D-dimensional vector, which was indexed into
+    a H,W,D numpy array.
+
+    So descriptor is a 1-dimensional numpy array of length D 
+    """
+    print descriptor.shape
+    descriptor_dict = dict()
+    descriptor_dict["descriptor"] = descriptor.tolist()
+    descriptor_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), "../config", "new_descriptor_picked.yaml")
+    utils.saveToYaml(descriptor_dict, descriptor_filename) 
+    return
       
 def make_heatmap_for(first_res, second_res, x, y):
     best_match_uv, best_match_diff, norm_diffs = DenseCorrespondenceNetwork.find_best_match((x,y), first_res, second_res)
