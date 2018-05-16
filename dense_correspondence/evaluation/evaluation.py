@@ -328,6 +328,10 @@ class DenseCorrespondenceEvaluation(object):
                 DenseCorrespondenceEvaluation.single_across_object_image_pair_quantitative_analysis(dcn,
                 dataset, scene_name_a, scene_name_b, image_a_idx, image_b_idx, object_id_a, object_id_b)
 
+            # if the list is empty, don't bother +=ing it, just continue
+            if len(dataframe_list_temp) == 0:
+                continue 
+
             assert dataframe_list_temp is not None
 
             pd_dataframe_list += dataframe_list_temp
@@ -688,6 +692,9 @@ class DenseCorrespondenceEvaluation(object):
         DCE = DenseCorrespondenceEvaluation
 
         sampled_idx_list = random_sample_from_masked_image(mask_a, num_uv_a_samples)
+        # If the list is empty, return an empty list
+        if len(sampled_idx_list) == 0:
+            return dataframe_list
 
         for i in range(num_uv_a_samples):
      
@@ -1143,6 +1150,8 @@ class DenseCorrespondenceEvaluation(object):
 
         # sample points on img_a. Compute best matches on img_b
         # note that this is in (x,y) format
+        # TODO: if this mask is empty, this function will not be happy
+        # de-prioritizing since this is only for qualitative evaluation plots
         sampled_idx_list = random_sample_from_masked_image(mask_a, num_matches)
 
         # list of cv2.KeyPoint
