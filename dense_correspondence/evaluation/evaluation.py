@@ -1940,7 +1940,9 @@ class DenseCorrespondenceEvaluation(object):
     def run_evaluation_on_network(model_folder, num_image_pairs=100,
                                   num_matches_per_image_pair=100,
                                   save_folder_name="analysis",
-                                  compute_descriptor_statistics=True, cross_scene=True):
+                                  compute_descriptor_statistics=True, 
+                                  cross_scene=True,
+                                  dataset=None):
         """
         Runs all the quantitative evaluations on the model folder
         Creates a folder model_folder/analysis that stores the information.
@@ -1978,7 +1980,9 @@ class DenseCorrespondenceEvaluation(object):
 
         dcn = DenseCorrespondenceNetwork.from_model_folder(model_folder)
         dcn.eval()
-        dataset = dcn.load_training_dataset()
+
+        if dataset is None:
+            dataset = dcn.load_training_dataset()
 
         # compute dataset statistics
         if compute_descriptor_statistics:

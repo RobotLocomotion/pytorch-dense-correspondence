@@ -383,6 +383,8 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
         
         # Option A: This next line samples from img mask
         uv_a_vec = random_sample_from_masked_image_torch(img_a_mask, num_samples=num_attempts)
+        if uv_a_vec[0] is None:
+            return (None, None)
         
         # Option B: These 4 lines grab ALL from img mask
         # mask_a = img_a_mask.squeeze(0)

@@ -1,0 +1,12 @@
+logs_root_path: code/data_volume/pdc/logs_proto
+object_id: "shoe_gray_nike"
+train:
+- "2018-05-15-00-26-19" # gray nike
+- "2018-05-15-00-28-06" # gray nike
+- "2018-05-15-00-29-54" # gray nike
+test:
+- "2018-05-15-00-26-19" # gray nike
+- "2018-05-15-00-28-06" # gray nike
+- "2018-05-15-00-29-54" # gray nike
+evaluation_labeled_data_path: 
+- "nowhereyet"

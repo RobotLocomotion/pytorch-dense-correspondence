@@ -1,0 +1,14 @@
+logs_root_path: code/data_volume/pdc/logs_proto
+object_id: "shoe_red_nike.yaml"
+train:
+- "2018-05-14-22-10-53" # red nike
+- "2018-05-14-22-15-08" # red nike
+- "2018-05-14-22-17-00" # red nike
+- "2018-05-14-22-19-06" # red nike
+test:
+- "2018-05-14-22-10-53" # red nike
+- "2018-05-14-22-15-08" # red nike
+- "2018-05-14-22-17-00" # red nike
+- "2018-05-14-22-19-06" # red nike
+evaluation_labeled_data_path: 
+- "nowhereyet"

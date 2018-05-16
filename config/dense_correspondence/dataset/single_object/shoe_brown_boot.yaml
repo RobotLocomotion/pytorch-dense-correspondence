@@ -1,0 +1,18 @@
+logs_root_path: code/data_volume/pdc/logs_proto
+object_id: "hat_mit_red"
+train:
+- "2018-05-14-22-57-40" # brown boot
+- "2018-05-14-23-00-04" # brown boot
+- "2018-05-14-23-02-05" # brown boot
+- "2018-05-14-23-37-43" # brown boot
+- "2018-05-14-23-44-17" # brown boot
+- "2018-05-14-23-46-34" # brown boot
+test:
+- "2018-05-14-22-57-40" # brown boot
+- "2018-05-14-23-00-04" # brown boot
+- "2018-05-14-23-02-05" # brown boot
+- "2018-05-14-23-37-43" # brown boot
+- "2018-05-14-23-44-17" # brown boot
+- "2018-05-14-23-46-34" # brown boot
+evaluation_labeled_data_path: 
+- "nowhereyet"
