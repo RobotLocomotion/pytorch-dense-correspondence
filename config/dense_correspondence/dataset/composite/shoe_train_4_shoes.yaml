@@ -1,0 +1,9 @@
+logs_root_path: code/data_volume/pdc/logs_proto
+
+single_object_scenes_config_files:
+- shoe_brown_boot.yaml
+- shoe_gray_nike.yaml
+- shoe_green_nike.yaml
+- shoe_red_nike.yaml
+
+multi_object_scenes_config_files: []
