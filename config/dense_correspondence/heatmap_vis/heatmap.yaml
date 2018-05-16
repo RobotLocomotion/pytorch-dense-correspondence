@@ -1,9 +1,19 @@
-norm_diff_threshold: 0.25
+norm_diff_threshold: 0.35
 heatmap_vis_upper_bound: 0.75
 blend_weight_original_image: 0.3
 randomize_images: False
+different_objects: False
 networks:
-- "caterpillar_background_0.5_3"
-- "caterpillar_stable_3"
-- "caterpillar_background_5_3"
+#- "caterpillar_stable_3"
+#- "caterpillar_M_background_0.500_3"
+#- "caterpillar_M_background_0.500_6"
+#- "caterpillar_M_background_2_6"
+- "hats_consistent_M_background_0.500_3"
+- "hats_specific_M_background_2.000_9"
+#- "hats_specific_M_background_0.500_9"
 
+norm_diff_threshold_dict:
+  hats_consistent_M_background_0.500_3:
+    0.25
+  hats_specific_M_background_2.000_9:
+    0.35

@@ -15,4 +15,4 @@ test:
 - "2018-05-14-23-44-17" # brown boot
 - "2018-05-14-23-46-34" # brown boot
 evaluation_labeled_data_path: 
-- "nowhereyet"
+- "code/data_volume/pdc/evaluation_labeled_data/shoe_brown_boot.yaml"

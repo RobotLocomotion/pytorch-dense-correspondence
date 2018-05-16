@@ -21,6 +21,7 @@ from annotate_correspondences import label_colors, draw_reticle, pil_image_to_cv
 
 
 COLOR_RED = np.array([0, 0, 255])
+COLOR_GREEN = np.array([0,255,0])
 
 utils.set_default_cuda_visible_devices()
 eval_config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence', 'evaluation', 'lucas_evaluation.yaml')
@@ -33,7 +34,8 @@ class HeatmapVisualization(object):
         self._config = config
         self._dce = DenseCorrespondenceEvaluation(EVAL_CONFIG)
         self._load_networks()
-        self._reticle_color = np.array([0, 0, 255])
+        self._reticle_color = COLOR_GREEN
+        self.load_specific_dataset()
 
     def _load_networks(self):
         # we will use the dataset for the first network in the series
@@ -41,19 +43,55 @@ class HeatmapVisualization(object):
 
         self._dataset = None
         self._network_reticle_color = dict()
+
         for idx, network_name in enumerate(self._config["networks"]):
             dcn = self._dce.load_network_from_config(network_name)
             dcn.eval()
             self._dcn_dict[network_name] = dcn
-            self._network_reticle_color[network_name] = label_colors[idx]
+            # self._network_reticle_color[network_name] = label_colors[idx]
+
+            if len(self._config["networks"]) == 1:
+                self._network_reticle_color[network_name] = COLOR_RED
+            else:
+                self._network_reticle_color[network_name] = label_colors[idx]
 
             if self._dataset is None:
                 self._dataset = dcn.load_training_dataset()
 
-    def get_random_image_pair(self, randomize_image=False):
+    def load_specific_dataset(self):
+        dataset_config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence',
+                                            'dataset', 'composite', 'hats_3_demo_composite.yaml')
+
+        dataset_config = utils.getDictFromYamlFilename(dataset_config_filename)
+        self._dataset = SpartanDataset(config=dataset_config)
+
+    def get_random_image_pair(self):
         object_id = self._dataset.get_random_object_id()
         scene_name_a = self._dataset.get_random_single_object_scene_name(object_id)
         scene_name_b = self._dataset.get_different_scene_for_object(object_id, scene_name_a)
+
+        if self._config["randomize_images"]:
+            image_a_idx = self._dataset.get_random_image_index(scene_name_a)
+            image_b_idx = self._dataset.get_random_image_index(scene_name_b)
+        else:
+            image_a_idx = 0
+            image_b_idx = 0
+
+        image_b_idx = self._dataset.get_random_image_index(scene_name_b)
+        return scene_name_a, scene_name_b, image_a_idx, image_b_idx
+
+    def get_random_image_pair_across_object(self):
+        """
+        Gets cross object image pairs
+        :param randomize:
+        :type randomize:
+        :return:
+        :rtype:
+        """
+
+        object_id_a, object_id_b = self._dataset.get_two_different_object_ids()
+        scene_name_a = self._dataset.get_random_single_object_scene_name(object_id_a)
+        scene_name_b = self._dataset.get_random_single_object_scene_name(object_id_b)
 
         if self._config["randomize_images"]:
             image_a_idx = self._dataset.get_random_image_index(scene_name_a)
@@ -76,7 +114,10 @@ class HeatmapVisualization(object):
         else:
             self._dataset.set_test_mode()
 
-        scene_name_1, scene_name_2, image_1_idx, image_2_idx = self.get_random_image_pair()
+        if self._config["different_objects"]:
+            scene_name_1, scene_name_2, image_1_idx, image_2_idx = self.get_random_image_pair_across_object()
+        else:
+            scene_name_1, scene_name_2, image_1_idx, image_2_idx = self.get_random_image_pair()
 
         self.img1_pil = self._dataset.get_rgb_image_from_scene_name_and_idx(scene_name_1, image_1_idx)
         self.img2_pil = self._dataset.get_rgb_image_from_scene_name_and_idx(scene_name_2, image_2_idx)
@@ -112,7 +153,7 @@ class HeatmapVisualization(object):
 
         self.find_best_match(None, 0, 0, None, None)
 
-    def scale_norm_diffs_to_make_heatmap(self, norm_diffs):
+    def scale_norm_diffs_to_make_heatmap(self, norm_diffs, threshold):
         """
         Scales the norm diffs to make a heatmap. This will be scaled between 0 and 1.
         0 corresponds to a match, 1 to non-match
@@ -123,7 +164,7 @@ class HeatmapVisualization(object):
         :rtype:
         """
 
-        threshold = self._config["norm_diff_threshold"]
+
         heatmap = np.copy(norm_diffs)
         greater_than_threshold = np.where(norm_diffs > threshold)
         heatmap = heatmap / threshold * self._config["heatmap_vis_upper_bound"] # linearly scale [0, threshold] to [0, 0.5]
@@ -150,15 +191,35 @@ class HeatmapVisualization(object):
 
         img_2_with_reticle = np.copy(self.img2)
 
+
         print "\n\n"
+
+        self._res_uv = dict()
+
+        # self._res_a_uv = dict()
+        # self._res_b_uv = dict()
+
         for network_name in self._dcn_dict:
             res_a = self._res_a[network_name]
             res_b = self._res_b[network_name]
             best_match_uv, best_match_diff, norm_diffs = \
                 DenseCorrespondenceNetwork.find_best_match((u, v), res_a, res_b)
+            print "\n\n"
+            print "network_name:", network_name
+            self._res_uv[network_name] = dict()
+            self._res_uv[network_name]['source'] = res_a[v, u, :].tolist()
+            self._res_uv[network_name]['target'] = res_b[v, u, :].tolist()
+
+            # print "res_a[v, u, :]:", res_a[v, u, :]
+            # print "res_b[v, u, :]:", res_b[v, u, :]
 
             print "%s best match diff: %.3f" %(network_name, best_match_diff)
-            heatmap = self.scale_norm_diffs_to_make_heatmap(norm_diffs)
+
+            threshold = self._config["norm_diff_threshold"]
+            if network_name in self._config["norm_diff_threshold_dict"]:
+                threshold = self._config["norm_diff_threshold_dict"][network_name]
+
+            heatmap = self.scale_norm_diffs_to_make_heatmap(norm_diffs, threshold)
 
             reticle_color = self._network_reticle_color[network_name]
             draw_reticle(heatmap, best_match_uv[0], best_match_uv[1], reticle_color)
@@ -167,6 +228,8 @@ class HeatmapVisualization(object):
             cv2.imshow(network_name, blended)
 
         cv2.imshow("target", img_2_with_reticle)
+        if event == cv2.EVENT_LBUTTONDOWN:
+            utils.saveToYaml(self._res_uv, 'clicked_point.yaml')
 
     def run(self):
         self._get_new_images()
