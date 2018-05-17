@@ -1,0 +1,14 @@
+logs_root_path: code/data_volume/pdc/logs_proto
+object_id_list: ["shoe_gray_nike", "shoe_green_nike", "shoe_red_nike", "shoe_brown_boot"]
+train:
+- "2018-05-17-00-46-45"
+- "2018-05-17-00-49-57"
+- "2018-05-17-00-52-30"
+- "2018-05-17-00-54-26"
+- "2018-05-17-00-56-44"
+- "2018-05-17-01-11-41" # very cluttered
+test:
+- "2018-05-17-01-00-14"
+- "2018-05-17-01-02-45"
+evaluation_labeled_data_path: 
+- "nowhereyet"
