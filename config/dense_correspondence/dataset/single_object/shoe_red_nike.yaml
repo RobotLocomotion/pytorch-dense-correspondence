@@ -11,4 +11,4 @@ test:
 - "2018-05-14-22-17-00" # red nike
 - "2018-05-14-22-19-06" # red nike
 evaluation_labeled_data_path: 
-- "nowhereyet"
+- "code/data_volume/pdc/evaluation_labeled_data/shoe_red_nike.yaml"
