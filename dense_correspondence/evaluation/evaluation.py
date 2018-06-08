@@ -399,13 +399,16 @@ class DenseCorrespondenceEvaluation(object):
 
     @staticmethod
     def plot_descriptor_colormaps(res_a, res_b, descriptor_image_stats=None,
-                                  mask_a=None, mask_b=None, plot_masked=False):
+                                  mask_a=None, mask_b=None, plot_masked=False,descriptor_norm_type="mask_image"):
         """
         Plots the colormaps of descriptors for a pair of images
         :param res_a: descriptors for img_a
         :type res_a: numpy.ndarray
         :param res_b:
         :type res_b: numpy.ndarray
+        :param descriptor_norm_type: what type of normalization to use for the
+        full descriptor image
+        :type : str
         :return: None
         :rtype: None
         """
@@ -424,8 +427,8 @@ class DenseCorrespondenceEvaluation(object):
         if descriptor_image_stats is None:
             res_a_norm, res_b_norm = dc_plotting.normalize_descriptor_pair(res_a, res_b)
         else:
-            res_a_norm = dc_plotting.normalize_descriptor(res_a, descriptor_image_stats['entire_image'])
-            res_b_norm = dc_plotting.normalize_descriptor(res_b, descriptor_image_stats['entire_image'])
+            res_a_norm = dc_plotting.normalize_descriptor(res_a, descriptor_image_stats[descriptor_norm_type])
+            res_b_norm = dc_plotting.normalize_descriptor(res_b, descriptor_image_stats[descriptor_norm_type])
 
 
         if plot_masked:
@@ -2261,7 +2264,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
         return df
 
     @staticmethod
-    def make_cdf_plot(ax, data, num_bins, label=None):
+    def make_cdf_plot(ax, data, num_bins, label=None, x_axis_scale_factor=1):
         """
         Plots the empirical CDF of the data
         :param ax: axis of a matplotlib plot to plot on
@@ -2275,6 +2278,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
         cumhist, l, b, e = ss.cumfreq(data, num_bins)
         cumhist *= 1.0 / len(data)
         x_axis = l + b * np.arange(0, num_bins)
+        x_axis /= x_axis_scale_factor
         plot = ax.plot(x_axis, cumhist, label=label)
         return plot
 
@@ -2298,7 +2302,10 @@ class DenseCorrespondenceEvaluationPlotter(object):
 
         data = df[data_string]
 
-        plot = DCEP.make_cdf_plot(ax, data, num_bins=num_bins, label=label)
+        # rescales the pixel distance to be relative to the diagonal of the image
+        x_axis_scale_factor = 800
+
+        plot = DCEP.make_cdf_plot(ax, data, num_bins=num_bins, label=label, x_axis_scale_factor=x_axis_scale_factor)
         if masked:
             ax.set_xlabel('Pixel match error (masked), L2 (pixel distance)')
         else:
