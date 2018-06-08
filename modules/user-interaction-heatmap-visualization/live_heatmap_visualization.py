@@ -35,7 +35,7 @@ class HeatmapVisualization(object):
         self._dce = DenseCorrespondenceEvaluation(EVAL_CONFIG)
         self._load_networks()
         self._reticle_color = COLOR_GREEN
-        self.load_specific_dataset()
+        # self.load_specific_dataset() # uncomment if you want to load a specific dataset
 
     def _load_networks(self):
         # we will use the dataset for the first network in the series
@@ -62,6 +62,10 @@ class HeatmapVisualization(object):
         dataset_config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence',
                                             'dataset', 'composite', 'hats_3_demo_composite.yaml')
 
+        dataset_config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config',
+                                               'dense_correspondence',
+                                               'dataset', 'composite', '4_shoes_all.yaml')
+
         dataset_config = utils.getDictFromYamlFilename(dataset_config_filename)
         self._dataset = SpartanDataset(config=dataset_config)
 
@@ -77,7 +81,7 @@ class HeatmapVisualization(object):
             image_a_idx = 0
             image_b_idx = 0
 
-        image_b_idx = self._dataset.get_random_image_index(scene_name_b)
+        # image_b_idx = self._dataset.get_random_image_index(scene_name_b)
         return scene_name_a, scene_name_b, image_a_idx, image_b_idx
 
     def get_random_image_pair_across_object(self):
@@ -90,8 +94,32 @@ class HeatmapVisualization(object):
         """
 
         object_id_a, object_id_b = self._dataset.get_two_different_object_ids()
+        # object_id_a = "shoe_red_nike.yaml"
+        # object_id_b = "shoe_gray_nike"
+        # object_id_b = "shoe_green_nike"
         scene_name_a = self._dataset.get_random_single_object_scene_name(object_id_a)
         scene_name_b = self._dataset.get_random_single_object_scene_name(object_id_b)
+
+        if self._config["randomize_images"]:
+            image_a_idx = self._dataset.get_random_image_index(scene_name_a)
+            image_b_idx = self._dataset.get_random_image_index(scene_name_b)
+        else:
+            image_a_idx = 0
+            image_b_idx = 0
+
+        return scene_name_a, scene_name_b, image_a_idx, image_b_idx
+
+    def get_random_image_pair_multi_object_scenes(self):
+        """
+        Gets cross object image pairs
+        :param randomize:
+        :type randomize:
+        :return:
+        :rtype:
+        """
+
+        scene_name_a = self._dataset.get_random_multi_object_scene_name()
+        scene_name_b = self._dataset.get_random_multi_object_scene_name()
 
         if self._config["randomize_images"]:
             image_a_idx = self._dataset.get_random_image_index(scene_name_a)
@@ -114,10 +142,15 @@ class HeatmapVisualization(object):
         else:
             self._dataset.set_test_mode()
 
-        if self._config["different_objects"]:
-            scene_name_1, scene_name_2, image_1_idx, image_2_idx = self.get_random_image_pair_across_object()
-        else:
+        if self._config["same_object"]:
             scene_name_1, scene_name_2, image_1_idx, image_2_idx = self.get_random_image_pair()
+        elif self._config["different_objects"]:
+            scene_name_1, scene_name_2, image_1_idx, image_2_idx = self.get_random_image_pair_across_object()
+        elif self._config["multiple_object"]:
+            scene_name_1, scene_name_2, image_1_idx, image_2_idx = self.get_random_image_pair_multi_object_scenes()
+        else:
+            raise ValueError("At least one of the image types must be set tot True")
+
 
         self.img1_pil = self._dataset.get_rgb_image_from_scene_name_and_idx(scene_name_1, image_1_idx)
         self.img2_pil = self._dataset.get_rgb_image_from_scene_name_and_idx(scene_name_2, image_2_idx)
