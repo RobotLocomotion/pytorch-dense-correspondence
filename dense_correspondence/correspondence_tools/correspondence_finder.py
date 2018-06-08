@@ -78,6 +78,9 @@ def random_sample_from_masked_image(img_mask, num_samples):
     """
     idx_tuple = img_mask.nonzero()
     num_nonzero = len(idx_tuple[0])
+    if num_nonzero == 0:
+        empty_list = []
+        return empty_list
     rand_inds = random.sample(range(0,num_nonzero), num_samples)
 
     sampled_idx_list = []
