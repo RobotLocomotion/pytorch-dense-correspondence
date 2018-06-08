@@ -1,19 +1,26 @@
-norm_diff_threshold: 0.35
+norm_diff_threshold: 0.25
 heatmap_vis_upper_bound: 0.75
 blend_weight_original_image: 0.3
 randomize_images: False
+same_object: False
 different_objects: False
+multiple_object: True # sample from multi object scenes
 networks:
 #- "caterpillar_stable_3"
 #- "caterpillar_M_background_0.500_3"
 #- "caterpillar_M_background_0.500_6"
 #- "caterpillar_M_background_2_6"
-- "hats_consistent_M_background_0.500_3"
-- "hats_specific_M_background_2.000_9"
+#- "hats_consistent_M_background_0.500_3"
+#- "hats_specific_M_background_2.000_9"
 #- "hats_specific_M_background_0.500_9"
+#- "shoes_consistent_M_background_0.500_3"
+#- "shoes_specific_M_background_2.000_6"
+- "shoes_specific_M_background_2.000_6_with_synthetic"
 
 norm_diff_threshold_dict:
   hats_consistent_M_background_0.500_3:
     0.25
   hats_specific_M_background_2.000_9:
     0.35
+  shoes_specific_M_background_2.000_6_with_synthetic:
+    0.35q
