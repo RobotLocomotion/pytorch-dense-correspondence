@@ -48,6 +48,14 @@ def get_loss(pixelwise_contrastive_loss, match_type,
                                             background_non_matches_a, background_non_matches_b,
                                             blind_non_matches_a, blind_non_matches_b)
 
+    if (match_type == SpartanDatasetDataType.SYNTHETIC_MULTI_OBJECT).all():
+        print "applying SYNTHETIC_MULTI_OBJECT loss"
+        return get_within_scene_loss(pixelwise_contrastive_loss, image_a_pred, image_b_pred,
+                                            matches_a,    matches_b,
+                                            masked_non_matches_a, masked_non_matches_b,
+                                            background_non_matches_a, background_non_matches_b,
+                                            blind_non_matches_a, blind_non_matches_b)
+
     else:
         raise ValueError("Should only have above scenes?")
 
