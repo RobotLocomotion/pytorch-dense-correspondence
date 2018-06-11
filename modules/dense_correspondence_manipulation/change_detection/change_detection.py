@@ -502,7 +502,7 @@ class ChangeDetection(object):
         app = globalsDict['app']
 
 
-        camera_info_file = os.path.join(data_folder, 'images', 'camera_info.yaml')
+        camera_info_file = os.path.join(data_folder, 'processed', 'images', 'camera_info.yaml')
         camera_intrinsics = utils.CameraIntrinsics.from_yaml_file(camera_info_file)
         changeDetection = ChangeDetection(app, view, cameraIntrinsics=camera_intrinsics)
         changeDetection.foreground_reconstruction = foreground_reconstruction
