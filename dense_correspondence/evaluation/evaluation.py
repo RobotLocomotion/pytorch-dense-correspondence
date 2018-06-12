@@ -1618,6 +1618,9 @@ class DenseCorrespondenceEvaluation(object):
             img_pairs.append([img_a_idx, img_b_idx])
             scene_names.append(scene_name)
 
+            img_pairs.append([0, 0])
+            scene_names.append(scene_name)
+
         return scene_names, img_pairs
 
     @staticmethod
@@ -2309,7 +2312,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
         if masked:
             ax.set_xlabel('Pixel match error (masked), L2 (pixel distance)')
         else:
-            ax.set_xlabel('Pixel match error, L2 (pixel distance)')
+            ax.set_xlabel('Pixel match error (fraction of image), L2 (pixel distance)')
         ax.set_ylabel('Fraction of images')
 
         # ax.set_xlim([0,200])
