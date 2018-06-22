@@ -21,7 +21,7 @@ The aim of this repo is to provide tools for dense correspondence learning in Py
 
 
 ### Dense Object Nets
-- [recommended workflow ](doc/recommended_workflow.md)
+- [recommended docker workflow ](doc/recommended_workflow.md)
 - [training a network](doc/training.md)
 - [evaluating a trained network](doc/evaluation.md)
 
