@@ -9,7 +9,7 @@ The purpose of this doc is to provide an overview of the entire process from:
 
 ## Raw data collection
 
-For us, all raw data collection happens in [`spartan`](https://github.com/RobotLocomotion/spartan).  
+For us, all raw data collection happens in [`spartan`](https://github.com/RobotLocomotion/spartan). For detailed documentation on the data processing pipeline see [here](data_processing_single_scene.md)
 
 - *Note*: While Spartan is all open source, it's a little customized to our particular robot + RGBD sensing setup.  It can be useful as reference for outside users, but it's not our intent to make it user-friendly.  But once you have your RGBD data with pose estimates of choice, `pytorch-dense-correspondence` is intended to be well documented and useful for a variety of projects!
 
