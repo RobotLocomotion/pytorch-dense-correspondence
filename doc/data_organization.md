@@ -1,4 +1,4 @@
-# Data management in pytorch-dense-correspondence
+# Data Organization in pytorch-dense-correspondence
 
 The purpose of this doc is to describe our workflow for where all data should be stored, its format, directory structure, etc.
 
