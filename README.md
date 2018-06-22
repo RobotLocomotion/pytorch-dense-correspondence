@@ -9,6 +9,9 @@ The aim of this repo is to provide tools for dense correspondence learning in Py
   
 ### Code Setup
 
+- [building with docker](doc/docker_build_instructions.md)
+- [recommended workflow ](doc/recommended_workflow.md)
+
 First get the repo and all submodules:
 
 ```
