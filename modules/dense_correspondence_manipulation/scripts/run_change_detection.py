@@ -18,7 +18,7 @@ def run(data_folder, config_file=CONFIG_FILE, debug=False, globalsDict=None,
         background_scene_data_folder=None):
     """
     Runs the change detection pipeline
-    :param data_dir:
+    :param data_dir: The 'processed' subfolder of a top-level log folder
     :param config_file:
     :return:
     """

@@ -76,6 +76,20 @@ class ChangeDetection(object):
 
     def __init__(self, app, view, cameraIntrinsics=None, debug=True,
         data_directory=None):
+        """
+        This shouldn't be called directly. Should only be called via the staticmethod from_data_folder
+
+        :param app:
+        :type app:
+        :param view:
+        :type view:
+        :param cameraIntrinsics:
+        :type cameraIntrinsics:
+        :param debug:
+        :type debug:
+        :param data_directory: The 'processed' subfolder of a top level log folder
+        :type data_directory:
+        """
 
         self.app = app
         self.views = dict()
@@ -118,23 +132,6 @@ class ChangeDetection(object):
         #
         # dock.setMinimumWidth(300)
         # dock.setMinimumHeight(300)
-
-        if data_directory is not None:
-            self.data_dir = data_directory
-            self.loadData()
-
-    def loadData(self):
-        """
-        Load the relevant data from the folder.
-
-        Key pieces of data are 
-        - background reconstruction
-        - foreground reconstruction
-        - images (depth and rgb)
-        - camera pose data
-        - camera intrinsics
-        """
-        self.image_dir = os.path.join(self.data_dir, 'images')
 
     @property
     def background_reconstruction(self):
@@ -502,7 +499,7 @@ class ChangeDetection(object):
         app = globalsDict['app']
 
 
-        camera_info_file = os.path.join(data_folder, 'processed', 'images', 'camera_info.yaml')
+        camera_info_file = os.path.join(data_folder, 'images', 'camera_info.yaml')
         camera_intrinsics = utils.CameraIntrinsics.from_yaml_file(camera_info_file)
         changeDetection = ChangeDetection(app, view, cameraIntrinsics=camera_intrinsics)
         changeDetection.foreground_reconstruction = foreground_reconstruction

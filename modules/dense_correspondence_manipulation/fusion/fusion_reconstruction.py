@@ -322,6 +322,17 @@ class TSDFReconstruction(FusionReconstruction):
 
     @staticmethod
     def from_data_folder(data_folder, config=None, name=None):
+        """
+
+        :param data_folder: The 'processed' subfolder of a top level log folder
+        :type data_folder:
+        :param config:
+        :type config:
+        :param name:
+        :type name:
+        :return:
+        :rtype:
+        """
         fr = TSDFReconstruction()
         fr.data_dir = data_folder
 
@@ -332,14 +343,14 @@ class TSDFReconstruction(FusionReconstruction):
             print "no config passed in, loading default"
             config = FusionReconstruction.load_default_config()
 
-        pose_data_filename = os.path.join(data_folder, 'processed', 'images', 'pose_data.yaml')
-        camera_info_filename = os.path.join(data_folder, 'processed', 'images', 'camera_info.yaml')
+        pose_data_filename = os.path.join(data_folder, 'images', 'pose_data.yaml')
+        camera_info_filename = os.path.join(data_folder, 'images', 'camera_info.yaml')
 
         fr.config = config
         fr.name = name
         fr.kinematics_pose_data = utils.getDictFromYamlFilename(pose_data_filename)
         fr.camera_info = utils.getDictFromYamlFilename(camera_info_filename)
 
-        fr.reconstruction_filename = os.path.join(fr.data_dir, 'processed', 'fusion_mesh.ply')
+        fr.reconstruction_filename = os.path.join(fr.data_dir, 'fusion_mesh.ply')
         fr.setup()
         return fr
