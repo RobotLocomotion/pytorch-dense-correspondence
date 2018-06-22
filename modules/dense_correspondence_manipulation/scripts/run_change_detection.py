@@ -7,6 +7,7 @@ import dense_correspondence_manipulation.change_detection.change_detection as ch
 import dense_correspondence_manipulation.utils.utils as utils
 from dense_correspondence_manipulation.utils.constants import *
 from director.timercallback import TimerCallback
+
 """
 Runs change detection to compute masks for each image
 """

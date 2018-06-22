@@ -476,7 +476,7 @@ class ChangeDetection(object):
         Creates a ChangeDetection object from a data_folder which contains the
         3D reconstruction and the image files
 
-        :param data_folder:
+        :param data_folder: This should point to the `processed` subfolder of a top level log folder
         :param config:
         :param globalsDict:
         :return:
