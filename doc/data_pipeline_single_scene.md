@@ -2,24 +2,24 @@
 
 This outlines how to collect and process data for a single scene. The folder structure (as will be explained below) is 
 ```
-scene_name
-  * raw
+scene_name/
+  * raw/
     * fusion.bag
-  * processed
+  * processed/
     * fusion_mesh.ply
     * fusion_pointcloud.ply
     * tsdf.bin
-    * images
+    * images/
       * 000000_rgb.png
       * 000000_depth.png
       *
       *
-    * rendered_images
+    * rendered_images/
       * 000000_depth.png
       * 000000_depth_cropped.png
       *
       *
-    * image_masks
+    * image_masks/
       * 000000_mask.png
       * 000000_visible_mask.png
       *
