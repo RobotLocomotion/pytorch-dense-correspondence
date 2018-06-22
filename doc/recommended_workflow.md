@@ -3,7 +3,7 @@
 This doc outlines the recommended workflow for `pdc`. You always work from inside a docker container.
 
 ## Setting the path to your data directory
-Edit `config/docker_run_config.yaml` to set the path to your data volume. This will be mounted inside the docker at the location `~/code/data_volume`.
+Edit `config/docker_run_config.yaml` to set the path to your data volume. By data volume we mean the folder that contains the `pdc` data folder as outline in the [data organization](data_organization.md) doc. This will be mounted inside the docker at the location `~/code/data_volume`.
 
 ## Launching a docker container
 You should already have built the docker image as outlined [here](docker_build_instructions.md). To launch the container
