@@ -23,8 +23,13 @@ The aim of this repo is to provide tools for dense correspondence learning in Py
 ### Dense Object Nets
 - [recommended docker workflow ](doc/recommended_workflow.md)
 - [training a network](doc/training.md)
-- [evaluating a trained network](doc/evaluation.md)
+- [evaluating a trained network](doc/dcn_evaluation.md)
 
+
+### Miscellaneous
+- [coordinate conventions](doc/coordinate_conventions.md)
+
+### Tutorials
 
 ### Git management
 
