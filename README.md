@@ -28,6 +28,7 @@ The aim of this repo is to provide tools for dense correspondence learning in Py
 
 ### Miscellaneous
 - [coordinate conventions](doc/coordinate_conventions.md)
+- [testing](doc/testing.md)
 
 ### Tutorials
 
