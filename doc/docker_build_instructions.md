@@ -1,8 +1,16 @@
 # Pytorch Dense Correspondence inside Docker
 
+## Introduction
+
+We highly recommend using a docker environment to work with this repo.  All development for this project has used this setup.
+
+The docker image essentially packages all dependencies in a safe environment.  The scripts we provide will externally mount our source code, and our data, into the docker environment.
+
+Most source code for this project is in Python and so once the docker image is built we won't need any compiling.
+
 ## Quickstart
 
-The following is all of the steps to build `pdc` with docker from a fresh Ubuntu installation:
+The following is all of the steps to build a docker image for `pytorch-dense-correspondence` from a fresh Ubuntu installation:
 
 1) Install [Docker for Ubuntu](https://docs.docker.com/engine/installation/linux/docker-ce/ubuntu/)
   - Make sure to `sudo usermod -aG docker your-user` and then not run below docker scripts as `sudo`
@@ -24,7 +32,7 @@ sudo apt-get install nvidia-modprobe
 ```
 and then restart your machine.
 
-3) Clone, setup, and build `pdc`: You need to have ssh keys setup to clone the submodules. Make sure that these ssh keys don't have a password, otherwise it will not work.
+3) Clone, setup, and build docker image for `pytorch-dense-correspondence`. If using clone via `ssh`, you need to have ssh keys setup to clone the submodules. Make sure that these ssh keys don't have a password, otherwise it will not work.  Cloning via `https` should be OK.
 ```
 git clone git@github.com:RobotLocomotion/pytorch-dense-correspondence.git
 cd pytorch-dense-correspondence
@@ -35,17 +43,6 @@ cd docker
 ./docker_build.py
 ```
 
-Now there should be a docker image called `<username>-pytorch-dense-correspondence` on your machine
-Below is explained additional options and details of the above.
+You're done with setup!
 
-## Docker Cheatsheet
-
-Handling images
-- `docker images` - lists all docker images on machine, including REPOSITORY, TAG, IMAGE_ID, when created, size
-- `docker tag IMAGE_ID NEW_NAME` - creates a new REPOSITORY:TAG for an IMAGE_ID
-- `docker rmi REPOSITORY:TAG` - removes this tag for an image
-- `docker tag IMAGE_ID my-spartan && docker rmi spartan` -- example to combine above two commands to rename an image ID
-
-Handling containers
-- `docker ps -a` - lists all containers on machine
-- `docker rm CONTAINER_ID` - removes container id 
+Now there should be a docker image called `<username>-pytorch-dense-correspondence` on your machine.
