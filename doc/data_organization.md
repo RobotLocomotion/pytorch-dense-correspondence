@@ -1,8 +1,8 @@
 # Data Organization in pytorch-dense-correspondence
 
-The purpose of this doc is to describe our workflow for where all data should be stored, its format, directory structure, etc.
+The purpose of this doc is to describe the organization for how data logs are stored, their format, directory structure, etc.
 
-## Directory structure
+## Highest level directory structure
 
 At the highest level we use this directory identifier to identify where data is located:
 
@@ -10,9 +10,7 @@ At the highest level we use this directory identifier to identify where data is 
 pdc/
 ```
 
-The `pdc/` directory can in future hold files/data that is essentially global in scope.
-
-Most data however will be the data logs which will live in one of two locations:
+Most data will live in data logs in one of two locations:
 
 ```
 pdc/
@@ -27,7 +25,7 @@ Where these two correspond to:
 
 Note that `proto` and `final` have specifically been chosen because they both have 5 chars and so print nicely next to each other in monospace.
 
-Within each of these two log locations, there is one directory for each RGBD video log and associated data.
+Within each of these two locations, there is one directory for each RGBD video log and associated data.
 
 These logs have unique names which correspond to the year, month, day, hour, minute, second they were created (`YYYY-MM-DD-hh-mm-ss`).  For example they 
 might be located at:
