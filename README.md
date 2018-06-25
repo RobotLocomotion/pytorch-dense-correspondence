@@ -34,7 +34,7 @@ If you find this code useful in your work, please consider citing:
   
 ### Code Setup
 
-- [building with docker](doc/docker_build_instructions.md)
+- [setting up docker image](doc/docker_build_instructions.md)
 - [recommended docker workflow ](doc/recommended_workflow.md)
 
 
