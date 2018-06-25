@@ -14,7 +14,7 @@ We also demonstrate using Dense Object Nets for robotic manipulation tasks:
 
 This is the reference implementation for our paper:
 
-[PDF](https://arxiv.org/pdf/1806.08756.pdf) | [Video](https://youtu.be/rUk85st9QNE)
+[PDF](https://arxiv.org/pdf/1806.08756.pdf) | [Video](https://www.youtube.com/watch?v=L5UW1VapKNE)
 
 [Pete Florence*](http://www.peteflorence.com/), [Lucas Manuelli*](http://lucasmanuelli.com/), [Russ Tedrake](https://groups.csail.mit.edu/locomotion/russt.html)
 
