@@ -426,6 +426,25 @@ class DenseCorrespondenceNetwork(nn.Module):
 
         return best_match_uv, best_match_diff, norm_diffs
 
+    @staticmethod
+    def find_best_match_for_descriptor(res, descriptor_target):
+        """
+        Finds the best match in descriptor image res for descriptor_target
+        :param res_a: array of dense descriptors res_a.shape = [H,W,D]
+        :param descriptor_target: vector of size [D]
+        """
+
+        norm_diffs = np.sqrt(np.sum(np.square(res - descriptor_target), axis=2))
+
+        best_match_flattened_idx = np.argmin(norm_diffs)
+        best_match_xy = np.unravel_index(best_match_flattened_idx, norm_diffs.shape)
+        best_match_diff = norm_diffs[best_match_xy]
+
+        best_match_uv = (best_match_xy[1], best_match_xy[0])
+
+        return best_match_uv, best_match_diff, norm_diffs
+
+
     def evaluate_descriptor_at_keypoints(self, res, keypoint_list):
         """
 
