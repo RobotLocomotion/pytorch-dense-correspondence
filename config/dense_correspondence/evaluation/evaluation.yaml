@@ -9,6 +9,9 @@ networks:
     image_width: 640
     image_height: 480
 
+  caterpillar_M_background_0.500_6:
+    path_to_network_params: code/data_volume/pdc/trained_models/stable/caterpillar_M_background_0.500_6/003501.pth
+
 dataset: [] # which dataset to use, not used for now
 
 output_dir: code/data_volume/pdc/analysis
