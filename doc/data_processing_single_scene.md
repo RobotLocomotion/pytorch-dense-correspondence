@@ -1,12 +1,16 @@
 # Data Pipeline for a Single Scene
 
-This outlines how to collect and process data for a single scene. See [here](dataset_organization.md) for how the dataset is organized.
+This outlines how to collect and process data for a single scene. See [here](dataset_organization.md) for how the dataset is organized. The steps here are split across code in two repos.
+- [spartan](https://github.com/RobotLocomotion/spartan) handles the raw data collection and tsdf fusion.
+- pdc handles change detection and rendering.
 
-## Capture Raw data with Kuka
+## Spartan
+
+### Capture Raw data with Kuka
 
 The quick version of raw data collection currently is:
 
-#### Human-moved objects
+##### Human-moved objects
 
 1. Start Kuka, run Position control
 2. `kip` (shortcut for Kuka Iiwa Procman) then in procman: 
@@ -23,7 +27,7 @@ cd ~/spartan/src/catkin_projects/fusion_server/scripts
     2. `./capture_scene_client.py`
     3. This will create a new folder with the current date (e.g. `2018-04-07-20-23-56`) and the `raw/fusion.bag` file as in the folder structure above.
 
-#### Autonomous robot-moved objects
+##### Autonomous robot-moved objects
 
 1. Start Kuka, run Position control
 2. `kip` (shortcut for Kuka Iiwa Procman) then in procman: 
@@ -33,7 +37,7 @@ cd ~/spartan/src/catkin_projects/fusion_server/scripts
     4. Run Director
 3. In Director terminal (f8), enter: `graspSupervisor.testInteractionLoop()`
 
-## TSDF Fusion
+### TSDF Fusion
 This is done in `spartan`. Navigate to `spartan/src/catkin_projects/fusion_server/scripts`. With `log_dir` set to the directory of your log, i.e. the full path to `2018-04-07-20-23-56` run 
 
 ```
@@ -50,7 +54,9 @@ This will
 3. Convert the tsdf fusion to a mesh and save it as `processed/fusion_mesh.ply`
 4. Downsample the images in `processed/images` and only keep those with poses that are sufficiently different.
 
-## Change Detection and Depth Image Rendering
+## PDC
+
+### Change Detection and Depth Image Rendering
 This is done in `pytorch-dense-correspondence`. In `pdc`
 
 1. `use_pytorch_dense_correspondence`
