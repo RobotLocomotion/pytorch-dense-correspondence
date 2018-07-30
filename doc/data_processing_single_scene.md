@@ -61,7 +61,7 @@ This is done in `pytorch-dense-correspondence`. In `pdc`
 
 1. `use_pytorch_dense_correspondence`
 2. `use_director`
-3. `run_change_detection <full_path_to_log_folder>/processed`
+3. `run_change_detection --data_dir <full_path_to_log_folder>/processed`
 
 This will run change detection and render new depth images for the full scene and the cropped scene. The data that is produced by this step is
 
