@@ -50,6 +50,7 @@ def already_ran_change_detection(processed_dir):
     return (os.path.isfile(file_to_check_1) and os.path.isfile(file_to_check_2))
 
 def run_on_all_subfolders(directory, config_file):
+    print "running on all subfolders"
 
     for dir in sorted(os.listdir(directory)):
         full_dir = os.path.join(directory, dir)

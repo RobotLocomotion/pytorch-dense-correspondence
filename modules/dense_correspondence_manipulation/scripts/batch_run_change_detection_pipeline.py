@@ -20,7 +20,8 @@ def main():
 
     for idx, dir in enumerate(list_of_dirs):
 
-        data_folder = os.path.join(parent_folder, dir)
+        log_folder = os.path.join(parent_folder, dir)
+        data_folder = os.path.join(log_folder, 'processed')
 
         if not os.path.isdir(data_folder):
             continue

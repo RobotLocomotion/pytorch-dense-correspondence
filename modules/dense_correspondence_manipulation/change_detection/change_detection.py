@@ -76,6 +76,20 @@ class ChangeDetection(object):
 
     def __init__(self, app, view, cameraIntrinsics=None, debug=True,
         data_directory=None):
+        """
+        This shouldn't be called directly. Should only be called via the staticmethod from_data_folder
+
+        :param app:
+        :type app:
+        :param view:
+        :type view:
+        :param cameraIntrinsics:
+        :type cameraIntrinsics:
+        :param debug:
+        :type debug:
+        :param data_directory: The 'processed' subfolder of a top level log folder
+        :type data_directory:
+        """
 
         self.app = app
         self.views = dict()
@@ -118,23 +132,6 @@ class ChangeDetection(object):
         #
         # dock.setMinimumWidth(300)
         # dock.setMinimumHeight(300)
-
-        if data_directory is not None:
-            self.data_dir = data_directory
-            self.loadData()
-
-    def loadData(self):
-        """
-        Load the relevant data from the folder.
-
-        Key pieces of data are 
-        - background reconstruction
-        - foreground reconstruction
-        - images (depth and rgb)
-        - camera pose data
-        - camera intrinsics
-        """
-        self.image_dir = os.path.join(self.data_dir, 'images')
 
     @property
     def background_reconstruction(self):
@@ -338,7 +335,13 @@ class ChangeDetection(object):
 
     def run(self, output_dir=None, rendered_images_dir=None):
         """
-        Run the mask generation algorithm
+        Renders the masks and the depth images for the cropped scene
+
+        Produces 3 types of files
+
+        processed/image_masks/000000_mask.png
+        processed/image_masks/000000_visible_mask.png
+        processed/rendered_images/000000_depth_cropped.png
         :return:
         """
 
@@ -348,6 +351,8 @@ class ChangeDetection(object):
         if rendered_images_dir is None:
             rendered_images_dir = os.path.join(self.foreground_reconstruction.data_dir, 'rendered_images')
 
+        fusion_mesh_foreground_file = os.path.join(os.path.join(self.foreground_reconstruction.data_dir, 'fusion_mesh_foreground.ply'))
+
         if not os.path.isdir(output_dir):
             os.makedirs(output_dir)
 
@@ -356,8 +361,10 @@ class ChangeDetection(object):
 
         start_time = time.time()
 
+        print "saving cropped mesh"
+        self.foreground_reconstruction.save_poly_data(fusion_mesh_foreground_file)
+
         # read in each image in the log
-        image_dir = self.foreground_reconstruction.image_dir
         camera_pose_data = self.foreground_reconstruction.kinematics_pose_data
         img_file_extension = 'png'
 
@@ -402,7 +409,8 @@ class ChangeDetection(object):
 
     def render_depth_images(self, output_dir=None, rendered_images_dir=None):
         """
-        Run the mask generation algorithm
+        Renders the depth images on the entire scene
+        processed/rendered_images/000000_depth.png
         :return:
         """
 
@@ -479,7 +487,7 @@ class ChangeDetection(object):
         Creates a ChangeDetection object from a data_folder which contains the
         3D reconstruction and the image files
 
-        :param data_folder:
+        :param data_folder: This should point to the `processed` subfolder of a top level log folder
         :param config:
         :param globalsDict:
         :return:
@@ -511,6 +519,23 @@ class ChangeDetection(object):
         globalsDict['changeDetection'] = changeDetection
         return changeDetection, globalsDict
 
+
+    @staticmethod
+    def render_depth_images_full_scene(data_folder, config=None, background_data_folder=None):
+        """
+        Renders depth images against the entire scene
+        :param data_folder:
+        :type data_folder:
+        :param config:
+        :type config:
+        :param background_data_folder:
+        :type background_data_folder:
+        :return:
+        :rtype:
+        """
+
+        change_detection.ChangeDetection.from_data_folder(data_folder, config=config, globalsDict=globalsDict,
+                                                          background_data_folder=background_scene_data_folder)
 
 
     ##################### DEBUGGING FUNCTIONS #################

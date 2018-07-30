@@ -118,6 +118,16 @@ class FusionReconstruction(object):
         self.load_poly_data()
         self.image_dir = os.path.join(self.data_dir, 'images')
 
+    def save_poly_data(self, filename):
+        """
+        Save the poly data to a file
+        :param filename:
+        :type filename:
+        :return:
+        :rtype:
+        """
+        ioUtils.writePolyData(self.poly_data, filename)
+
     @property
     def poly_data_type(self):
         return self._poly_data_type
@@ -283,19 +293,6 @@ class TSDFReconstruction(FusionReconstruction):
         self.poly_data = self.poly_data_raw
         self.crop_poly_data()
 
-    # def crop_poly_data(self):
-    #     dim_x = self.config['crop_box']['dimensions']['x']
-    #     dim_y = self.config['crop_box']['dimensions']['y']
-    #     dim_z = self.config['crop_box']['dimensions']['z']
-    #     dimensions = [dim_x, dim_y, dim_z]
-    #
-    #     transform = director_utils.transformFromPose(self.config['crop_box']['transform'])
-    #
-    #     # store the old poly data
-    #     self.poly_data_uncropped = self.poly_data
-    #
-    #     self.poly_data = segmentation.cropToBox(self.poly_data, transform, dimensions)
-
     @property
     def fusion_pose_data(self):
         raise ValueError("TSDFReconstruction doesn't have fusion_pose_data")
@@ -322,6 +319,17 @@ class TSDFReconstruction(FusionReconstruction):
 
     @staticmethod
     def from_data_folder(data_folder, config=None, name=None):
+        """
+
+        :param data_folder: The 'processed' subfolder of a top level log folder
+        :type data_folder:
+        :param config:
+        :type config:
+        :param name:
+        :type name:
+        :return:
+        :rtype:
+        """
         fr = TSDFReconstruction()
         fr.data_dir = data_folder
 

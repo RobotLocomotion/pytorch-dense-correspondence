@@ -7,6 +7,7 @@ import dense_correspondence_manipulation.change_detection.change_detection as ch
 import dense_correspondence_manipulation.utils.utils as utils
 from dense_correspondence_manipulation.utils.constants import *
 from director.timercallback import TimerCallback
+
 """
 Runs change detection to compute masks for each image
 """
@@ -18,7 +19,7 @@ def run(data_folder, config_file=CONFIG_FILE, debug=False, globalsDict=None,
         background_scene_data_folder=None):
     """
     Runs the change detection pipeline
-    :param data_dir:
+    :param data_dir: The 'processed' subfolder of a top-level log folder
     :param config_file:
     :return:
     """
@@ -58,12 +59,12 @@ def run(data_folder, config_file=CONFIG_FILE, debug=False, globalsDict=None,
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data_dir", type=str, default='/home/manuelli/code/data_volume/sandbox/drill_scenes/04_drill_long_downsampled')
+    parser.add_argument("--data_dir", type=str, required=True, help="full path to the processed/ folder of a top level log folder")
 
     default_config_file = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'stations', 'RLG_iiwa_1', 'change_detection.yaml')
     parser.add_argument("--config_file", type=str, default=default_config_file)
 
-    parser.add_argument('--current_dir', action='store_true', default=False, help="run the script with --data_dir set to the current directory")
+    parser.add_argument('--current_dir', action='store_true', default=False, help="run the script with --data_dir set to the current directory. You should be in the processed/ subfolder")
 
     parser.add_argument('--debug', action='store_true', default=False,
                         help="launch the app in debug mode")
