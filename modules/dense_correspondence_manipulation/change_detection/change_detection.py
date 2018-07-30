@@ -335,7 +335,13 @@ class ChangeDetection(object):
 
     def run(self, output_dir=None, rendered_images_dir=None):
         """
-        Run the mask generation algorithm
+        Renders the masks and the depth images for the cropped scene
+
+        Produces 3 types of files
+
+        processed/image_masks/000000_mask.png
+        processed/image_masks/000000_visible_mask.png
+        processed/rendered_images/000000_depth_cropped.png
         :return:
         """
 
@@ -354,7 +360,6 @@ class ChangeDetection(object):
         start_time = time.time()
 
         # read in each image in the log
-        image_dir = self.foreground_reconstruction.image_dir
         camera_pose_data = self.foreground_reconstruction.kinematics_pose_data
         img_file_extension = 'png'
 
@@ -399,7 +404,8 @@ class ChangeDetection(object):
 
     def render_depth_images(self, output_dir=None, rendered_images_dir=None):
         """
-        Run the mask generation algorithm
+        Renders the depth images on the entire scene
+        processed/rendered_images/000000_depth.png
         :return:
         """
 
@@ -508,6 +514,23 @@ class ChangeDetection(object):
         globalsDict['changeDetection'] = changeDetection
         return changeDetection, globalsDict
 
+
+    @staticmethod
+    def render_depth_images_full_scene(data_folder, config=None, background_data_folder=None):
+        """
+        Renders depth images against the entire scene
+        :param data_folder:
+        :type data_folder:
+        :param config:
+        :type config:
+        :param background_data_folder:
+        :type background_data_folder:
+        :return:
+        :rtype:
+        """
+
+        change_detection.ChangeDetection.from_data_folder(data_folder, config=config, globalsDict=globalsDict,
+                                                          background_data_folder=background_scene_data_folder)
 
 
     ##################### DEBUGGING FUNCTIONS #################
