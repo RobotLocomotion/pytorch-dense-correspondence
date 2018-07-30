@@ -351,6 +351,8 @@ class ChangeDetection(object):
         if rendered_images_dir is None:
             rendered_images_dir = os.path.join(self.foreground_reconstruction.data_dir, 'rendered_images')
 
+        fusion_mesh_foreground_file = os.path.join(os.path.join(self.foreground_reconstruction.data_dir, 'fusion_mesh_foreground.ply'))
+
         if not os.path.isdir(output_dir):
             os.makedirs(output_dir)
 
@@ -358,6 +360,9 @@ class ChangeDetection(object):
             os.makedirs(rendered_images_dir)
 
         start_time = time.time()
+
+        print "saving cropped mesh"
+        self.foreground_reconstruction.save_poly_data(fusion_mesh_foreground_file)
 
         # read in each image in the log
         camera_pose_data = self.foreground_reconstruction.kinematics_pose_data
