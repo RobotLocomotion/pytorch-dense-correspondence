@@ -19,9 +19,10 @@ def normalize_descriptor(res, stats=None):
         res_min = np.array(stats['min'])
         res_max = np.array(stats['max'])
 
+    normed_res = np.clip(res, res_min, res_max)
     eps = 1e-10
     scale = (res_max - res_min) + eps
-    normed_res = (res - res_min) / scale
+    normed_res = (normed_res - res_min) / scale
     return normed_res
 
 def normalize_descriptor_pair(res_a, res_b):
