@@ -4,7 +4,10 @@ import os
 import argparse
 import dense_correspondence_manipulation.change_detection.mesh_processing as mesh_processing
 
-
+"""
+Launches a mesh processing director app.
+This should be launched from the <path_to_log_folder>/processed location
+"""
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
