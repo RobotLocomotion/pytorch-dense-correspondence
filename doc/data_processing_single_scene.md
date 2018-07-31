@@ -62,11 +62,11 @@ This is done in `pytorch-dense-correspondence`. In `pdc`
 1. `use_pytorch_dense_correspondence`
 2. `use_director`
 3. `run_change_detection --data_dir <full_path_to_log_folder>/processed`
-
-This will run change detection and render new depth images for the full scene and the cropped scene. The data that is produced by this step is
-
-- `processed/rendered_images/000000_depth.png`
-- `processed/rendered_images/000000_depth_cropped.png`
-- `processed/image_masks/000000_mask.png`
-- `processed/image_masks/000000_mask_visible.png`
+    - This will run change detection and render new depth images for the full scene and the cropped scene. The data that is produced by this step is
+    - `processed/rendered_images/000000_depth_cropped.png`
+    - `processed/image_masks/000000_mask.png`
+    - `processed/image_masks/000000_mask_visible.png`
+4. `render_depth_images.py --data_dir <full_path_to_log_folder>/processed`
+    - This will render depth images against the full tsdf reconstruction, not the cropped one.
+    - Produces the file `processed/rendered_images/000000_depth.png`
 
