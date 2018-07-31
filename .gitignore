@@ -10,3 +10,4 @@ trained_models
 *.nv
 *.ssh/
 data
+build
