@@ -4,3 +4,6 @@
 [submodule "src/ply"]
 	path = src/ply
 	url = git@github.com:peteflorence/ply.git
+[submodule "director"]
+	path = director
+	url = git@github.com:RobotLocomotion/director.git
