@@ -11,3 +11,4 @@ trained_models
 *.ssh/
 data
 build
+sandbox
