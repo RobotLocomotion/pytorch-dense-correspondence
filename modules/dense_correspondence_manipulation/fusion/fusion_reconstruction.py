@@ -210,6 +210,15 @@ class FusionReconstruction(object):
     def config(self):
         return self._config
 
+    @property
+    def vis_obj(self):
+        """
+        The visualization object
+        :return:
+        :rtype:
+        """
+        return self.reconstruction_vis_obj
+
     @config.setter
     def config(self, value):
         self._config = value

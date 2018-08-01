@@ -2,7 +2,14 @@
 
 import os
 import argparse
+
+# pdc
 import dense_correspondence_manipulation.change_detection.mesh_processing as mesh_processing
+import director.vtkAll as vtk
+import director.vtkNumpy as vnp
+import director.objectmodel as om
+import director.visualization as vis
+
 
 """
 Launches a mesh processing director app.
@@ -23,3 +30,5 @@ if __name__ == "__main__":
 
 
     mesh_processing.main(globals(), data_folder)
+
+    globals['mc'] = mesh_colorizer
