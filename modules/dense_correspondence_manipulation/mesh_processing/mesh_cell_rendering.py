@@ -37,8 +37,10 @@ class MeshColorizer(object):
     @staticmethod
     def index_to_color(idx):
         """
-        Converts an integer idx into a base 255 representation
+        Converts an integer (idx+1) into a base 255 representation
         Can handle numbers up to 255**3 - 1 = 16581374
+
+        We don't want to use color (0,0,0) since that is reserved for the background
 
         :param idx: The integer index to convert
         :type idx: int or long
@@ -46,7 +48,7 @@ class MeshColorizer(object):
         :rtype:
         """
         base = 2
-        idx_str = np.base_repr(idx, base=base)
+        idx_str = np.base_repr(idx+1, base=base)
 
         # 24 because it is 3 * 8, and 255 = 2**8
         idx_str = str(idx_str).zfill(24)
@@ -74,6 +76,7 @@ class MeshColorizer(object):
 
 
         idx = 65025 * color[0] + 255 * color[1] + color[2]
+        idx -= - 1 #subtract one to account for the fact that the background is idx 0
         return idx
 
     @staticmethod
