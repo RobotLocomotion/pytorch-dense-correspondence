@@ -45,12 +45,14 @@ If you find this code useful in your work, please consider citing:
 - [data organization](doc/data_organization.md)
 - [data processing for a single scene](doc/data_processing_single_scene.md)
 - [data processing in batch](doc/data_processing_batch.md)
+- *sample dataset coming soon*
 
 
 ### Dense Object Nets
 - [recommended docker workflow ](doc/recommended_workflow.md)
 - [training a network](doc/training.md)
 - [evaluating a trained network](doc/dcn_evaluation.md)
+- *pre-trained models coming soon*
 
 
 ### Miscellaneous
