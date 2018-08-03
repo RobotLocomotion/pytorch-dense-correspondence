@@ -1,18 +1,23 @@
 #!/usr/bin/env directorPython
 
+# system
 import os
 import argparse
 
-# pdc
-import dense_correspondence_manipulation.change_detection.mesh_processing as mesh_processing
+# director
 import director.vtkAll as vtk
 import director.vtkNumpy as vnp
 import director.objectmodel as om
 import director.visualization as vis
 
+# pdc
+from dense_correspondence_manipulation.mesh_processing.mesh_render import MeshRender
+
+
+
 
 """
-Launches a mesh processing director app.
+Launches a mesh rendering director app.
 This should be launched from the <path_to_log_folder>/processed location
 """
 if __name__ == "__main__":
@@ -29,4 +34,10 @@ if __name__ == "__main__":
         data_folder = os.getcwd()
 
 
-    mesh_processing.main(globals(), data_folder)
+    obj_dict = MeshRender.from_data_folder(data_folder)
+    app = obj_dict['app']
+
+    globalsDict = globals()
+    globalsDict.update(obj_dict)
+
+    app.app.start(restoreWindow=True)

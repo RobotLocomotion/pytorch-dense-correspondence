@@ -24,7 +24,7 @@ from dense_correspondence_manipulation.utils.constants import *
 import dense_correspondence_manipulation.utils.utils as utils
 import dense_correspondence_manipulation.utils.director_utils as director_utils
 from dense_correspondence_manipulation.fusion.fusion_reconstruction import FusionReconstruction, TSDFReconstruction
-from dense_correspondence_manipulation.mesh_processing.mesh_cell_rendering import MeshColorizer
+from dense_correspondence_manipulation.mesh_processing.mesh_render import MeshColorizer
 
 
 CONFIG = utils.getDictFromYamlFilename(CHANGE_DETECTION_CONFIG_FILE)

@@ -10,6 +10,8 @@ import getpass
 import fnmatch
 import random
 import torch
+from PIL import Image
+
 
 import dense_correspondence_manipulation.utils.transformations as transformations
 
@@ -273,6 +275,17 @@ def reset_random_seed():
     random.seed(SEED)
     np.random.seed(SEED)
     torch.manual_seed(SEED)
+
+
+def load_rgb_image(rgb_filename):
+    """
+    Returns PIL.Image.Image
+    :param rgb_filename:
+    :type rgb_filename:
+    :return:
+    :rtype: PIL.Image.Image
+    """
+    return Image.open(rgb_filename).convert('RGB')
 
 class CameraIntrinsics(object):
     """
