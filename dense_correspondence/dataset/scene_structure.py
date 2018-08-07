@@ -49,6 +49,10 @@ class SceneStructure(object):
     def rendered_images_dir(self):
         return os.path.join(self._processed_folder_dir, 'rendered_images')
 
+    @property
+    def mesh_descriptors_dir(self):
+        return os.path.join(self._processed_folder_dir, 'mesh_descriptors')
+
     def mesh_cells_image_filename(self, img_idx):
         """
         Returns the full filename for the cell labels image
@@ -59,6 +63,35 @@ class SceneStructure(object):
         """
         filename = utils.getPaddedString(img_idx) + "_mesh_cells.png"
         return os.path.join(self.rendered_images_dir, filename)
+
+
+    def mesh_descriptors_filename(self, img_idx):
+        """
+        Returns the full filename for the .npz file that contains two arrays
+
+        .npz reference https://docs.scipy.org/doc/numpy-1.14.0/reference/generated/numpy.savez.html#numpy.savez
+
+        D = descriptor dimension
+
+        - cell_ids: np.array of size N, dtype=np.int64
+        - cell_descriptors: np.array with np.shape = [N,D dtype = np.float64
+        -
+        :param img_idx:
+        :type img_idx:
+        :return:
+        :rtype:
+        """
+
+        filename = utils.getPaddedString(img_idx) + "_mesh_descriptors.npz"
+        return os.path.join(self.mesh_descriptors_dir, filename)
+
+    def mesh_descriptor_statistics_filename(self):
+        """
+        Filename containing mesh descriptor statistics
+        :return:
+        :rtype:
+        """
+        return os.path.join(self.mesh_descriptors_dir, "mesh_descriptor_stats.npz")
 
 
 
