@@ -243,7 +243,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         norm_transform = transforms.Normalize(self.get_image_mean(), self.get_image_std_dev())
         self._rgb_image_to_tensor = transforms.Compose([transforms.ToTensor(), norm_transform])
 
-    def get_full_path_for_scene(self, scene_name, ):
+    def get_full_path_for_scene(self, scene_name):
         """
         Returns the full path to the processed logs folder
         :param scene_name:
