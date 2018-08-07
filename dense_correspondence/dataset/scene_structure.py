@@ -1,7 +1,8 @@
 import os
 
 import dense_correspondence_manipulation.utils.utils as utils
-class DatasetStructure(object):
+
+class SceneStructure(object):
 
     def __init__(self, processed_folder_dir):
         self._processed_folder_dir = processed_folder_dir
