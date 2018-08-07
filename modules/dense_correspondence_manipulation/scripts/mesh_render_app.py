@@ -3,6 +3,7 @@
 # system
 import os
 import argparse
+import numpy as np
 
 # director
 import director.vtkAll as vtk
@@ -12,6 +13,7 @@ import director.visualization as vis
 
 # pdc
 from dense_correspondence_manipulation.mesh_processing.mesh_render import MeshRender
+from dense_correspondence_manipulation.mesh_processing.mesh_render import MeshColorizer
 
 
 
@@ -21,6 +23,11 @@ Launches a mesh rendering director app.
 This should be launched from the <path_to_log_folder>/processed location
 """
 if __name__ == "__main__":
+
+    print "\n--------------------------------\n"
+    print "Have you disabled anti-aliasing in nvidia-settings? If not this won't work correctly"
+    print "\n--------------------------------\n"
+
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--data_dir", type=str, help="(optional) dataset folder to load")

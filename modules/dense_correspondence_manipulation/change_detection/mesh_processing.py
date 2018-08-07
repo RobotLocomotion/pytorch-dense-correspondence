@@ -85,21 +85,22 @@ def main(globalsDict, data_folder):
     app = globalsDict['app']
 
     reconstruction = TSDFReconstruction.from_data_folder(data_folder, config=CONFIG)
-    reconstruction.visualize_reconstruction(view, vis_uncropped=True)
-
+    reconstruction.visualize_reconstruction(view, vis_uncropped=False)
     rp = ReconstructionProcessing()
 
     mesh_colorizer = MeshColorizer(reconstruction.vis_obj)
 
 
     globalsDict['r'] = reconstruction
+    globalsDict['reconstruction'] = reconstruction
     globalsDict['rp'] = rp
 
     globalsDict['mc'] = mesh_colorizer
+    globalsDict['app'] = app
 
+    # rp.spawnCropBox()
 
-    rp.spawnCropBox()
-    app.app.start(restoreWindow=True)
+    return globalsDict
 
     
 

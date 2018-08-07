@@ -22,7 +22,7 @@ import dense_correspondence_manipulation.utils.segmentation as segmentation
 
 from dense_correspondence_manipulation.utils.constants import *
 
-from dense_correspondence.dataset.dataset_structure import DatasetStructure
+from dense_correspondence.dataset.scene_structure import SceneStructure
 
 class FusionCameraPoses(object):
     """
@@ -153,7 +153,7 @@ class FusionReconstruction(object):
     @data_dir.setter
     def data_dir(self, value):
         self._data_dir = value
-        self._dataset_structure = DatasetStructure(self._data_dir)
+        self._dataset_structure = SceneStructure(self._data_dir)
 
     @property
     def dataset_structure(self):
@@ -318,6 +318,7 @@ class TSDFReconstruction(FusionReconstruction):
         self.poly_data_raw = ioUtils.readPolyData(reconstruction_filename)
         self.poly_data = self.poly_data_raw
 
+
         if self._load_foreground_mesh:
             foreground_reconstruction_filename =\
                 self.dataset_structure.foreground_fusion_reconstruction_file
@@ -356,7 +357,7 @@ class TSDFReconstruction(FusionReconstruction):
                                                        view=view, colorByName='RGB')
 
         if vis_uncropped:
-            vis_obj = vis.updatePolyData(self.poly_data_uncropped, 'Uncropped Fusion Reconstruction',
+            vis_obj = vis.updatePolyData(self.poly_data_raw, 'Uncropped Fusion Reconstruction',
                                view=view, colorByName='RGB')
 
     @staticmethod

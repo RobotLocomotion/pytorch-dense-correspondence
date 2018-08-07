@@ -2,6 +2,7 @@
 import numpy as np
 import cv2
 import os
+from sklearn.preprocessing import scale
 
 # director
 import director.vtkAll as vtk
@@ -12,7 +13,7 @@ from director import screengrabberpanel as sgp
 
 # pdc
 from dense_correspondence_manipulation.fusion.fusion_reconstruction import FusionReconstruction, TSDFReconstruction
-from dense_correspondence.dataset.dataset_structure import DatasetStructure
+from dense_correspondence.dataset.scene_structure import SceneStructure
 import dense_correspondence_manipulation.utils.director_utils as director_utils
 import dense_correspondence_manipulation.utils.utils as utils
 
@@ -20,13 +21,14 @@ import dense_correspondence_manipulation.utils.utils as utils
 Class to colorize the mesh for later rendering
 """
 
-SQUARED_255 = 65025
+SQUARED_256 = 65536
 
 class MeshColorizer(object):
 
     def __init__(self, poly_data_item):
         self._poly_data_item = poly_data_item
         self._poly_data = poly_data_item.polyData
+
 
     def add_colors_to_mesh(self):
         """
@@ -47,11 +49,13 @@ class MeshColorizer(object):
         # self._poly_data_item.setProperty('Surface Mode', 'Surface with edges')
         self._poly_data_item._renderAllViews() # render all the views just to be safe
 
+
+
     @staticmethod
     def index_to_color(idx):
         """
-        Converts an integer (idx+1) into a base 255 representation
-        Can handle numbers up to 255**3 - 1 = 16581374
+        Converts an integer (idx+1) into a base 256 representation
+        Can handle numbers up to 256**3 - 1 = 16777215
 
         We don't want to use color (0,0,0) since that is reserved for the background
 
@@ -65,7 +69,7 @@ class MeshColorizer(object):
         base = 2
         idx_str = np.base_repr(idx+1, base=base)
 
-        # 24 because it is 3 * 8, and 255 = 2**8
+        # 24 because it is 3 * 8, and 256 = 2**8
         idx_str = str(idx_str).zfill(24)
 
         r_str = idx_str[0:8]
@@ -81,9 +85,9 @@ class MeshColorizer(object):
     def color_to_index(color):
         """
         Converts a color (r,g,b) with r,g,b \in [0,255] back to an index
-        The color is the representation of the index in base 255.
+        The color is the representation of the index in base 256.
 
-        Note 65025 = 255**2
+
         :param color: (r,g,b) color representation
         :type color: list(int) with length 3
         :return: int
@@ -91,13 +95,14 @@ class MeshColorizer(object):
         """
 
 
-        idx = SQUARED_255 * color[0] + 255 * color[1] + color[2]
+        idx = SQUARED_256 * color[0] + 256 * color[1] + color[2]
         idx -= - 1 #subtract one to account for the fact that the background is idx 0
         return idx
 
     @staticmethod
     def rgb_img_to_idx_img(rgb_image):
         """
+        Note background will have index -1 now
 
         :param rgb_image: [H,W,3] image in (r,g,b) format
         :type rgb_image: numpy.ndarray
@@ -107,8 +112,9 @@ class MeshColorizer(object):
 
         # cast to int64 to avoid overflow
         idx_img = np.array(rgb_image, dtype=np.int64)
-        idx_img = idx_img[:,:,0] * SQUARED_255 + idx_img[:,:,1]*255 + idx_img[:,:,2]
+        idx_img = idx_img[:,:,0] * SQUARED_256 + idx_img[:,:,1]*256 + idx_img[:,:,2]
         idx_img -= 1 # subtract 1 because previously the background was 0
+        return idx_img
 
     @staticmethod
     def make_color_array(num_cells):
@@ -127,7 +133,7 @@ class MeshColorizer(object):
         return a
 
     @staticmethod
-    def make_vtk_color_array(num_cells):
+    def make_vtk_color_array(num_cells, debug=True):
         """
         Makes a color array with the given number of rows
         :param num_cells:
@@ -140,9 +146,127 @@ class MeshColorizer(object):
         a.SetNumberOfTuples(num_cells)
 
         for i in xrange(0, num_cells):
-            a.InsertTuple(i, MeshColorizer.index_to_color(i))
+
+            color = MeshColorizer.index_to_color(i)
+            a.InsertTuple(i, color)
 
         return a
+
+
+class DescriptorMeshColor(object):
+
+    def __init__(self, poly_data_item, processed_data_folder):
+        self._poly_data_item = poly_data_item
+        self._poly_data = self._poly_data_item.polyData
+        self._scene_structure = SceneStructure(processed_data_folder)
+
+        descriptor_stats_file = self._scene_structure.mesh_descriptor_statistics_filename()
+        self._descriptor_stats = np.load(descriptor_stats_file)
+        self._num_cells = self._poly_data_item.polyData.GetNumberOfCells()
+
+    def color_mesh_using_descriptors(self, std_dev_scale_factor=2.0):
+        """
+        Add colors to mesh using computed mean descriptors
+        :return:
+        :rtype:
+        """
+
+        descriptor_stats_file = self._scene_structure.mesh_descriptor_statistics_filename()
+        descriptor_stats = np.load(descriptor_stats_file)
+
+        # normalize data
+        num_cells = self._poly_data_item.polyData.GetNumberOfCells()
+        cell_valid = descriptor_stats['cell_valid']
+        self._cell_valid = cell_valid
+        print "cell_valid\n", cell_valid
+        cell_descriptor_mean_all = descriptor_stats['cell_descriptor_mean']
+
+        D = cell_descriptor_mean_all.shape[1]
+        if not D == 3:
+            raise ValueError("descriptor dimension must be 3, it is %d" %D)
+
+
+        cell_descriptor_mean_valid = cell_descriptor_mean_all[cell_valid, :]
+
+        # now the data has zero mean, unit std_dev
+        cell_descriptor_norm = scale(cell_descriptor_mean_valid, axis=0)
+
+
+        cell_colors = 1/std_dev_scale_factor * cell_descriptor_norm
+        cell_colors = np.clip(cell_colors, -1, 1)
+        cell_colors = (cell_colors + 1)/2 * 255 # now it is in range [0,255]
+        cell_colors = cell_colors.astype(np.int64) # should now be ints in [0,255]
+
+        cell_colors_all = np.zeros([num_cells, 3], dtype=np.int64)
+        cell_colors_all[cell_valid, :] = cell_colors
+
+
+        cell_colors_vtk = DescriptorMeshColor.make_vtk_color_array(cell_colors_all)
+        array_name = 'descriptor cell colors'
+        cell_colors_vtk.SetName(array_name)
+        self._poly_data.GetCellData().AddArray(cell_colors_vtk)
+        self._poly_data.GetCellData().SetActiveScalars(array_name)
+        self._poly_data_item.mapper.ScalarVisibilityOn()
+
+    def color_mesh_using_clipped_descriptors(self):
+
+        cell_valid = self._descriptor_stats['cell_valid']
+        print "num valid cells", cell_valid.size
+        #
+        # descriptor_stats_file = self._scene_structure.mesh_descriptor_statistics_filename()
+        # descriptor_stats = np.load(descriptor_stats_file)
+        #
+        # # normalize data
+        # num_cells = self._poly_data_item.polyData.GetNumberOfCells()
+        # cell_valid = descriptor_stats['cell_valid']
+        # self._cell_valid = cell_valid
+        # print "cell_valid\n", cell_valid
+        # cell_descriptor_mean_all = descriptor_stats['cell_descriptor_mean']
+        #
+        # D = cell_descriptor_mean_all.shape[1]
+        # if not D == 3:
+        #     raise ValueError("descriptor dimension must be 3, it is %d" % D)
+        #
+        # cell_descriptor_mean_valid = cell_descriptor_mean_all[cell_valid, :]
+        #
+        # # now the data has zero mean, unit std_dev
+        # cell_descriptor_norm = scale(cell_descriptor_mean_valid, axis=0)
+        #
+        # cell_colors = 1 / std_dev_scale_factor * cell_descriptor_norm
+        # cell_colors = np.clip(cell_colors, -1, 1)
+        # cell_colors = (cell_colors + 1) / 2 * 255  # now it is in range [0,255]
+        # cell_colors = cell_colors.astype(np.int64)  # should now be ints in [0,255]
+        #
+        # cell_colors_all = np.zeros([num_cells, 3], dtype=np.int64)
+        # cell_colors_all[cell_valid, :] = cell_colors
+        #
+        # cell_colors_vtk = DescriptorMeshColor.make_vtk_color_array(cell_colors_all)
+        # array_name = 'descriptor cell colors'
+        # cell_colors_vtk.SetName(array_name)
+        # self._poly_data.GetCellData().AddArray(cell_colors_vtk)
+        # self._poly_data.GetCellData().SetActiveScalars(array_name)
+        # self._poly_data_item.mapper.ScalarVisibilityOn()
+
+    @staticmethod
+    def make_vtk_color_array(color_array_np):
+        """
+        Converts a numpy array of colors to a vtk array that can be used for cells
+        :param color_array_np: [num_cells, 3] of int64 in range [0,255]
+        :type color_array_np:
+        :return:
+        :rtype:
+        """
+        a = vtk.vtkUnsignedCharArray()
+        a.SetNumberOfComponents(3)
+        num_cells = color_array_np.shape[0]
+        a.SetNumberOfTuples(num_cells)
+
+        for i in xrange(0, num_cells):
+            color = color_array_np[i,:].tolist()
+            a.InsertTuple(i, color)
+
+        return a
+
 
 
 class MeshRender(object):
@@ -165,15 +289,15 @@ class MeshRender(object):
         self._vis_objects = []
         self._vis_objects.append(self._poly_data_item)
 
-        # colorize the mesh
-        self._mesh_colorizer = MeshColorizer(self._poly_data_item)
-        self._mesh_colorizer.add_colors_to_mesh()
 
         self._data_folder = data_folder
-        self._dataset_structure = DatasetStructure(data_folder)
+        self._dataset_structure = SceneStructure(data_folder)
 
         self.initialize()
 
+    @property
+    def poly_data_item(self):
+        return self._poly_data_item
 
     def initialize(self):
         """
@@ -183,6 +307,14 @@ class MeshRender(object):
         :rtype:
         """
         self.set_camera_intrinsics()
+
+
+    def colorize_mesh(self):
+        # colorize the mesh
+        self._mesh_colorizer = MeshColorizer(self._poly_data_item)
+        self._mesh_colorizer.add_colors_to_mesh()
+
+
 
     def set_camera_intrinsics(self):
         """
@@ -212,7 +344,7 @@ class MeshRender(object):
         :return:
         :rtype:
         """
-
+        self.colorize_mesh()
         self.disable_lighting()
 
         image_idx_list = self._fusion_reconstruction.get_image_indices()
@@ -253,7 +385,12 @@ class MeshRender(object):
         :rtype:
         """
 
-        img_vtk = sgp.saveScreenshot(self._view, filename, shouldRender=True, shouldWrite=True)
+        if filename is not None:
+            shouldWrite = True
+        else:
+            shouldWrite = False
+
+        img_vtk = sgp.saveScreenshot(self._view, filename, shouldRender=True, shouldWrite=shouldWrite)
 
         img = vnp.getNumpyFromVtk(img_vtk, arrayName='ImageScalars')
         assert img.dtype == np.uint8
@@ -267,8 +404,47 @@ class MeshRender(object):
         return img, img_vtk
 
     def test(self):
-        filename = os.path.join("/home/manuelli/code/sandbox", "test.png")
-        return self.render_image(filename=filename)
+        camera_to_world = self._fusion_reconstruction.get_camera_to_world(0)
+        self.set_camera_transform(camera_to_world)
+
+        self.disable_lighting()
+        img, img_vtk = self.render_image()
+
+        num_cells = self._poly_data_item.polyData.GetNumberOfCells()
+        print "num_cells", num_cells
+
+        idx_img = MeshColorizer.rgb_img_to_idx_img(img)
+        print "np.max(idx_img)", np.max(idx_img)
+
+        return img, idx_img
+
+    def test2(self):
+
+        camera_to_world = self._fusion_reconstruction.get_camera_to_world(0)
+        self.set_camera_transform(camera_to_world)
+
+        self.disable_lighting()
+        img, img_vtk = self.render_image()
+
+        red_invalid = np.logical_and(img[:,:,0] > 0, img[:,:,0] < 100)
+        idx_red_invalid = np.where(red_invalid == True)
+        print "idx_red_invalid[0].size", idx_red_invalid[0].size
+        print "val", img[idx_red_invalid[0][0], idx_red_invalid[1][0]]
+
+        return img, idx_red_invalid
+
+    def test3(self):
+        self.disable_lighting()
+        img, img_vtk = self.render_image()
+        red_invalid = np.logical_and(img[:, :, 0] > 0, img[:, :, 0] < 100)
+        idx_red_invalid = np.where(red_invalid == True)
+        print "idx_red_invalid[0].size", idx_red_invalid[0].size
+        print "val", img[idx_red_invalid[0][0], idx_red_invalid[1][0]]
+        return img
+
+
+
+
 
     @staticmethod
     def from_data_folder(data_folder, config=None):
