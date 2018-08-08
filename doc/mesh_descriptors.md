@@ -4,7 +4,10 @@ This file outlines how we annotate the mesh with the learned descriptors.
 
 ## Annotating Mesh
 
-There are a few steps required to annotate the mesh with the learned descriptors. 
+There are a few steps required to annotate the mesh with the learned descriptors.
+
+1. Make sure you disable anti-aliasing before proceeding. This can be done by going to `nvidia-settings` inside the
+docker image.
 
 1. For each image in the dataset know the mapping from mesh cells to image pixels. Do this using the classes in `mesh_render.py`
 . Specifically launch `mesH_render_app.py` and use the command `mesh_render.render_images()`. This creates files in
