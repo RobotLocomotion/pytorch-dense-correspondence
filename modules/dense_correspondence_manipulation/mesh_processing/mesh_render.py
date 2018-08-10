@@ -10,12 +10,23 @@ import director.vtkNumpy as vnp
 from director import mainwindowapp
 import director.visualization as vis
 from director import screengrabberpanel as sgp
+from director.debugVis import DebugData
+import director.objectmodel as om
 
 # pdc
 from dense_correspondence_manipulation.fusion.fusion_reconstruction import FusionReconstruction, TSDFReconstruction
 from dense_correspondence.dataset.scene_structure import SceneStructure
 import dense_correspondence_manipulation.utils.director_utils as director_utils
 import dense_correspondence_manipulation.utils.utils as utils
+
+from dense_correspondence.dataset.spartan_dataset_masked import SpartanDataset
+import dense_correspondence.correspondence_tools.correspondence_finder as \
+    correspondence_finder
+from dense_correspondence.evaluation.evaluation import DenseCorrespondenceEvaluation
+from dense_correspondence_manipulation.utils.constants import *
+import simple_pixel_correspondence_labeler.annotate_correspondences as annotate_correspondences
+
+import dense_correspondence_manipulation.pose_estimation.utils as pose_utils
 
 """
 Class to colorize the mesh for later rendering
@@ -179,14 +190,11 @@ class DescriptorMeshColor(object):
         cell_valid = descriptor_stats['cell_valid']
         self._cell_valid = cell_valid
         print "cell_valid\n", cell_valid
-        cell_descriptor_mean_all = descriptor_stats['cell_descriptor_mean']
+        cell_descriptor_mean_valid = descriptor_stats['cell_descriptor_mean']
 
-        D = cell_descriptor_mean_all.shape[1]
+        D = cell_descriptor_mean_valid.shape[1]
         if not D == 3:
             raise ValueError("descriptor dimension must be 3, it is %d" %D)
-
-
-        cell_descriptor_mean_valid = cell_descriptor_mean_all[cell_valid, :]
 
         # now the data has zero mean, unit std_dev
         cell_descriptor_norm = scale(cell_descriptor_mean_valid, axis=0)
@@ -212,41 +220,8 @@ class DescriptorMeshColor(object):
 
         cell_valid = self._descriptor_stats['cell_valid']
         print "num valid cells", cell_valid.size
-        #
-        # descriptor_stats_file = self._scene_structure.mesh_descriptor_statistics_filename()
-        # descriptor_stats = np.load(descriptor_stats_file)
-        #
-        # # normalize data
-        # num_cells = self._poly_data_item.polyData.GetNumberOfCells()
-        # cell_valid = descriptor_stats['cell_valid']
-        # self._cell_valid = cell_valid
-        # print "cell_valid\n", cell_valid
-        # cell_descriptor_mean_all = descriptor_stats['cell_descriptor_mean']
-        #
-        # D = cell_descriptor_mean_all.shape[1]
-        # if not D == 3:
-        #     raise ValueError("descriptor dimension must be 3, it is %d" % D)
-        #
-        # cell_descriptor_mean_valid = cell_descriptor_mean_all[cell_valid, :]
-        #
-        # # now the data has zero mean, unit std_dev
-        # cell_descriptor_norm = scale(cell_descriptor_mean_valid, axis=0)
-        #
-        # cell_colors = 1 / std_dev_scale_factor * cell_descriptor_norm
-        # cell_colors = np.clip(cell_colors, -1, 1)
-        # cell_colors = (cell_colors + 1) / 2 * 255  # now it is in range [0,255]
-        # cell_colors = cell_colors.astype(np.int64)  # should now be ints in [0,255]
-        #
-        # cell_colors_all = np.zeros([num_cells, 3], dtype=np.int64)
-        # cell_colors_all[cell_valid, :] = cell_colors
-        #
-        # cell_colors_vtk = DescriptorMeshColor.make_vtk_color_array(cell_colors_all)
-        # array_name = 'descriptor cell colors'
-        # cell_colors_vtk.SetName(array_name)
-        # self._poly_data.GetCellData().AddArray(cell_colors_vtk)
-        # self._poly_data.GetCellData().SetActiveScalars(array_name)
-        # self._poly_data_item.mapper.ScalarVisibilityOn()
 
+        
     @staticmethod
     def make_vtk_color_array(color_array_np):
         """
@@ -444,7 +419,78 @@ class MeshRender(object):
 
 
 
+    def test_cell_identification(self, img_num = 0, cell_id=27944):
+        """
+        Make sure we can identify the correct cell in the rendered image.
 
+        Render cell id image. Find cell corresponding to tail. Lookup pixel id
+        of that cell. Then draw that on the RGB 0 image
+
+        :param img_num: the image number in the dataset to use
+        :param cell_id: which cell number to lookup
+        :return:
+        :rtype:
+        """
+        self.colorize_mesh()
+        camera_to_world = self._fusion_reconstruction.get_camera_to_world(img_num)
+        self.set_camera_transform(camera_to_world)
+
+        self.disable_lighting()
+        img, img_vtk = self.render_image()
+
+        idx_img = MeshColorizer.rgb_img_to_idx_img(img)
+
+        # now extract cell id for tail
+        # cell_id = 27944 # tail
+
+        cell_pixel_list = np.where(idx_img == cell_id)
+
+        print "cell_pixel_list", cell_pixel_list
+
+        uv = (cell_pixel_list[1][0], cell_pixel_list[0][0])
+
+
+        # visualize the cell location with a red dot
+        vtk_cell = self._poly_data_item.polyData.GetCell(cell_id)
+        cell_location = pose_utils.get_cell_center(vtk_cell)
+
+        d = DebugData()
+        d.addSphere(cell_location, radius=0.01)
+        vis.updatePolyData(d.getPolyData(), 'cell location', color=[1,0,0])
+
+        cv2.namedWindow('RGB')
+
+        # load the RGB image
+        rgb, depth_PIL, mask_PIL, pose = self._dataset.get_rgbd_mask_pose(self._scene_name, img_num)
+
+        rgb_cv2 = annotate_correspondences.pil_image_to_cv2(rgb)
+        reticle_color = (255, 255, 255)
+        annotate_correspondences.draw_reticle(rgb_cv2, uv[0], uv[1], reticle_color)
+        cv2.imshow('RGB', rgb_cv2)
+
+        return cell_pixel_list
+
+    def initialize_debug(self):
+        self._scene_name = "2018-04-10-16-02-59"
+        dc_source_dir = utils.getDenseCorrespondenceSourceDir()
+        dataset_config_file = os.path.join(dc_source_dir, 'config', 'dense_correspondence', 'dataset', 'composite',
+                                           'caterpillar_single_scene_test.yaml')
+        dataset_config = utils.getDictFromYamlFilename(dataset_config_file)
+        self._dataset = SpartanDataset(config=dataset_config)
+
+        config_filename = os.path.join(dc_source_dir, 'config', 'dense_correspondence',
+                                       'evaluation', 'lucas_evaluation.yaml')
+        eval_config = utils.getDictFromYamlFilename(config_filename)
+        default_config = utils.get_defaults_config()
+        utils.set_cuda_visible_devices(default_config['cuda_visible_devices'])
+
+        dce = DenseCorrespondenceEvaluation(eval_config)
+        network_name = "caterpillar_M_background_0.500_3"
+        self._dcn = dce.load_network_from_config(network_name)
+
+        self._camera_intrinsics = self._dataset.get_camera_intrinsics(self._scene_name)
+        self._camera_matrix = self._camera_intrinsics.get_camera_matrix()
+        self._debug = True
 
     @staticmethod
     def from_data_folder(data_folder, config=None):

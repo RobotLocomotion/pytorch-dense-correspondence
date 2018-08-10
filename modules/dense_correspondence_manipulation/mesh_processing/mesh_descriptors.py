@@ -8,6 +8,7 @@ import time
 from dense_correspondence.dataset.scene_structure import SceneStructure
 import dense_correspondence_manipulation.utils.utils as utils
 from dense_correspondence_manipulation.mesh_processing.mesh_render import MeshColorizer
+import dense_correspondence_manipulation.pose_estimation.utils as pose_utils
 
 # director
 from director import ioUtils
@@ -87,7 +88,7 @@ class MeshDescriptors(object):
             cells_idx_img = MeshDescriptors.load_mesh_cells_img(cell_id_img_file)
 
 
-            cell_ids_tensor, cell_descriptors_tensor = self.compute_cell_descriptors_single_image(cells_idx_img, res)
+            cell_ids_tensor, cell_descriptors_tensor, cell_idx_tensor = self.compute_cell_descriptors_single_image(cells_idx_img, res)
 
 
             max_cell_idx = np.max(cells_idx_img)
@@ -97,7 +98,8 @@ class MeshDescriptors(object):
 
             mesh_descriptors_filename = self._scene_structure.mesh_descriptors_filename(img_idx)
             np.savez(mesh_descriptors_filename, cell_ids=cell_ids_tensor.cpu(),
-                     cell_descriptors=cell_descriptors_tensor.cpu())
+                     cell_descriptors=cell_descriptors_tensor.cpu(),
+                     cell_idx=cell_idx_tensor.cpu())
 
 
 
@@ -163,15 +165,25 @@ class MeshDescriptors(object):
         return cell_visible_array, cell_descriptor_array
 
 
-    def compute_cell_descriptors_mean(self, cell_visible_array, cell_descriptor_array):
+    def compute_cell_descriptors_mean(self, cell_visible_array, cell_descriptor_array,
+                                      min_visible_frames = 10):
         """
         Processes the arrays to compute the mean
+
+
+
         :param cell_visible_array:
         :type cell_visible_array:
         :param cell_descriptor_array:
         :type cell_descriptor_array:
-        :return:
-        :rtype:
+        :param min_visible_frames: minimum number of frames that this cell should be visible from to
+        be included
+        :type min_visible_frames: int
+        :return: A dict with several numpy arrays
+         - "cell_valid". numpy array of shape [N,]. List of cell ids which were visible in at least `min_visible_frames`
+         - "cell_descriptor_mean" numpy.array of shape [N,D] with mean descriptor for each valid cell array
+
+        :rtype: dict
         """
 
         return_data = dict()
@@ -200,11 +212,11 @@ class MeshDescriptors(object):
         cell_visible_count_no_zeros_replicated = np.repeat(temp, D, axis=1)
 
         cell_descriptor_mean_all = np.divide(cell_descriptor_sum, cell_visible_count_no_zeros_replicated)
-        cell_valid = np.where(cell_visible_count > 0)[0]
+        cell_valid = np.where(cell_visible_count > min_visible_frames)[0]
         cell_descriptor_mean_valid = cell_descriptor_mean_all[cell_valid] # only for valid cells
 
 
-        return_data['cell_descriptor_mean'] = cell_descriptor_mean_all
+        return_data['cell_descriptor_mean'] = cell_descriptor_mean_valid
 
         # compute normalized value for visualization purposes
         # Each component will be in range [0,1]
@@ -230,11 +242,20 @@ class MeshDescriptors(object):
         save_dict['cell_descriptor_array'] = cell_descriptor_array
 
         mean_data = self.compute_cell_descriptors_mean(cell_visible_array, cell_descriptor_array)
-        save_dict['cell_valid'] = mean_data['cell_valid']
+        cell_valid = mean_data['cell_valid']
+        save_dict['cell_valid'] = cell_valid
         save_dict['cell_descriptor_mean'] = mean_data['cell_descriptor_mean']
+
+        cell_locations = pose_utils.compute_cell_locations(self._poly_data, cell_valid)
+        save_dict['cell_location'] = cell_locations
+
+        print "\n\n"
+        print "cell_valid.shape", save_dict["cell_valid"].shape
+        print "cell_descriptor_mean.shape", save_dict['cell_descriptor_mean'].shape
 
         save_file = self._scene_structure.mesh_descriptor_statistics_filename()
         np.savez(save_file, **save_dict)
+
 
     @staticmethod
     def load_mesh_cells_img(filename):
@@ -293,5 +314,5 @@ class MeshDescriptors(object):
 
         # should have shape torch.Shape([num_unique_cels, D])
         cell_descriptors = torch.index_select(res_flat, 0, cell_idx_flat_tensor)
-        return cell_ids_tensor, cell_descriptors
+        return cell_ids_tensor, cell_descriptors, cell_idx_flat_tensor
 

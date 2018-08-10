@@ -287,6 +287,17 @@ def load_rgb_image(rgb_filename):
     """
     return Image.open(rgb_filename).convert('RGB')
 
+def pil_image_to_cv2(pil_image):
+    """
+    Converts a PIL image to a cv2 image
+    Need to convert between BGR and RGB
+    :param pil_image:
+    :type pil_image:
+    :return: np.array [H,W,3]
+    :rtype:
+    """
+    return np.array(pil_image)[:, :, ::-1].copy() # open and convert between BGR and RGB
+
 class CameraIntrinsics(object):
     """
     Useful class for wrapping camera intrinsics and loading them from a

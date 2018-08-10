@@ -5,12 +5,15 @@ import argparse
 
 # pdc
 import dense_correspondence_manipulation.change_detection.mesh_processing as mesh_processing
+import dense_correspondence_manipulation.pose_estimation.utils as pose_utils
 import director.vtkAll as vtk
 import director.vtkNumpy as vnp
 import director.objectmodel as om
 import director.visualization as vis
 
 from dense_correspondence_manipulation.mesh_processing.mesh_render import DescriptorMeshColor
+from dense_correspondence_manipulation.pose_estimation.descriptor_pose_estimation import DescriptorPoseEstimator
+from dense_correspondence.dataset.scene_structure import SceneStructure
 
 
 """
@@ -36,6 +39,19 @@ if __name__ == "__main__":
     globalsDict = mesh_processing.main(globals(), data_folder)
     app = globalsDict['app']
     reconstruction = globalsDict['reconstruction']
+
+    debug = True
+    if debug:
+        poly_data = reconstruction.poly_data
+        globalsDict['p'] = reconstruction.poly_data
+        globalsDict['t'] = poly_data.GetCell(0)
+
+        scene_structure = SceneStructure(data_folder)
+        dpe = DescriptorPoseEstimator(scene_structure.mesh_descriptor_statistics_filename())
+        globalsDict['dpe'] = dpe
+        dpe.initialize_debug()
+
+
 
     if args.colorize:
         dmc = DescriptorMeshColor(reconstruction.vis_obj, data_folder)

@@ -88,8 +88,16 @@ class SceneStructure(object):
     def mesh_descriptor_statistics_filename(self):
         """
         Filename containing mesh descriptor statistics
-        :return:
-        :rtype:
+
+        N = number of cells for which we have descriptor information
+
+        - cell_valid: np.array of size N, dtype=np.int64
+        - cell_descriptor_mean: np.array with np.shape = [N,D] dtype = np.float64
+        - cell_location: Location of the cell in object frame np.array with
+                        np.shape = [N,3], dtype=np.float64
+
+        :return: filename
+        :rtype: str
         """
         return os.path.join(self.mesh_descriptors_dir, "mesh_descriptor_stats.npz")
 

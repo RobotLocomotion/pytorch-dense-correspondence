@@ -15,7 +15,7 @@ from dense_correspondence.evaluation.evaluation import *
 from dense_correspondence.evaluation.plotting import normalize_descriptor
 from dense_correspondence.network.dense_correspondence_network import DenseCorrespondenceNetwork
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "../simple-pixel-correspondence-labeler"))
+sys.path.append(os.path.join(os.path.dirname(__file__), "../simple_pixel_correspondence_labeler"))
 from annotate_correspondences import label_colors, draw_reticle, pil_image_to_cv2, drawing_scale_config, numpy_to_cv2, label_colors
 
 
@@ -71,15 +71,21 @@ class HeatmapVisualization(object):
 
     def get_random_image_pair(self):
         object_id = self._dataset.get_random_object_id()
-        scene_name_a = self._dataset.get_random_single_object_scene_name(object_id)
-        scene_name_b = self._dataset.get_different_scene_for_object(object_id, scene_name_a)
+        scene_name_a = "2018-04-10-16-02-59"
+        scene_name_b = scene_name_a
 
-        if self._config["randomize_images"]:
-            image_a_idx = self._dataset.get_random_image_index(scene_name_a)
-            image_b_idx = self._dataset.get_random_image_index(scene_name_b)
-        else:
-            image_a_idx = 0
-            image_b_idx = 0
+        # scene_name_a = self._dataset.get_random_single_object_scene_name(object_id)
+        # scene_name_b = self._dataset.get_different_scene_for_object(object_id, scene_name_a)
+
+        # if self._config["randomize_images"]:
+        #     image_a_idx = self._dataset.get_random_image_index(scene_name_a)
+        #     image_b_idx = self._dataset.get_random_image_index(scene_name_b)
+        # else:
+        #     image_a_idx = 0
+        #     image_b_idx = 0
+
+        image_a_idx = 0
+        image_b_idx = self._dataset.get_random_image_index(scene_name_b)
 
         # image_b_idx = self._dataset.get_random_image_index(scene_name_b)
         return scene_name_a, scene_name_b, image_a_idx, image_b_idx
@@ -247,6 +253,8 @@ class HeatmapVisualization(object):
             # print "res_b[v, u, :]:", res_b[v, u, :]
 
             print "%s best match diff: %.3f" %(network_name, best_match_diff)
+            print "res_a", self._res_uv[network_name]['source']
+            print "res_b", self._res_uv[network_name]['target']
 
             threshold = self._config["norm_diff_threshold"]
             if network_name in self._config["norm_diff_threshold_dict"]:
@@ -276,10 +284,8 @@ class HeatmapVisualization(object):
             if k == 27:
                 break
             elif k == ord('n'):
-                print "HEY"
                 self._get_new_images()
             elif k == ord('s'):
-                print "HEY"
                 img1_pil = self.img1_pil
                 img2_pil = self.img2_pil
                 self.img1_pil = img2_pil

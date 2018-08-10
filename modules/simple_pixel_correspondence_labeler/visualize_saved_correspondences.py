@@ -18,7 +18,7 @@ config = utils.getDictFromYamlFilename(config_filename)
 sd = SpartanDataset(config=config)
 sd.set_train_mode()
 
-annotated_data_yaml_filename = os.path.join(dc_source_dir, "modules/simple-pixel-correspondence-labeler/new_annotated_pairs.yaml")
+annotated_data_yaml_filename = os.path.join(dc_source_dir, "modules/simple_pixel_correspondence_labeler/new_annotated_pairs.yaml")
 annotated_data = utils.getDictFromYamlFilename(annotated_data_yaml_filename)
 
 index_of_pair_to_display = 0
