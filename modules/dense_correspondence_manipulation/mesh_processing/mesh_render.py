@@ -217,11 +217,8 @@ class DescriptorMeshColor(object):
         self._poly_data_item.mapper.ScalarVisibilityOn()
 
     def color_mesh_using_clipped_descriptors(self):
+        raise NotImplementedError()
 
-        cell_valid = self._descriptor_stats['cell_valid']
-        print "num valid cells", cell_valid.size
-
-        
     @staticmethod
     def make_vtk_color_array(color_array_np):
         """
