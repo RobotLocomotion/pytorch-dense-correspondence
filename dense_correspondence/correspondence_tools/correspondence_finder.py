@@ -165,6 +165,38 @@ def pinhole_projection_image_to_camera_coordinates(uv, z, K):
     pos = z * K_inv.dot(u_v_1)
     return pos
 
+def pinhole_projection_image_to_camera_coordinates_vectorized(uv, z, K):
+    """
+    Same as pinhole_projection_image_to_camera_coordinates but where
+    uv, z can be vectors
+
+    Takes a (u,v) pixel location to it's 3D location in camera frame.
+    See https://docs.opencv.org/2.4/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html for a detailed explanation.
+
+    N = z.size, number of pixels
+
+    :param uv:
+    :type uv: list of numpy.arrays each of shape [N,]
+    :param z: depth value
+    :type z: np.array of shape [N,]. This assumes that z > 0
+    :param K: 3 x 3 camera intrinsics matrix
+    :type K:
+    :return:
+    :rtype:
+    """
+    N = z.size
+    uv_homog = np.zeros([3, N])
+    uv_homog[0,:] = uv[0]
+    uv_homog[1,:] = uv[1]
+    uv_homog[2,:] = np.ones(N)
+
+
+    K_inv = inv(K)
+    pos = z * K_inv.dot(uv_homog) # 3 x N
+
+    return np.transpose(pos)
+
+
 
 def pinhole_projection_image_to_world_coordinates(uv, z, K, camera_to_world):
     """
