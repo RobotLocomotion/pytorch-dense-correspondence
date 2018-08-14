@@ -136,11 +136,11 @@ class DescriptorPoseEstimator(object):
 
         self._camera_intrinsics = self._dataset.get_camera_intrinsics(self._scene_name)
         self._camera_matrix = self._camera_intrinsics.get_camera_matrix()
-        self._debug = True
+
 
         self.setup_visualization()
-
         self._debug_data = dict()
+
 
     @property
     def poly_data(self):
@@ -229,8 +229,8 @@ class DescriptorPoseEstimator(object):
         np.random.seed(self._random_seed)
         random.seed(self._random_seed)
 
-    def setup_pose_estimation_data(self, img_idx):
-        rgb_PIL, depth_PIL, mask_PIL, pose = self._dataset.get_rgbd_mask_pose(self._scene_name, img_idx)
+    def setup_pose_estimation_data(self, scene_name, img_idx):
+        rgb_PIL, depth_PIL, mask_PIL, pose = self._dataset.get_rgbd_mask_pose(scene_name, img_idx)
 
         pose_est_data = PoseEstimationData()
         pose_est_data.rgb_PIL = rgb_PIL
@@ -470,20 +470,21 @@ class DescriptorPoseEstimator(object):
         energy[inliers_idx] = 0
         energy_vec = np.sum(energy, axis=1)
 
-        if self._debug:
-            print "energy_vec.shape", energy_vec.shape
+
 
         # preempt the half of the pose samples with the largest energies
         # sort the energies, from low to high
         sorted_idx = np.argsort(energy_vec)
-        print "sorted_idx", sorted_idx
+
 
         num_hypotheses_to_keep = int(max(1, num_hypotheses/2))
         hypotheses_to_keep = sorted_idx[:num_hypotheses_to_keep]
 
-        print "energy_vec", energy_vec
-        print "sorted idx", sorted_idx
-        print "hypotheses to keep", hypotheses_to_keep
+        if self._debug:
+            print "energy_vec.shape", energy_vec.shape
+            print "energy_vec", energy_vec
+            print "sorted idx", sorted_idx
+            print "hypotheses to keep", hypotheses_to_keep
 
         pruned_hypothesis = [current_hypotheses_list[i] for i in hypotheses_to_keep]
 
@@ -498,17 +499,18 @@ class DescriptorPoseEstimator(object):
             # target points = pixel 3D locations
             source_points = cell_locations[best_match_cell_idx[k,:], :]
 
-            print "\n\n"
-            print "best_match_cell_idx[k,:].shape", best_match_cell_idx[k,:].shape
-            print "cell_locations.shape", cell_locations.shape
-            print "source_points.shape", source_points.shape
-            print "pixels_3D.shape", pixels_3D.shape
+            if self._debug:
+                print "\n\n"
+                print "best_match_cell_idx[k,:].shape", best_match_cell_idx[k,:].shape
+                print "cell_locations.shape", cell_locations.shape
+                print "source_points.shape", source_points.shape
+                print "pixels_3D.shape", pixels_3D.shape
 
             transform_vtk = pose_utils.compute_landmark_transform(source_points, pixels_3D)
             transform_numpy = transformUtils.getNumpyFromTransform(transform_vtk)
             refined_hypotheses.append(transform_numpy)
 
-            if idx == 0:
+            if idx == 0 and self._debug:
                 source_point_poly_data = DescriptorPoseEstimator.make_points(source_points)
                 vis.updatePolyData(source_point_poly_data, "source points", color=[1,0,0],
                                    parent=self._vis_container)
@@ -712,19 +714,28 @@ class DescriptorPoseEstimator(object):
         cv2.imshow('RGB', rgb_cv2)
 
 
-    def test_pose_estimation(self, random=False):
+    def test_pose_estimation(self, num_initial_hypotheses=100, random=False, img_idx=0,
+                             scene_name="2018-04-10-16-02-59"):
+
+
 
         if not random:
             self.reset_random_seed()
 
         start_time = time.time()
-        img_idx = 0
-        data = self.setup_pose_estimation_data(img_idx)
+        data = self.setup_pose_estimation_data(scene_name, img_idx)
+
+
+        # draw cv2 image
+        cv2.namedWindow('RGB')
+        rgb_cv2 = annotate_correspondences.pil_image_to_cv2(data.rgb_PIL)
+        cv2.imshow('RGB', rgb_cv2)
+
         initial_hypothesis = self.generate_initial_hypotheses(self._kd_tree, data.depth,
                                                               data.camera_pose,
                                                               data.random_pixels,
                                                               data.pixel_descriptors,
-                                                              num_hypothesis=10)
+                                                              num_hypothesis=num_initial_hypotheses)
 
         self.initial_hypothesis = initial_hypothesis
 
@@ -735,8 +746,11 @@ class DescriptorPoseEstimator(object):
 
         prev_hypothesis = current_hypotheses
 
+
+        counter = 1
         while len(current_hypotheses) > 1:
 
+            print "iteration %d, num hypothesis %d" % (counter, len(current_hypotheses))
             # do one step of the preemptive RANSAC + pose refinement
             pixels_uv, pixels_depth, pixels_3D_camera_frame, pixels_3D_world_frame = \
                 self.get_pixel_samples(data.mask, data.depth, data.camera_pose,
@@ -744,23 +758,28 @@ class DescriptorPoseEstimator(object):
 
             pixel_descriptors = data.descriptor_img[pixels_uv[1], pixels_uv[0], :]
 
-            refined_hypotheses, pruned_hypothesis = self.evaluate_and_refine_hypothesis(self._kd_tree, current_hypotheses,
+            refined_hypotheses, pruned_hypotheses = \
+                self.evaluate_and_refine_hypothesis(self._kd_tree, current_hypotheses,
                                                 pixels_3D_world_frame,
                                                 pixel_descriptors,
                                                 self._config['inlier_threshold'])
 
-            break
+            counter += 1
+            current_hypotheses = refined_hypotheses
 
         elapsed = time.time() - start_time
 
-        if self._debug:
-            print "test_pose_estimation took %.2f seconds" %elapsed
 
-        self._debug_data['current_hypothesis'] = refined_hypotheses
-        self._debug_data['prev_hypothesis'] = pruned_hypothesis
+        print "test_pose_estimation took %.2f seconds" %elapsed
+
+        self._debug_data['current_hypothesis'] = current_hypotheses
+        self._debug_data['prev_hypothesis'] = pruned_hypotheses
 
 
-        self.debug_vis()
+        self.debug_vis(vis_prev_hypotheses=False)
+
+
+
 
     def visualize_current_hypothesis(self, idx=0):
         transform = self._debug_data['current_hypothesis'][idx]
@@ -783,24 +802,26 @@ class DescriptorPoseEstimator(object):
         obj.setProperty('Visible', True)
         self.view.forceRender()
 
-    def debug_vis(self):
+    def debug_vis(self, vis_prev_hypotheses=False):
 
         container = om.getOrCreateContainer("debug", parentObj=self._vis_container)
         om.removeFromObjectModel(container)
         container = om.getOrCreateContainer("debug", parentObj=self._vis_container)
 
         current_hypothesis = self._debug_data['current_hypothesis']
-        prev_hypothesis = self._debug_data['prev_hypothesis']
-
         curr_hypothesis_container = om.getOrCreateContainer('current hypothesis', parentObj=container)
-        prev_hypothesis_container = om.getOrCreateContainer('prev hypothesis', parentObj=container)
 
         for idx, transform in enumerate(self._debug_data['current_hypothesis']):
             self.visualize_pose_estimate(transform, "Pose %d" %idx, parent=curr_hypothesis_container)
 
 
-        for idx, transform in enumerate(self._debug_data['prev_hypothesis']):
-            self.visualize_pose_estimate(transform, "Prev Pose %d" %idx, parent=prev_hypothesis_container)
+
+        if vis_prev_hypotheses:
+            prev_hypothesis = self._debug_data['prev_hypothesis']
+            prev_hypothesis_container = om.getOrCreateContainer('prev hypothesis', parentObj=container)
+
+            for idx, transform in enumerate(self._debug_data['prev_hypothesis']):
+                self.visualize_pose_estimate(transform, "Prev Pose %d" %idx, parent=prev_hypothesis_container)
 
 
 
