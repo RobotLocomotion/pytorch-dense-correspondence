@@ -32,8 +32,10 @@ If you find this code useful in your work, please consider citing:
   year={2018}
 }
 ```
+### Notice
+![](doc/work_in_progress.png)
 
-  
+We are still working to add tutorials and upload sample data. In the meantime use at your own risk.
 ### Code Setup
 
 - [setting up docker image](doc/docker_build_instructions.md)
