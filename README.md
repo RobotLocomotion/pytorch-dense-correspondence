@@ -33,9 +33,11 @@ If you find this code useful in your work, please consider citing:
 }
 ```
 ### Notice
-![](doc/work_in_progress.png)
 
-We are still working to add tutorials and upload sample data. In the meantime use at your own risk.
+<img src="doc/Work_In_Progress.png" width="200">
+
+
+We are still working to add tutorials and upload sample data. If you want to use the code in the meantime please be aware that you will need to provide your own data, and possibly hack around a bit to understand the code's inner workings.
 ### Code Setup
 
 - [setting up docker image](doc/docker_build_instructions.md)
