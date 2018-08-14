@@ -3,6 +3,7 @@ import numpy as np
 
 # director
 import director.vtkAll as vtk
+from director import vtkNumpy as vnp
 
 """
 Utilities related to pose estimation using dense descriptors
@@ -51,4 +52,45 @@ def compute_cell_locations(poly_data, cell_ids):
 
     return cell_locations
 
+def transform_3D_points(transform, points):
+    """
+
+    :param transform: homogeneous transform
+    :type transform:  4 x 4 numpy array
+    :param points:
+    :type points: numpy array, [N,3]
+    :return: numpy array [N,3]
+    :rtype:
+    """
+
+    N = points.shape[0]
+    points_homog = np.append(np.transpose(points), np.ones([1,N]), axis=0) # shape [4,N]
+    transformed_points_homog = transform.dot(points_homog)
+
+    transformed_points = np.transpose(transformed_points_homog[0:3, :]) # shape [N, 3]
+    return transformed_points
+
+def compute_landmark_transform(sourcePoints, targetPoints):
+
+    '''
+    Returns a vtkTransform for the transform sourceToTarget
+    that can be used to transform the source points to the target.
+
+    :return: vtkTransform that aligns source to target
+
+    '''
+    sourcePoints = vnp.getVtkPointsFromNumpy(np.array(sourcePoints))
+    targetPoints = vnp.getVtkPointsFromNumpy(np.array(targetPoints))
+
+    f = vtk.vtkLandmarkTransform()
+    f.SetSourceLandmarks(sourcePoints)
+    f.SetTargetLandmarks(targetPoints)
+    f.SetModeToRigidBody()
+    f.Update()
+
+    mat = f.GetMatrix()
+    t = vtk.vtkTransform()
+    t.PostMultiply()
+    t.SetMatrix(mat)
+    return t
 

@@ -46,8 +46,13 @@ if __name__ == "__main__":
         globalsDict['p'] = reconstruction.poly_data
         globalsDict['t'] = poly_data.GetCell(0)
 
+        poly_data_copy = vtk.vtkPolyData()
+        poly_data_copy.CopyStructure(poly_data)
+
         scene_structure = SceneStructure(data_folder)
         dpe = DescriptorPoseEstimator(scene_structure.mesh_descriptor_statistics_filename())
+        dpe.poly_data = poly_data_copy
+        dpe.view = globalsDict['view']
         globalsDict['dpe'] = dpe
         dpe.initialize_debug()
 
