@@ -26,6 +26,7 @@ from dense_correspondence.evaluation.evaluation import DenseCorrespondenceEvalua
 from dense_correspondence_manipulation.utils.constants import *
 import simple_pixel_correspondence_labeler.annotate_correspondences as annotate_correspondences
 import dense_correspondence_manipulation.pose_estimation.utils as pose_utils
+from dense_correspondence_manipulation.fusion.fusion_reconstruction import TSDFReconstruction
 
 
 class PoseEstimationData(FieldContainer):
@@ -117,10 +118,15 @@ class DescriptorPoseEstimator(object):
         print "building KDTree took %.2f seconds" %elapsed
 
     def initialize_debug(self):
+        # default scene_name to use
         self._scene_name = "2018-04-10-16-02-59"
+
+        # another scene with caterpillar in different configuration
+        self._scene_name_alternate = "2018-04-16-14-25-19"
+
         dc_source_dir = utils.getDenseCorrespondenceSourceDir()
         dataset_config_file = os.path.join(dc_source_dir, 'config', 'dense_correspondence', 'dataset', 'composite',
-                                           'caterpillar_single_scene_test.yaml')
+                                           'caterpillar_only_9.yaml')
         dataset_config = utils.getDictFromYamlFilename(dataset_config_file)
         self._dataset = SpartanDataset(config=dataset_config)
 
@@ -284,7 +290,9 @@ class DescriptorPoseEstimator(object):
 
 
     def generate_initial_hypotheses(self, kd_tree_model, depth, camera_pose, random_pixels,
-                                    random_pixel_descriptors, num_hypothesis=100, num_points_per_pose=3):
+                                    random_pixel_descriptors, num_hypothesis=100,
+                                    num_points_per_pose=3,
+                                    visualize=False):
         """
         Generate a set of initial hypothesis using 3 points to initialize the transform
         via the Kabsch algorithm
@@ -646,12 +654,14 @@ class DescriptorPoseEstimator(object):
         :rtype:
         """
 
+        scene_name = self._scene_name_alternate
+
         self.clear_vis()
         if not random:
             self.reset_random_seed()
 
         cv2.namedWindow('RGB')
-        rgb, depth_PIL, mask_PIL, pose = self._dataset.get_rgbd_mask_pose(self._scene_name, img_idx)
+        rgb, depth_PIL, mask_PIL, pose = self._dataset.get_rgbd_mask_pose(scene_name, img_idx)
         rgb_cv2 = annotate_correspondences.pil_image_to_cv2(rgb)
         reticle_color = (255, 255, 255)
 
@@ -663,15 +673,14 @@ class DescriptorPoseEstimator(object):
         descriptor_img = self._dcn.forward_single_image_tensor(rgb_tensor).data.cpu()
 
         # sample 3 random indices from masked image
+        num_samples = 1
         if uv is None:
-            num_samples = 1
             random_pixels = correspondence_finder.random_sample_from_masked_image(mask, num_samples)
             uv = (random_pixels[1][0], random_pixels[0],[0])
 
         for i in xrange(0, num_samples):
-            row = random_pixels[0][i]
-            col = random_pixels[1][i]
-            uv = [col, row]
+            row = uv[1]
+            col = uv[0]
             p_depth = depth[row, col]
             descriptor = descriptor_img[row, col]
 
@@ -715,7 +724,7 @@ class DescriptorPoseEstimator(object):
 
 
     def test_pose_estimation(self, num_initial_hypotheses=100, random=False, img_idx=0,
-                             scene_name="2018-04-10-16-02-59"):
+                             scene_name="2018-04-16-14-25-19", visualize=True):
 
 
 
@@ -724,6 +733,8 @@ class DescriptorPoseEstimator(object):
 
         start_time = time.time()
         data = self.setup_pose_estimation_data(scene_name, img_idx)
+
+
 
 
         # draw cv2 image
@@ -767,6 +778,7 @@ class DescriptorPoseEstimator(object):
             counter += 1
             current_hypotheses = refined_hypotheses
 
+
         elapsed = time.time() - start_time
 
 
@@ -776,7 +788,17 @@ class DescriptorPoseEstimator(object):
         self._debug_data['prev_hypothesis'] = pruned_hypotheses
 
 
-        self.debug_vis(vis_prev_hypotheses=False)
+        if visualize:
+            self.debug_vis(vis_prev_hypotheses=False)
+
+            full_path_for_scene = self._dataset.get_full_path_for_scene(scene_name)
+            config = utils.getDictFromYamlFilename(CHANGE_DETECTION_CONFIG_FILE)
+            fusion_reconstruction = TSDFReconstruction.from_data_folder(full_path_for_scene,
+                                                                        config=config,
+                                                                        load_foreground_mesh=False)
+            scene_poly_data = fusion_reconstruction.poly_data
+            vis.updatePolyData(scene_poly_data, "reconstruction", parent=self._vis_container,
+                               color=[0,0.5,0])
 
 
 
