@@ -6,6 +6,12 @@
 This guide is meant to walk you through how to start from scratch and start training dense descriptor networks for objects.
 We'll use the data and approach from our [paper, "Dense Object Nets"](https://arxiv.org/abs/1806.08756).
 
+## Step 0: Clone the repo
+
+```
+git clone https://github.com/RobotLocomotion/pytorch-dense-correspondence.git
+```
+
 ## Step 1: Download the data
 
 Decide where you want to download the data to and then use our provided script to 
@@ -38,10 +44,10 @@ hostname:
 
 ## Step 3: Build the docker image
 
-We have a dedicated separate page for how to build a docker container for this project.  See [here](https://github.com/RobotLocomotion/pytorch-dense-correspondence/blob/master/doc/docker_build_instructions.md),
-and when you're done, head on back to this page.  While the docker image is building (may take a handful of minutes), you can start on the next step.
+We have a dedicated separate page for how to build a docker image for this project.  See [here](https://github.com/RobotLocomotion/pytorch-dense-correspondence/blob/master/doc/docker_build_instructions.md),
+and when you're done, head on back to this page.  While the docker image is building (will take a handful of minutes), you can start on the next step.
 
-## Step 4: Make sure that the permission of .torch are for your user
+## Step 4: Make sure that the permissions of .torch are for your user
 
 This one-line script will ensure this is OK:
 
@@ -49,12 +55,25 @@ This one-line script will ensure this is OK:
 sudo chown -R $USER:$USER ~/.torch
 ```
 
-## Step 5: Run the docker image and start an ipython-notebook server
+## Step 5: Run the docker image and start a jupyter notebook server
 
 ```
 cd pytorch-dense-correspondence/docker
 ./docker_run.py
+terminator ## this will pop open a new window, with a blue background, so you know you're in the docker container
+use_pytorch_dense_correspondence ## this sets useful environment variables
+./start_notebook.py
 ```
+
+The jupyter notebook will direct you to point a browser window (Chrome/Firefox/etc) to something like:
+
+`127.0.0.1:8888/?token=603eeac08495233c8f08abbf4caa2c5124da2864ae6f8103`
+
+## Step 6: Start training a network
+
+Open the tutorial for training, `dense_correspondence/training/training_tutorial.ipynb`.
+
+
 
 
 
