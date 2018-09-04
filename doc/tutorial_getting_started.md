@@ -6,7 +6,6 @@
 This guide is meant to walk you through how to start from scratch and start training dense descriptor networks for objects.
 We'll use the data and approach from our [paper, "Dense Object Nets"](https://arxiv.org/abs/1806.08756).
 
-
 ## Step 1: Download the data
 
 Decide where you want to download the data to and then use our provided script to 
@@ -41,3 +40,21 @@ hostname:
 
 We have a dedicated separate page for how to build a docker container for this project.  See [here](https://github.com/RobotLocomotion/pytorch-dense-correspondence/blob/master/doc/docker_build_instructions.md),
 and when you're done, head on back to this page.  While the docker image is building (may take a handful of minutes), you can start on the next step.
+
+## Step 4: Make sure that the permission of .torch are for your user
+
+This one-line script will ensure this is OK:
+
+```
+sudo chown -R $USER:$USER ~/.torch
+```
+
+## Step 5: Run the docker image and start an ipython-notebook server
+
+```
+cd pytorch-dense-correspondence/docker
+./docker_run.py
+```
+
+
+
