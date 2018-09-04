@@ -12,16 +12,24 @@ if len(sys.argv) < 2:
 
 logs = []
 datasets_to_download_config = yaml.load(file(sys.argv[1]))
-for i in datasets_to_download_config['single_object_scenes_config_files']:
-    i_path = os.path.dirname(os.path.dirname(sys.argv[1]))+"/single_object/"+i
-    single_object_dataset = yaml.load(file(i_path))
-    print single_object_dataset
+
+def add_datset(path):
+    global logs
+    single_object_dataset = yaml.load(file(path))
     for j in single_object_dataset["train"]:
         if j not in logs:
             logs.append(j)
     for j in single_object_dataset["test"]:
         if j not in logs:
             logs.append(j)
+
+for i in datasets_to_download_config['single_object_scenes_config_files']:
+    path = os.path.dirname(os.path.dirname(sys.argv[1]))+"/single_object/"+i
+    add_datset(path)
+
+for i in datasets_to_download_config['multi_object_scenes_config_files']:
+    path = os.path.dirname(os.path.dirname(sys.argv[1]))+"/multi_object/"+i
+    add_datset(path)
 
 os.system("mkdir -p ./pdc")
 download_url_base = "https://data.csail.mit.edu/labelfusion/pdccompressed/"
