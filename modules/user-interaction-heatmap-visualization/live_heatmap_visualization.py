@@ -70,22 +70,29 @@ class HeatmapVisualization(object):
         self._dataset = SpartanDataset(config=dataset_config)
 
     def get_random_image_pair(self):
+        """
+        Gets a pair of random images for different scenes of the same object
+        """
         object_id = self._dataset.get_random_object_id()
-        scene_name_a = "2018-04-10-16-02-59"
-        scene_name_b = scene_name_a
+        # scene_name_a = "2018-04-10-16-02-59"
+        # scene_name_b = scene_name_a
 
-        # scene_name_a = self._dataset.get_random_single_object_scene_name(object_id)
-        # scene_name_b = self._dataset.get_different_scene_for_object(object_id, scene_name_a)
+        scene_name_a = self._dataset.get_random_single_object_scene_name(object_id)
+        scene_name_b = self._dataset.get_different_scene_for_object(object_id, scene_name_a)
 
-        # if self._config["randomize_images"]:
-        #     image_a_idx = self._dataset.get_random_image_index(scene_name_a)
-        #     image_b_idx = self._dataset.get_random_image_index(scene_name_b)
-        # else:
-        #     image_a_idx = 0
-        #     image_b_idx = 0
+        if self._config["randomize_images"]:
+            image_a_idx = self._dataset.get_random_image_index(scene_name_a)
+            image_b_idx = self._dataset.get_random_image_index(scene_name_b)
+        else:
+            image_a_idx = 0
+            image_b_idx = 0
 
-        image_a_idx = 0
-        image_b_idx = self._dataset.get_random_image_index(scene_name_b)
+
+        # debug
+        # image_a_idx = 0
+        # image_b_idx = self._dataset.get_random_image_index(scene_name_b)
+
+        
 
         # image_b_idx = self._dataset.get_random_image_index(scene_name_b)
         return scene_name_a, scene_name_b, image_a_idx, image_b_idx

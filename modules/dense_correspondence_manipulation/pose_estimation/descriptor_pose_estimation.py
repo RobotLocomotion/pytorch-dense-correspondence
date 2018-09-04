@@ -797,8 +797,11 @@ class DescriptorPoseEstimator(object):
                                                                         config=config,
                                                                         load_foreground_mesh=False)
             scene_poly_data = fusion_reconstruction.poly_data
-            vis.updatePolyData(scene_poly_data, "reconstruction", parent=self._vis_container,
+            reconstruction_obj = vis.updatePolyData(scene_poly_data, "reconstruction", parent=self._vis_container,
                                color=[0,0.5,0])
+
+            reconstruction_obj.setProperty('Alpha', 0.4)
+
 
 
 
