@@ -64,7 +64,7 @@ class DenseCorrespondenceTraining(object):
         """
         self.load_dataset()
         self.setup_logging_dir()
-        self.setup_visdom()
+        #self.setup_visdom()
         self.setup_tensorboard()
 
 
@@ -354,6 +354,11 @@ class DenseCorrespondenceTraining(object):
                     :return:
                     :rtype:
                     """
+
+                    ## WARNING: visdom is unstable and has changed its API
+                    ## current hack is to just not use visdom plotting
+                    return
+                    ## </end hack>
 
                     learning_rate = DenseCorrespondenceTraining.get_learning_rate(optimizer)
                     self._logging_dict['train']['learning_rate'].append(learning_rate)
