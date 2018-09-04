@@ -69,11 +69,17 @@ The jupyter notebook will direct you to point a browser window (Chrome/Firefox/e
 
 `127.0.0.1:8888/?token=603eeac08495233c8f08abbf4caa2c5124da2864ae6f8103`
 
-## Step 6: Start training a network
+## Step 6: Start training a network and evaluate it quantitatively
 
-Open the tutorial for training, `dense_correspondence/training/training_tutorial.ipynb`.
+Open the notebook for training, `dense_correspondence/training/training_tutorial.ipynb`.
 
+Run each of the cells in the notebook.
 
+The final cell will run the quantitative evaluation.
 
+## Step 7: Qualitatively evaluate the network
 
+Open the notebook for qualitative evaluation, `dense_correspondence/evaluation/evaluation_qualitative_tutorial.ipynb`.
+
+Run each of the cells here!
 
