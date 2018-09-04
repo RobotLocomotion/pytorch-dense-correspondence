@@ -3,11 +3,8 @@ params:
   num_matches_per_image_pair: 100
 
 networks:
-  10_scenes_drill:
-    path_to_network_params: code/dense_correspondence/recipes/trained_models/10_drill_long_3d_3500_steps/dense_resnet_34_8s_03500.pth
-    descriptor_dimension: 3
-    image_width: 640
-    image_height: 480
+  caterpillar_3:
+    path_to_network_params: /home/manuelli/code/data_volume/pdc/trained_models/caterpillar_tutorials/caterpillar_3/003500.pth
 
 dataset: [] # which dataset to use, not used for now
 
