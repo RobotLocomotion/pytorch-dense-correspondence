@@ -1,5 +1,7 @@
 # Data Pipeline for a Single Scene
 
+### Notice: we're not actively documenting more of our pre-processing pipeline for external users, we suggest instead using our provided data which has already been pre-processed
+
 This outlines how to collect and process data for a single scene. See [here](dataset_organization.md) for how the dataset is organized. The steps here are split across code in two repos.
 - [spartan](https://github.com/RobotLocomotion/spartan) handles the raw data collection and tsdf fusion.
 - pdc handles change detection and rendering.
