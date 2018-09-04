@@ -1,3 +1,8 @@
+### Updates 
+
+- September 4, 2018: Tutorial and data now available!  [We have a tutorial now available here](./doc/tutorial_getting_started.md), which walks through step-by-step of getting this repo running.
+
+
 ## Dense Correspondence Learning in PyTorch
 
 In this project we learn Dense Object Nets, i.e. dense descriptor networks for previously unseen, potentially deformable objects, and potentially classes of objects:
@@ -33,33 +38,28 @@ If you find this code useful in your work, please consider citing:
 }
 ```
 
-  
+### Tutorial
+
+- [getting started with pytorch-dense-correspondence](./doc/tutorial_getting_started.md)
+
 ### Code Setup
 
 - [setting up docker image](doc/docker_build_instructions.md)
 - [recommended docker workflow ](doc/recommended_workflow.md)
 
-
 ### Dataset
 
 - [data organization](doc/data_organization.md)
-- [data processing for a single scene](doc/data_processing_single_scene.md)
-- [data processing in batch](doc/data_processing_batch.md)
+- [data pre-processing for a single scene](doc/data_processing_single_scene.md)
 
-
-### Dense Object Nets
-- [recommended docker workflow ](doc/recommended_workflow.md)
+### Training and Evaluation
 - [training a network](doc/training.md)
 - [evaluating a trained network](doc/dcn_evaluation.md)
-
+- *pre-trained models coming soon*
 
 ### Miscellaneous
 - [coordinate conventions](doc/coordinate_conventions.md)
 - [testing](doc/testing.md)
-
-### Tutorials
-
-*Coming soon*
 
 ### Git management
 

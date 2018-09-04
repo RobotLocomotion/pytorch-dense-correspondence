@@ -18,6 +18,13 @@ You should already have built the docker image as outlined [here](docker_build_i
 cd docker
 ./docker_run.py
 ```
+
+## Sourcing environment variables
+You will need to set a few environment variables to add our modules to the `PYTHONPATH`. There are two aliased commands, `use_pytorch_dense_correspondence` and `use_director`.
+
+- `use_pytorch_dense_correspondence` adds several modules to the `PYTHONPATH`. You will always need to source this.
+- `use_director` adds `director` to the path. Make sure run this if using any scripts that rely on `director`.
+
 ## Launching a Jupyter notebook server inside the docker container
 You are now inside the docker container. Run `terminator &` you will launch a new terminator with a blue background.
 

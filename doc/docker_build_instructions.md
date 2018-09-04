@@ -36,9 +36,9 @@ and then restart your machine.
 ```
 git clone git@github.com:RobotLocomotion/pytorch-dense-correspondence.git
 cd pytorch-dense-correspondence
-git submodule sync
-git submodule update --init --remote
-git submodule update
+git submodule sync --recursive
+git submodule update --init --remote --recursive
+git submodule update --recursive
 cd docker
 ./docker_build.py
 ```
