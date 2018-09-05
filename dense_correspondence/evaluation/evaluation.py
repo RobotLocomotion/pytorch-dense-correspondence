@@ -1618,9 +1618,6 @@ class DenseCorrespondenceEvaluation(object):
             img_pairs.append([img_a_idx, img_b_idx])
             scene_names.append(scene_name)
 
-            img_pairs.append([0, 0])
-            scene_names.append(scene_name)
-
         return scene_names, img_pairs
 
     @staticmethod
