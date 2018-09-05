@@ -64,7 +64,7 @@ While the docker image is building (will take a handful of minutes), you can sta
 This one-line script will ensure this is OK:
 
 ```
-sudo chown -R $USER:$USER ~/.torch
+mkdir -p ~/.torch && sudo chown -R $USER:$USER ~/.torch
 ```
 
 ## Step 5: Run the docker image and start a jupyter notebook server
