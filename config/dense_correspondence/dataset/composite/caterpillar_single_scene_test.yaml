@@ -1,0 +1,6 @@
+logs_root_path: code/data_volume/pdc/logs_test
+
+single_object_scenes_config_files:
+- caterpillar_single_scene_test.yaml
+
+multi_object_scenes_config_files: []

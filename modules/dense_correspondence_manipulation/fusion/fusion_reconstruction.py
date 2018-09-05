@@ -22,6 +22,8 @@ import dense_correspondence_manipulation.utils.segmentation as segmentation
 
 from dense_correspondence_manipulation.utils.constants import *
 
+from dense_correspondence.dataset.scene_structure import SceneStructure
+
 class FusionCameraPoses(object):
     """
     Abstract class for storing poses coming from a fusion reconstruction
@@ -151,6 +153,11 @@ class FusionReconstruction(object):
     @data_dir.setter
     def data_dir(self, value):
         self._data_dir = value
+        self._dataset_structure = SceneStructure(self._data_dir)
+
+    @property
+    def dataset_structure(self):
+        return self._dataset_structure
 
     @property
     def image_dir(self):
@@ -198,6 +205,14 @@ class FusionReconstruction(object):
         self._reconstruction_filename = value
 
     @property
+    def foreground_reconstruction_filename(self):
+        return self._foreground_reconstruction_filename
+
+    @foreground_reconstruction_filename.setter
+    def foreground_reconstruction_filename(self, value):
+        self._foreground_reconstruction_filename = value
+
+    @property
     def fusion_posegraph_filename(self):
         return self._fusion_posegraph_filename
 
@@ -209,6 +224,15 @@ class FusionReconstruction(object):
     @property
     def config(self):
         return self._config
+
+    @property
+    def vis_obj(self):
+        """
+        The visualization object
+        :return:
+        :rtype:
+        """
+        return self.reconstruction_vis_obj
 
     @config.setter
     def config(self, value):
@@ -280,23 +304,42 @@ class FusionReconstruction(object):
 
 class TSDFReconstruction(FusionReconstruction):
 
-    def __init__(self):
+    def __init__(self, load_foreground_mesh):
         FusionReconstruction.__init__(self)
         self.poly_data_type = "cells"
+        self._load_foreground_mesh = load_foreground_mesh
 
     def setup(self):
         self.load_poly_data()
         self.image_dir = os.path.join(self.data_dir, 'images')
 
     def load_poly_data(self):
-        self.poly_data_raw = ioUtils.readPolyData(self.reconstruction_filename)
+        reconstruction_filename = self.dataset_structure.fusion_reconstruction_file
+        self.poly_data_raw = ioUtils.readPolyData(reconstruction_filename)
         self.poly_data = self.poly_data_raw
-        self.crop_poly_data()
+
+
+        if self._load_foreground_mesh:
+            foreground_reconstruction_filename =\
+                self.dataset_structure.foreground_fusion_reconstruction_file
+            if not os.path.isfile(foreground_reconstruction_filename):
+                raise ValueError("Foreground reconstruction not found")
+
+            self.poly_data = ioUtils.readPolyData(foreground_reconstruction_filename)
+        else:
+            self.crop_poly_data()
 
     @property
     def fusion_pose_data(self):
         raise ValueError("TSDFReconstruction doesn't have fusion_pose_data")
 
+    def get_image_indices(self):
+        """
+        Returns a list of image indices
+        :return: list(int)
+        :rtype:
+        """
+        return self.kinematics_pose_data.pose_dict.keys()
 
     def get_camera_to_world(self, idx):
         return self.kinematics_pose_data.get_camera_pose(idx)
@@ -314,23 +357,25 @@ class TSDFReconstruction(FusionReconstruction):
                                                        view=view, colorByName='RGB')
 
         if vis_uncropped:
-            vis_obj = vis.updatePolyData(self.poly_data_uncropped, 'Uncropped Fusion Reconstruction',
+            vis_obj = vis.updatePolyData(self.poly_data_raw, 'Uncropped Fusion Reconstruction',
                                view=view, colorByName='RGB')
 
     @staticmethod
-    def from_data_folder(data_folder, config=None, name=None):
+    def from_data_folder(data_folder, config=None, name=None, load_foreground_mesh=True):
         """
 
         :param data_folder: The 'processed' subfolder of a top level log folder
         :type data_folder:
-        :param config:
-        :type config:
+        :param config: YAML file containing parameters. The default file is
+        change_detection.yaml. This file contains the parameters used to crop
+        the fusion reconstruction and extract the foreground.
+        :type config:YAML file
         :param name:
         :type name:
         :return:
         :rtype:
         """
-        fr = TSDFReconstruction()
+        fr = TSDFReconstruction(load_foreground_mesh)
         fr.data_dir = data_folder
 
         if name is None:
@@ -347,7 +392,6 @@ class TSDFReconstruction(FusionReconstruction):
         fr.name = name
         fr.kinematics_pose_data = utils.getDictFromYamlFilename(pose_data_filename)
         fr.camera_info = utils.getDictFromYamlFilename(camera_info_filename)
-
-        fr.reconstruction_filename = os.path.join(fr.data_dir, 'fusion_mesh.ply')
         fr.setup()
+
         return fr

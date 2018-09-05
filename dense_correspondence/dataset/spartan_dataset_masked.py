@@ -243,7 +243,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         norm_transform = transforms.Normalize(self.get_image_mean(), self.get_image_std_dev())
         self._rgb_image_to_tensor = transforms.Compose([transforms.ToTensor(), norm_transform])
 
-    def get_full_path_for_scene(self, scene_name, ):
+    def get_full_path_for_scene(self, scene_name):
         """
         Returns the full path to the processed logs folder
         :param scene_name:
@@ -724,7 +724,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
         if self.debug:
             # only want to bring in plotting code if in debug mode
-            import correspondence_plotter
+            import dense_correspondence.correspondence_tools.correspondence_plotter as correspondence_plotter
 
             # Show correspondences
             if uv_a is not None:
@@ -941,7 +941,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
 
         if self.debug:
-            import correspondence_plotter
+            import dense_correspondence.correspondence_tools.correspondence_plotter as correspondence_plotter
             num_matches_to_plot = 10
 
             print "PRE-MERGING"
@@ -1068,7 +1068,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         empty_tensor = SD.empty_tensor()
 
         if self.debug and ((blind_uv_a[0] is not None) and (blind_uv_b[0] is not None)):
-            import correspondence_plotter
+            import dense_correspondence.correspondence_tools.correspondence_plotter as correspondence_plotter
             num_matches_to_plot = 10
 
             plot_blind_uv_a, plot_blind_uv_b = SD.subsample_tuple_pair(blind_uv_a, blind_uv_b, num_samples=num_matches_to_plot*10)

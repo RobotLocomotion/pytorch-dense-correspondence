@@ -18,7 +18,8 @@ apt install --no-install-recommends \
   dialog \
   python-pip \
   python-dev \
-  ffmpeg
+  ffmpeg \
+  nvidia-settings
 
 pip install --upgrade pip==9.0.3
 pip install -U setuptools

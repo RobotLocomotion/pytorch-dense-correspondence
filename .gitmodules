@@ -1,3 +1,7 @@
 [submodule "pytorch-segmentation-detection"]
 	path = pytorch-segmentation-detection
 	url = https://github.com/warmspringwinds/pytorch-segmentation-detection.git
+[submodule "director"]
+	path = director
+	url = git@github.com:RobotLocomotion/director.git
+

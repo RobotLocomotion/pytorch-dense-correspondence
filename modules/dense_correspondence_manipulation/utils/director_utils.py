@@ -72,9 +72,19 @@ def getCameraTransform(camera):
 
 def setCameraTransform(camera, transform):
     """
-    Camera transform is of the Right-Down-Forward (XYZ) convention. 
+    Camera transform is of the Right-Down-Forward (XYZ) convention.
     See http://homepages.inf.ed.ac.uk/rbf/CVonline/LOCAL_COPIES/OWENS/LECT9/node2.html
+
+    Note you may need to re-render afterwards by calling view.forceRender()
+
+    :param camera: vtkCamera object
+    :type camera:
+    :param transform: vtkTransform
+    :type transform:
+    :return:
+    :rtype:
     """
+
     origin = np.array(transform.GetPosition())
     axes = transformUtils.getAxesFromTransform(transform)
     camera.SetPosition(origin)
