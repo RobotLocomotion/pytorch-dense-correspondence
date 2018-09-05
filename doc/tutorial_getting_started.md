@@ -85,13 +85,11 @@ The jupyter notebook will direct you to point a browser window (Chrome/Firefox/e
 
 Open the notebook for training, `dense_correspondence/training/training_tutorial.ipynb`.
 
-Run each of the cells in the notebook.
-
-The final cell will run the quantitative evaluation.
+Run each of the cells in the notebook.  The final cell will run the quantitative evaluation.  To visualize the plots from the quantitative evaluation, go to `dense_correspondence/evaluation/evaluation_quantitative_tutorial.ipynb` which is set up to compare the results of N >= 1 networks.
 
 ## Step 7: Qualitatively evaluate the network
 
-Open the notebook for qualitative evaluation, `dense_correspondence/evaluation/evaluation_qualitative_tutorial.ipynb`.
+Open the notebook for qualitative evaluation, `dense_correspondence/evaluation/evaluation_qualitative_tutorial.ipynb`. 
 
-Run each of the cells here!
+Run each of the cells here to see descriptor plots!
 
