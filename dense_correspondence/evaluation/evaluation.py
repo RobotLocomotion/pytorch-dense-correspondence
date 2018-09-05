@@ -2235,33 +2235,14 @@ class DenseCorrespondenceEvaluation(object):
                                                                              img_idx_b)
 
 class DenseCorrespondenceEvaluationPlotter(object):
+    """
+    This class contains plotting utilities. They are all
+    encapsulated as static methods
 
-    def __init__(self, config=None):
-        if config is None:
-            config_file = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config',
-                                       'dense_correspondence', 'evaluation',
-                                       'evaluation_plotter.yaml')
+    """
 
-            config = utils.getDictFromYamlFilename(config_file)
-
-        self._config = config
-
-    def load_dataframe(self, network_name):
-        """
-        Loads the specified dataframe for the given network specified in the config file
-        :param network_name:
-        :type network_name:
-        :return:
-        :rtype:
-        """
-
-        if network_name not in self._config['networks']:
-            raise ValueError("%s not in config" %(network_name))
-
-        path_to_csv = self._config['networks'][network_name]['path_to_csv']
-        path_to_csv = utils.convert_to_absolute_path(path_to_csv)
-        df = pd.read_csv(path_to_csv, index_col=0, parse_dates=True)
-        return df
+    def __init__(self):
+        pass
 
     @staticmethod
     def make_cdf_plot(ax, data, num_bins, label=None, x_axis_scale_factor=1):
