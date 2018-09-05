@@ -16,8 +16,14 @@ import dense_correspondence_manipulation.utils.utils as utils
 from dense_correspondence_manipulation.utils.utils import CameraIntrinsics
 
 import dense_correspondence_manipulation.utils.constants as constants
+
+
+utils.add_dense_correspondence_to_python_path()
 import dense_correspondence.correspondence_tools.correspondence_finder as correspondence_finder
 import dense_correspondence.correspondence_tools.correspondence_augmentation as correspondence_augmentation
+
+
+
 
 
 class SpartanDatasetDataType:
@@ -724,7 +730,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
         if self.debug:
             # only want to bring in plotting code if in debug mode
-            import correspondence_plotter
+            import dense_correspondence.correspondence_tools.correspondence_plotter as correspondence_plotter
 
             # Show correspondences
             if uv_a is not None:
