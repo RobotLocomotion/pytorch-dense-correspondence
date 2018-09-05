@@ -83,6 +83,8 @@ The output from the jupyter notebook server will direct you to point a browser w
 
 ## Step 6: Start training a network and evaluate it quantitatively
 
+Note: Make sure the data download from Step 1 has finished before continuing.
+
 Open the notebook for training, `dense_correspondence/training/training_tutorial.ipynb`.
 
 Run each of the cells in the notebook.  The final cell will run the quantitative evaluation.  To visualize the plots from the quantitative evaluation, go to `dense_correspondence/evaluation/evaluation_quantitative_tutorial.ipynb` which is set up to compare the results of N >= 1 networks.
