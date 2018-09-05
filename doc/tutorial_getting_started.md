@@ -77,7 +77,7 @@ use_pytorch_dense_correspondence ## this sets necessary environment variables
 ./start_notebook.py
 ```
 
-The jupyter notebook will direct you to point a browser window (Chrome/Firefox/etc) to something like:
+The output from the jupyter notebook server will direct you to point a browser window (Chrome/Firefox/etc) to something like:
 
 `http://127.0.0.1:8888/?token=603eeac08495233c8f08abbf4caa2c5124da2864ae6f8103`
 
