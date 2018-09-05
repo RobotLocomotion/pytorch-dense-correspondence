@@ -93,3 +93,17 @@ Open the notebook for qualitative evaluation, `dense_correspondence/evaluation/e
 
 Run each of the cells here to see descriptor plots!
 
+---
+
+## What next?
+
+Now that you've gone through the into tutorial, here are a few suggestions on things you could try next.
+
+- Try more data.  You can download our entire processed dataset with this command: `python config/download_pdc_data.py config/dense_correspondence/dataset/composite/entire_dataset.yaml`
+
+- Try your own architecture / training procedures / loss function.
+
+- Run more more analysis and visualizations:
+  - Heatmaps of correspondences: in `modules/user-interaction-heatmap-visualization/live_heatmap_visualization.py`
+  - Plot scatter plots of samples in descriptor space: in `dense_correspondence/evaluation/evaluation_clusters_2d.ipynb`
+  - Make a video in descriptor space: in `dense_correspondence/evaluation/make_video.ipynb`
