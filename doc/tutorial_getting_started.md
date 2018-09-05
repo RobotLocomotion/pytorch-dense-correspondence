@@ -14,7 +14,7 @@ git clone https://github.com/RobotLocomotion/pytorch-dense-correspondence.git
 ## Step 1: Download the data
 
 Decide where you want to download the data to and then use our provided script to 
-download a subset.  (This script will only download a 7.8 GB subset of data.  The full dataset is about 100 GB.)
+download a subset.  (This script will only download a 5.3 GB subset of data.  The full dataset is about 100 GB.)
 
 ```
 ## first, navigate to where you want to download the data
