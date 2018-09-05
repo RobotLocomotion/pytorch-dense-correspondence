@@ -10,22 +10,14 @@ At the highest level we use this directory identifier to identify where data is 
 pdc/
 ```
 
-Most data will live in data logs in one of two locations:
+Most data will live in data logs in this location:
 
 ```
 pdc/
     logs_proto/
-    logs_final/
 ```
 
-Where these two correspond to:
-
-- `pdc/logs_proto` is for sandbox / prototyping logs, where we are working out details of data collection, processing, etc.
-- `pdc/logs_final` is for finalized / stable logs and for which (at least for now) we have human-verified that the data looks OK
-
-Note that `proto` and `final` have specifically been chosen because they both have 5 chars and so print nicely next to each other in monospace.
-
-Within each of these two locations, there is one directory for each RGBD video log and associated data.
+Within `logs_proto`, there is one directory for each RGBD video log and associated data.
 
 These logs have unique names which correspond to the year, month, day, hour, minute, second they were created (`YYYY-MM-DD-hh-mm-ss`).  For example they 
 might be located at:
@@ -35,7 +27,6 @@ pdc/
     logs_proto/
         2018-04-06-11-34-13/
         2018-04-06-11-37-44/
-    logs_final/
         2018-04-03-19-56-58/
 ```
 
