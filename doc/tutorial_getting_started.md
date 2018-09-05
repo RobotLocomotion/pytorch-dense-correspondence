@@ -95,6 +95,20 @@ Open the notebook for qualitative evaluation, `dense_correspondence/evaluation/e
 
 Run each of the cells here to see descriptor plots!
 
+## Step 8: View a heatmap visualization
+
+In a new terminal
+
+```
+use_pytorch_dense_correspondence
+cd modules/user-interaction-heatmap-visualization
+python live_heatmap_visualization.py
+```
+
+This brings up the heatmap visualization. Using the learned descriptors for the caterpillar network you just trained it finds correspondences between the source and target images. The best match for the point you are mousing over in the target image is indicated by the reticle in the target image. Other nearby points (in descriptor space) are indicated by the dark regions in the grayscale image.
+
+Use `n` on your keyboard to bring up a new pair of random images.
+
 ---
 
 ## What next?
