@@ -1,3 +1,0 @@
-networks:
-  10_scenes_drill:
-    path_to_csv: 'code/data_volume/analysis/10_scenes_drill/train/data.csv'
