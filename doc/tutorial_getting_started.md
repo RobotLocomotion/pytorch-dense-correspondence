@@ -87,23 +87,27 @@ The output from the jupyter notebook server will direct you to point a browser w
 
 `http://127.0.0.1:8888/?token=603eeac08495233c8f08abbf4caa2c5124da2864ae6f8103`
 
-## Step 6: Start training a network and evaluate it quantitatively
+## Step 6: Run a simple dataset loader test
+
+Head to the notebook [`dense_correspondence/dataset/simple_datasets_test.ipynb`](../dense_correspondence/dataset/simple_datasets_test.ipynb) and run through the cells.  This is a simple test to make sure all the data is configured properly.  If you see a bunch of correspondence visualizations, you're good!  Head on to the next step to start training.
+
+## Step 7: Start training a network and evaluate it quantitatively
 
 Note: Make sure the data download from Step 1 has finished before continuing.
 
-Open the notebook for training, `dense_correspondence/training/training_tutorial.ipynb`.
+Open the notebook for training, [`dense_correspondence/training/training_tutorial.ipynb`](../dense_correspondence/training/training_tutorial.ipynb).
 
-Run each of the cells in the notebook.  The final cell will run the quantitative evaluation.  To visualize the plots from the quantitative evaluation, go to `dense_correspondence/evaluation/evaluation_quantitative_tutorial.ipynb` which is set up to compare the results of N >= 1 networks.
+Run each of the cells in the notebook.  The final cell will run the quantitative evaluation.  To visualize the plots from the quantitative evaluation, go to [`dense_correspondence/evaluation/evaluation_quantitative_tutorial.ipynb`](../dense_correspondence/evaluation/evaluation_quantitative_tutorial.ipynb) which is set up to compare the results of N >= 1 networks.
 
-## Step 7: Qualitatively evaluate the network
+## Step 8: Qualitatively evaluate the network
 
-Open the notebook for qualitative evaluation, `dense_correspondence/evaluation/evaluation_qualitative_tutorial.ipynb`. 
+Open the notebook for qualitative evaluation, [`dense_correspondence/evaluation/evaluation_qualitative_tutorial.ipynb`](../dense_correspondence/evaluation/evaluation_qualitative_tutorial.ipynb). 
 
 Run each of the cells here to see descriptor plots!
 
-## Step 8: View a heatmap visualization
+## Step 9: View a heatmap visualization
 
-In a new terminal
+In a new terminal (you can split your docker terminator window with Ctrl+Shift+E):
 
 ```
 use_pytorch_dense_correspondence
