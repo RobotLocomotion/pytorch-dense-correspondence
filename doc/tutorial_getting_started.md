@@ -5,6 +5,12 @@
 This guide is meant to walk you through how to start from scratch and start training dense descriptor networks for objects.
 We'll use the data and approach from our [paper, "Dense Object Nets"](https://arxiv.org/abs/1806.08756).
 
+## Requirements
+
+- An Ubuntu machine (we've tested 14.04, 16.04, 18.04) with an Nvidia GPU
+- Python 2 and a handful of Python 2 modules (`yaml`, etc) to run initial scripts
+- Everything else will be set up automatically inside an `nvidia-docker` container
+
 ## Step 0: Clone the repo
 
 ```
