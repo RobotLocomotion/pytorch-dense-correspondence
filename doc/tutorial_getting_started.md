@@ -54,8 +54,7 @@ If you already have `nvidia-docker` installed, then you can just run:
 
 ```
 cd pytorch-dense-correspondence
-git submodule update --init --remote --recursive
-git submodule update --recursive
+git submodule update --init --recursive
 cd docker
 ./docker_build.py
 ```
