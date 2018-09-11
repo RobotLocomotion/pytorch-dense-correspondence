@@ -7,7 +7,7 @@ We'll use the data and approach from our [paper, "Dense Object Nets"](https://ar
 
 ## Requirements
 
-- An Ubuntu machine (we've tested 14.04, 16.04, 18.04) with an Nvidia GPU
+- An Ubuntu machine (we've tested 14.04, 16.04, 18.04) with an Nvidia GPU (recommended at least 4 GB of memory)
 - Python 2 and a handful of Python 2 modules (`yaml`, etc) to run initial scripts
 - Everything else will be set up automatically inside an `nvidia-docker` container
 
