@@ -120,6 +120,9 @@ Use `n` on your keyboard to bring up a new pair of random images.
 
 ---
 
+## Getting Help
+If you run into any issues during the tutorial please create an issue and we will try our best to help you resolve it! We also welcome suggestions for improvements if you found any of the steps confusing.
+
 ## What next?
 
 Now that you've gone through the into tutorial, here are a few suggestions on things you could try next.
