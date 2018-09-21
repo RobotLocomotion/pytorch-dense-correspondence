@@ -2,20 +2,11 @@
 
 import sys, os
 import numpy as np
-import logging
-import dense_correspondence_manipulation.utils.utils as utils
-utils.add_dense_correspondence_to_python_path()
-
-
-from PIL import Image
-
 import torch
 import torch.nn as nn
 from torchvision import transforms
 from torch.autograd import Variable
 import torch.nn.functional as F
-import pytorch_segmentation_detection.models.resnet_dilated as resnet_dilated
-from dense_correspondence.dataset.spartan_dataset_masked import SpartanDataset
 
 
 """
@@ -52,8 +43,8 @@ class ConvolutionalSpatialTransformer(nn.Module):
         :rtype:
         """
         self._G0, self._G =  ConvolutionalSpatialTransformer.dense_grid(self._grid_size, [1, 3, self._image_height, self._image_width])
-        self._G0 = Variable(torch.from_numpy(self._G0),requires_grad=False)
-        self._G = Variable(torch.from_numpy(self._G),requires_grad=False)
+        self._G0 = Variable(torch.from_numpy(self._G0),requires_grad=False).cuda()
+        self._G = Variable(torch.from_numpy(self._G),requires_grad=False).cuda()
 
     
     def repeat_tile(self, tensor, repeat_size):
@@ -95,6 +86,7 @@ class ConvolutionalSpatialTransformer(nn.Module):
         final_grid = self._G0 + G_transformed
         x = F.grid_sample(x, final_grid)
         x = self.reduce_conv(x)
+        print("using CST!")
         return x
 
 
