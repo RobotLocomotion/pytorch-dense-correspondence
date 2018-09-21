@@ -33,6 +33,7 @@ class ConvolutionalSpatialTransformer(nn.Module):
         :return:
         :rtype:
         """
+        pass
 
     @staticmethod
     def dense_grid(s, shape):
@@ -84,7 +85,7 @@ class ConvolutionalSpatialTransformer(nn.Module):
 
 
         xy_resize = np.repeat(xy, s, axis=0)
-        xy_resize = np.repeat(xy, s, axis=1)
+        xy_resize = np.repeat(xy_resize, s, axis=1)
 
         # now xy_resize has shape [s*H, s*W, 2]
         # finally need to expand the first dimension
