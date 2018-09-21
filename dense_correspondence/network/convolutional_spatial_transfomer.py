@@ -21,10 +21,21 @@ from dense_correspondence.dataset.spartan_dataset_masked import SpartanDataset
 class ConvolutionalSpatialTransformer(nn.Module):
 
     def __init__(self, image_height, image_width, grid_size):
+        super(ConvolutionalSpatialTransformer, self).__init__()
         self._image_height = image_height
         self._image_width = image_width
         self._grid_size = grid_size # s
-        self._construct_grids()
+        self._construct_grid()
+
+        ## These conv layers expect input of for example shape: [1,3,480,640]
+        ## And given shape above would output: [1,4,480,640]
+        ##     - where the 4 is the number of parameters in the scale+rotation
+        self.conv = nn.Sequential( 
+            torch.nn.Conv2d(3, 4, 5, stride=1, padding=2),
+            torch.nn.Conv2d(4, 4, 5, stride=1, padding=2),
+            torch.nn.Conv2d(4, 4, 5, stride=1, padding=2),
+            torch.nn.Conv2d(4, 4, 5, stride=1, padding=2),
+        )
 
     def _construct_grid(self):
         """
@@ -33,7 +44,42 @@ class ConvolutionalSpatialTransformer(nn.Module):
         :return:
         :rtype:
         """
-        pass
+        self._G0, self._G =  ConvolutionalSpatialTransformer.dense_grid(self._grid_size, [1, 3, self._image_height, self._image_width])
+        self._G0 = torch.from_numpy(self._G0)
+        self._G = torch.from_numpy(self._G)
+
+    
+    def repeat_tile(self, tensor, repeat_size):
+        """
+        Takes for example a tensor of shape [N, 4, 480, 640]
+        And makes it a tensor of shape [N, 4, 480*s, 640*s]
+        Following the pattern best diagrammed:
+
+        input[0,0,:,:]: a b
+                        c d 
+
+        output[0,0,:,:]: a a b b
+                         a a b b
+                         c c d d
+                         c c d d
+
+        This is opposed to the repeated_tensor intermediate below, which has the following pattern:
+
+        repeated_tensor[0,0,:,:]:  a b a b
+                                   c d c d
+                                   a b a b
+                                   c d c d
+
+        """
+        [N, C, H, W] = tensor.shape
+        repeated_tensor = tensor.repeat(1,1,repeat_size,repeat_size)
+        return torch.transpose(repeated_tensor.view(N,C, repeat_size,-1), 2,3).contiguous().view(N,C,repeat_size*H,repeat_size*W)
+
+    def forward(x):
+        x_copy = x.clone()
+        theta_full_resolution = self.conv(x)                                      # this is shape N,C,H  ,W
+        theta_repeated = self.repeat_tile(theta_full_resolution, self._grid_size) # this is shape N,C,H*s,W*s
+
 
     @staticmethod
     def dense_grid(s, shape):
