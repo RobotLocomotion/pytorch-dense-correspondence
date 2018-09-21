@@ -79,9 +79,9 @@ class ConvolutionalSpatialTransformer(nn.Module):
 
         xy = np.zeros([H,W,2])
         xy[:,:,0] = np.expand_dims(
-            np.repeat(np.expand_dims(np.linspace(-1,1,H), 0), repeats=H, axis=0).T, 0)
+            np.repeat(np.expand_dims(np.linspace(-1,1,H), 0), repeats=W, axis=0).T, 0)
         xy[:, :, 1] = np.expand_dims(
-            np.repeat(np.expand_dims(np.linspace(-1, 1, W), 0), repeats=W, axis=0), 0)
+            np.repeat(np.expand_dims(np.linspace(-1, 1, W), 0), repeats=H, axis=0), 0)
 
 
         xy_resize = np.repeat(xy, s, axis=0)
