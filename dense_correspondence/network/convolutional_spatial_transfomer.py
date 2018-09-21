@@ -13,11 +13,14 @@ import torch
 import torch.nn as nn
 from torchvision import transforms
 from torch.autograd import Variable
+import torch.nn.functional as F
 import pytorch_segmentation_detection.models.resnet_dilated as resnet_dilated
 from dense_correspondence.dataset.spartan_dataset_masked import SpartanDataset
 
 
-
+"""
+See Choy et al, 2016, Universal Correspondence Network, for reference
+"""
 class ConvolutionalSpatialTransformer(nn.Module):
 
     def __init__(self, image_height, image_width, grid_size):
@@ -37,6 +40,10 @@ class ConvolutionalSpatialTransformer(nn.Module):
             torch.nn.Conv2d(4, 4, 5, stride=1, padding=2),
         )
 
+        self.reduce_conv = nn.Sequential(
+            torch.nn.Conv2d(3,3,self._grid_size, self._grid_size)
+        )
+
     def _construct_grid(self):
         """
         Makes two grids each of shape [s*H, s*W,
@@ -45,8 +52,8 @@ class ConvolutionalSpatialTransformer(nn.Module):
         :rtype:
         """
         self._G0, self._G =  ConvolutionalSpatialTransformer.dense_grid(self._grid_size, [1, 3, self._image_height, self._image_width])
-        self._G0 = torch.from_numpy(self._G0)
-        self._G = torch.from_numpy(self._G)
+        self._G0 = Variable(torch.from_numpy(self._G0),requires_grad=False)
+        self._G = Variable(torch.from_numpy(self._G),requires_grad=False)
 
     
     def repeat_tile(self, tensor, repeat_size):
@@ -75,27 +82,36 @@ class ConvolutionalSpatialTransformer(nn.Module):
         repeated_tensor = tensor.repeat(1,1,repeat_size,repeat_size)
         return torch.transpose(repeated_tensor.view(N,C, repeat_size,-1), 2,3).contiguous().view(N,C,repeat_size*H,repeat_size*W)
 
-    def forward(x):
-        x_copy = x.clone()
-        theta_full_resolution = self.conv(x)                                      # this is shape N,C,H  ,W
-        theta_repeated = self.repeat_tile(theta_full_resolution, self._grid_size) # this is shape N,C,H*s,W*s
+    def forward(self, x):
+        theta_full_resolution = self.conv(x)                                      # this is shape   N,C,  H  ,W
+        theta_repeated = self.repeat_tile(theta_full_resolution, self._grid_size) # this is shape   N,C,  H*s,W*s
+        theta_repeated = theta_repeated.permute(0,2,3,1)                          # change to shape N,H*s,W*s,C
+
+        # now perform the matrix multiplication
+        G_transformed_top    = (theta_repeated[:,:,:,0:2]*self._G).sum(3).unsqueeze(3)
+        G_transformed_bottom = (theta_repeated[:,:,:,2: ]*self._G).sum(3).unsqueeze(3)
+        G_transformed = torch.cat([G_transformed_top,G_transformed_bottom], 3)
+
+        final_grid = self._G0 + G_transformed
+        x = F.grid_sample(x, final_grid)
+        x = self.reduce_conv(x)
+        return x
 
 
     @staticmethod
     def dense_grid(s, shape):
         """
-        shape is [N, C, H, W]
-
         Generates grid of size [N, s*H, s*W, 2]
 
         G_0 = just repeats the original coordinates into s x s grids
         G = repeats an s x s pattern
-        :param x:
-        :type x:
+        :param s: repeat size
+        :type s: int
+        :param shape: follows shape is [N, C, H, W]
+        :type shape: list of ints
         :return: [G_0, G]
         :rtype:
         """
-
 
 
         height = shape[2]
@@ -137,7 +153,7 @@ class ConvolutionalSpatialTransformer(nn.Module):
         # finally need to expand the first dimension
         G_0 = np.repeat(np.expand_dims(xy_resize, 0), repeats=N, axis=0)
 
-        return G_0, G
+        return G_0.astype(np.float32), G.astype(np.float32)
 
 
 
