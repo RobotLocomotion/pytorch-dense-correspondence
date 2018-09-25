@@ -204,7 +204,7 @@ class DenseCorrespondenceNetwork(nn.Module):
         D = descriptor dimension
         N = batch size
 
-        :param img_tensor: input tensor img.shape = [N, 3, H , W] where
+        :param img_tensor: input tensor img.shape = [N, D, H , W] where
                     N is the batch size
         :type img_tensor: torch.Variable or torch.Tensor
         :return: torch.Variable with shape [N, D, H, W],
@@ -213,9 +213,10 @@ class DenseCorrespondenceNetwork(nn.Module):
 
         res = self.fcn(img_tensor)
         if self._normalize:
+            print "normalizing descriptor norm"
             norm = torch.norm(res, 2, 1) # [N,1,H,W]
             res = res/norm
-            print "normalizing descriptor norm"
+
 
 
         return res
@@ -301,7 +302,7 @@ class DenseCorrespondenceNetwork(nn.Module):
         return SpartanDataset(config_expanded=config)
 
     @staticmethod
-    def from_config(config, load_stored_params=True):
+    def from_config(config, load_stored_params=True, model_param_file=None):
         """
         Load a network from a config file
 
@@ -324,11 +325,6 @@ class DenseCorrespondenceNetwork(nn.Module):
 
         fcn = resnet_dilated.Resnet34_8s(num_classes=config['descriptor_dimension'])
 
-        if load_stored_params:
-            path_to_network_params = utils.convert_to_absolute_path(config['path_to_network_params'])
-            config['path_to_network_params_folder'] = os.path.dirname(config['path_to_network_params'])
-            fcn.load_state_dict(torch.load(path_to_network_params))
-
 
         if 'normalize' in config:
             normalize = config['normalize']
@@ -339,6 +335,15 @@ class DenseCorrespondenceNetwork(nn.Module):
                                           image_width=config['image_width'],
                                           image_height=config['image_height'],
                                          normalize=normalize)
+
+        if load_stored_params:
+            assert model_param_file is not None
+            config['model_param_file'] = model_param_file # should be an absolute path
+            try:
+                dcn.load_state_dict(torch.load(model_param_file))
+            except:
+                logging.info("loading params with the new style failed, falling back to dcn.fcn.load_state_dict")
+                dcn.fcn.load_state_dict(torch.load(model_param_file))
 
         dcn.cuda()
         dcn.train()
@@ -374,28 +379,9 @@ class DenseCorrespondenceNetwork(nn.Module):
         config["path_to_network_params_folder"] = model_folder
 
 
-        fcn = resnet_dilated.Resnet34_8s(num_classes=config['descriptor_dimension'])
-
-        dcn = DenseCorrespondenceNetwork(fcn, config['descriptor_dimension'],
-                                         image_width=config['image_width'],
-                                         image_height=config['image_height'])
-
-
-        # load the stored params
-        if load_stored_params:
-            # old syntax
-            try:
-                dcn.load_state_dict(torch.load(model_param_file))
-            except:
-                logging.info("loading params with the new style failed, falling back to dcn.fcn.load_state_dict")
-                dcn.fcn.load_state_dict(torch.load(model_param_file))
-
-            # this is the new format
-            #
-
-        dcn.cuda()
-        dcn.train()
-        dcn.config = config
+        dcn = DenseCorrespondenceNetwork.from_config(config,
+                                                     load_stored_params=load_stored_params,
+                                                     model_param_file=model_param_file)
 
         return dcn
 
