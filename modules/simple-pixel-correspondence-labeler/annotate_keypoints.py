@@ -11,7 +11,7 @@ sys.path.append(os.path.join(dc_source_dir, "dense_correspondence", "corresponde
 from dense_correspondence.dataset.spartan_dataset_masked import SpartanDataset, ImageType
 
 config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence', 
-                               'dataset', 'composite', 'star_bot_front_only.yaml')
+                               'dataset', 'composite', 'shoe_train_4_shoes.yaml')
 config = utils.getDictFromYamlFilename(config_filename)
 sd = SpartanDataset(config=config)
 sd.set_train_mode()
@@ -27,21 +27,9 @@ def pil_image_to_cv2(pil_image):
     return np.array(pil_image)[:, :, ::-1].copy() # open and convert between BGR and RGB
 
 def get_cv2_img_from_spartan():
-    scene_name_a = sd.get_random_scene_name()
-    num_attempts = 50
-    for i in range(num_attempts):
-        if (i % 2) == 0 and RANDOMIZE_TEST_TRAIN:
-            sd.set_train_mode()
-        else:
-            sd.set_test_mode()
-
-        scene_name_b = sd.get_random_scene_name()
-        if scene_name_b != scene_name_a:
-            break    
-        if i == (num_attempts - 1):
-            print "Failed at randomly getting two different scenes"
-            exit()
-    
+    object_id = sd.get_random_object_id()
+    scene_name_a = sd.get_random_single_object_scene_name(object_id)
+ 
     if USE_FIRST_IMAGE:
         image_a_idx = 0
     else:
@@ -52,7 +40,7 @@ def get_cv2_img_from_spartan():
     
     img_a = pil_image_to_cv2(img_a)
     img_a = scale_image(img_a, drawing_scale_config)
-    return [img_a, scene_name_a, image_a_idx]
+    return [img_a, scene_name_a, image_a_idx, object_id]
 
 ####
 
@@ -91,9 +79,9 @@ def scale_image(img, scale):
     return cv2.resize(img, (0,0), fx=scale, fy=scale) 
 
 def next_image():
-    global img1_points_picked, img1, scene_name_1, image_1_idx
+    global img1_points_picked, img1, scene_name_1, image_1_idx, object_1_id
     img1_points_picked = []
-    [img1, scene_name_1, image_1_idx] = get_cv2_img_from_spartan()
+    [img1, scene_name_1, image_1_idx, object_1_id] = get_cv2_img_from_spartan()
 
 def to_savable_list(points_picked):
     savable_list = []
@@ -109,6 +97,7 @@ def make_savable_correspondence_pairs():
     new_dict = dict()
     new_dict["image"] = dict()
 
+    new_dict["image"]["object_id"] = object_1_id
     new_dict["image"]["scene_name"] = scene_name_1
     
     new_dict["image"]["image_idx"] = image_1_idx

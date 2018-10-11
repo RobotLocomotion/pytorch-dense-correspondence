@@ -59,7 +59,6 @@ while(1):
     if k == 27:
         break
     elif k == ord('n'):
-        print "HEY"
         next_image_from_saved()
         
 cv2.destroyAllWindows()

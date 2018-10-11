@@ -285,6 +285,9 @@ class DenseCorrespondenceTraining(object):
         if not use_pretrained:
             self.save_network(dcn, optimizer, 0)
 
+        from training_progress_visualizer import TrainingProgressVisualizer
+        TPV = TrainingProgressVisualizer()
+
         for epoch in range(50):  # loop over the dataset multiple times
 
             for i, data in enumerate(self._data_loader, 0):
@@ -342,6 +345,8 @@ class DenseCorrespondenceTraining(object):
 
                 loss.backward()
                 optimizer.step()
+
+                TPV.update(self._dataset, dcn)
 
                 elapsed = time.time() - start_iter
 
