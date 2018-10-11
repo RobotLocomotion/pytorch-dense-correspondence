@@ -18,6 +18,7 @@ apt install --no-install-recommends \
   dialog \
   python-pip \
   python-dev \
+  python-yaml \
   ffmpeg
 
 pip install --upgrade pip==9.0.3
