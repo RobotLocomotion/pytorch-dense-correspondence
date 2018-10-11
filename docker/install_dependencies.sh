@@ -29,4 +29,5 @@ pip install \
   opencv-python \
   plyfile \
   pandas \
-  tensorflow
+  tensorflow \
+  pyyaml
