@@ -15,6 +15,8 @@ from dense_correspondence.evaluation.evaluation import *
 from dense_correspondence.evaluation.plotting import normalize_descriptor
 from dense_correspondence.network.dense_correspondence_network import DenseCorrespondenceNetwork
 
+import dense_correspondence_manipulation.utils.visualization as vis_utils
+
 sys.path.append(os.path.join(os.path.dirname(__file__), "../simple-pixel-correspondence-labeler"))
 from annotate_correspondences import label_colors, draw_reticle, pil_image_to_cv2, drawing_scale_config, numpy_to_cv2, label_colors
 
@@ -24,7 +26,7 @@ COLOR_RED = np.array([0, 0, 255])
 COLOR_GREEN = np.array([0,255,0])
 
 utils.set_default_cuda_visible_devices()
-eval_config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence', 'evaluation', 'evaluation.yaml')
+eval_config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence', 'evaluation', 'lucas_evaluation.yaml')
 EVAL_CONFIG = utils.getDictFromYamlFilename(eval_config_filename)
 
 
@@ -202,6 +204,8 @@ class HeatmapVisualization(object):
 
     def scale_norm_diffs_to_make_heatmap(self, norm_diffs, threshold):
         """
+        TODO (@manuelli) scale with Gaussian kernel instead of linear
+
         Scales the norm diffs to make a heatmap. This will be scaled between 0 and 1.
         0 corresponds to a match, 1 to non-match
 
@@ -218,7 +222,6 @@ class HeatmapVisualization(object):
         heatmap[greater_than_threshold] = 1 # greater than threshold is set to 1
         heatmap = heatmap.astype(self.img1_gray.dtype)
         return heatmap
-
 
     def find_best_match(self, event,u,v,flags,param):
 
@@ -266,12 +269,13 @@ class HeatmapVisualization(object):
             if network_name in self._config["norm_diff_threshold_dict"]:
                 threshold = self._config["norm_diff_threshold_dict"][network_name]
 
-            heatmap = self.scale_norm_diffs_to_make_heatmap(norm_diffs, threshold)
+            heatmap_color = vis_utils.compute_gaussian_kernel_heatmap_from_norm_diffs(norm_diffs, self._config['kernel_variance'])
 
             reticle_color = self._network_reticle_color[network_name]
-            draw_reticle(heatmap, best_match_uv[0], best_match_uv[1], reticle_color)
+
+            draw_reticle(heatmap_color, best_match_uv[0], best_match_uv[1], reticle_color)
             draw_reticle(img_2_with_reticle, best_match_uv[0], best_match_uv[1], reticle_color)
-            blended = cv2.addWeighted(self.img2_gray, alpha, heatmap, beta, 0)
+            blended = cv2.addWeighted(self.img2, alpha, heatmap_color, beta, 0)
             cv2.imshow(network_name, blended)
 
         cv2.imshow("target", img_2_with_reticle)
