@@ -346,8 +346,8 @@ class DenseCorrespondenceTraining(object):
                 loss.backward()
                 optimizer.step()
 
-                if i % 10 == 0:
-                   TPV.update(self._dataset, dcn)
+                #if i % 10 == 0:
+                TPV.update(self._dataset, dcn)
 
                 elapsed = time.time() - start_iter
 

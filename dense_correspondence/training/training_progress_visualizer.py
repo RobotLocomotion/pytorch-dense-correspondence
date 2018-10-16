@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpec
 import dense_correspondence_manipulation.utils.utils as utils
 from dense_correspondence.evaluation.plotting import normalize_descriptor
 
@@ -7,20 +8,53 @@ class TrainingProgressVisualizer():
 
 	def __init__(self):
 		self.title = "Training Progress"
-		self.init_plot()
 		self.init_keypoint_data()
+		self.init_plot()
+		self.counter = 0
 		# load the keypoint data
 
+	def make_ticklabels_invisible(self,fig):
+	    for i, ax in enumerate(fig.axes):
+	        #ax.text(0.5, 0.5, "ax%d" % (i+1), va="center", ha="center")
+	        ax.tick_params(labelbottom=False, labelleft=False, labelright=False, labeltop=False, grid_alpha=0, bottom=False, top=False, left=False, right=False)
+		
+
 	def init_plot(self):
-		plt.figure(0)
-		plt.scatter(0,2, alpha=0.5, label="brown_boot")
-		plt.scatter(1,1, alpha=0.5, label="brown_boot")
-		plt.ion()
-		plt.legend()
-		plt.show()
+		self.fig = plt.figure()
+		plt.axis('off')
+		#self.fig.suptitle("Descriptor learning over time")
+		#self.fig.set_figheight(5)
+		#self.fig.set_figwidth(10)
+		self.gs1 = GridSpec(3, 3)
+		self.gs1.update(left=0.05, right=0.48, wspace=0.05)
+		self.ax1 = plt.subplot(self.gs1[:-1, :])
+		
+		# self.ax2 = plt.subplot(self.gs1[-1, :-1])
+		# self.ax3 = plt.subplot(self.gs1[-1, -1])
+
+		print len(self.keypoint_data), "is number of images"
+		print np.sqrt(len(self.keypoint_data)), "is sqrt"
+		self.num_square_cells = int(np.ceil(np.sqrt(len(self.keypoint_data))))
+		print self.num_square_cells, "is size of gridspec"
+
+		self.gs2 = GridSpec(self.num_square_cells*2, self.num_square_cells)
+		self.gs2.update(left=0.55, right=0.98, hspace=0.05)
+		# ax4 = plt.subplot(gs2[:, :-1])
+		# ax5 = plt.subplot(gs2[:-1, -1])
+		# ax6 = plt.subplot(gs2[-1, -1])
+		# self.ax4 = plt.subplot(self.gs2[0,0])
+		# self.ax4.scatter([0,1,2],[3,5,5])
+		# self.ax5 = plt.subplot(self.gs2[1,0])
+		# self.ax6 = plt.subplot(self.gs2[0,1])
+		# self.ax7 = plt.subplot(self.gs2[1,1])
+		# self.ax8 = plt.subplot(self.gs2[1,-1])
+		# self.ax9 = plt.subplot(self.gs2[-1,-1])
+		#self.make_ticklabels_invisible(self.fig)
+
 
 	def init_keypoint_data(self):
-		keypoint_data_path = "/home/peteflo/code/data_volume/pdc/evaluation_labeled_data/shoe_annotated_keypoints.yaml"
+		#keypoint_data_path = "/home/peteflo/code/data_volume/pdc/evaluation_labeled_data/shoe_annotated_keypoints.yaml"
+		keypoint_data_path = "/home/peteflo/code/data_volume/pdc/evaluation_labeled_data/single_scene_red_nike_keypoints.yaml"
 		self.keypoint_data = utils.getDictFromYamlFilename(keypoint_data_path)
 		print "KEYPOINT DATA"
 		print self.keypoint_data
@@ -59,18 +93,22 @@ class TrainingProgressVisualizer():
 			object_id = img["image"]["object_id"]
 
 			# can simplify to just get rgb
-			image_a_rgb, _, _, _ = dataset.get_rgbd_mask_pose(scene_name, image_a_idx)
+			image_a_rgb, _, mask, _ = dataset.get_rgbd_mask_pose(scene_name, image_a_idx)
 
 			image_a_tensor = dataset.rgb_image_to_tensor(image_a_rgb)
 
 			res = network.forward_single_image_tensor(image_a_tensor).data.cpu().numpy()
+			res[:,:,0] = res[:,:,0] * np.asarray(mask)
+			res[:,:,1] = res[:,:,1] * np.asarray(mask)
 			
 			res_numpy = normalize_descriptor(res)
 			res_numpy = np.clip(res_numpy, a_min = 0.0, a_max = 1.0)
 			res_numpy = 255 * res_numpy
 			res_numpy = res_numpy.astype(np.uint8)
+			res_numpy[:,:,0] = res_numpy[:,:,0] * np.asarray(mask)
+			res_numpy[:,:,1] = res_numpy[:,:,1] * np.asarray(mask)
 
-			plt.figure(1+index)
+			#plt.figure(1+index)
 
 			# to handle D=2
 			print res_numpy.shape
@@ -81,7 +119,18 @@ class TrainingProgressVisualizer():
 			res_numpy_img[:,:,2] = res_numpy[:,:,1]
 			print res_numpy_img.shape
 
-			plt.imshow(res_numpy_img)
+
+			index_row = (index / self.num_square_cells) * 2
+			index_col = index % self.num_square_cells
+
+			ax_rgb = plt.subplot(self.gs2[index_row,index_col])
+			ax_res = plt.subplot(self.gs2[index_row+1,index_col])
+
+			ax_rgb.clear()
+			ax_rgb.imshow(image_a_rgb)
+
+			ax_res.clear()
+			ax_res.imshow(res_numpy_img)
 
 			for i in img["image"]["pixels"]:
 				keypoint = i["keypoint"]
@@ -89,7 +138,8 @@ class TrainingProgressVisualizer():
 				print int(i["v"])
 				print res[int(i["v"]), int(i["u"])]
 				i["descriptor"]  = res[int(i["v"]), int(i["u"])]
-				plt.scatter(i["u"], i["v"], marker=self.keypoint_to_marker(keypoint), color=self.object_id_to_color(object_id))
+				ax_rgb.scatter(i["u"], i["v"], marker=self.keypoint_to_marker(keypoint), s=10, color=self.object_id_to_color(object_id))
+				#ax_res.scatter(i["u"], i["v"], marker=self.keypoint_to_marker(keypoint), color=self.object_id_to_color(object_id))
 
 
 	def keypoint_to_marker(self, keypoint):
@@ -113,17 +163,17 @@ class TrainingProgressVisualizer():
 				
 
 	def update(self, dataset, network):
-		for i in range(len(self.keypoint_data)+1):
-			plt.figure(i)
-			plt.clf()
-		
+		self.counter = self.counter + 1
+
+		#plt.clf()
+		#plt.cla()
+
 		# get first image
 		# forward it through network
 		# get keypoint descriptors out of network
 		self.identify_descriptors(dataset, network)
 
-		plt.figure(0)
-
+		self.ax1.clear()
 		for index, img in enumerate(self.keypoint_data):
 			object_id = img["image"]["object_id"]
 			color = self.object_id_to_color(object_id)
@@ -131,12 +181,17 @@ class TrainingProgressVisualizer():
 				keypoint = i["keypoint"]
 				descriptor = i["descriptor"]
 				marker = self.keypoint_to_marker(keypoint)
-				plt.scatter(descriptor[0], descriptor[1], alpha=0.5, color=color, marker=marker, label=object_id+keypoint)
+				self.ax1.scatter(descriptor[0], descriptor[1], alpha=0.5, color=color, marker=marker, label=object_id+keypoint)
 		
-		l1 = plt.legend(bbox_to_anchor=(1.04,1), borderaxespad=0)
-		plt.tight_layout()
+		#l1 = plt.legend(bbox_to_anchor=(1.04,1), borderaxespad=0)
+		#plt.tight_layout()
 
-		plt.draw()
-		plt.pause(0.001)
-		plt.show()
+		self.make_ticklabels_invisible(self.fig)
+		plt.rcParams.update({'font.size': 6})
+		self.ax1.set_title('Descriptors (D=2) of keypoints')
+		self.fig.savefig("./progress_vis_2/new_"+str(self.counter).zfill(5)+".png", dpi=300)
+
+		#plt.draw()
+		#plt.pause(0.001)
+		#plt.show()
 		print "updated"
