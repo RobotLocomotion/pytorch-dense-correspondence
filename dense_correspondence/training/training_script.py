@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.INFO)
 from dense_correspondence.evaluation.evaluation import DenseCorrespondenceEvaluation
 
 config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence', 
-                               'dataset', 'composite', 'caterpillar_baymax_starbot_all_front_single_only.yaml')
+                               'dataset', 'composite', 'shoe_train_1_red_nike.yaml')
 config = utils.getDictFromYamlFilename(config_filename)
 
 train_config_file = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence', 
@@ -23,10 +23,10 @@ train_config_file = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'confi
 train_config = utils.getDictFromYamlFilename(train_config_file)
 dataset = SpartanDataset(config=config)
 
-logging_dir = "code/data_volume/pdc/trained_models/2018-09-21/"
-num_iterations = 3500
-d = 3 # the descriptor dimension
-name = "cbs_CST3_%d" %(d)
+logging_dir = "code/data_volume/pdc/trained_models/2018-10-15/"
+num_iterations = 800
+d = 2 # the descriptor dimension
+name = "shoes_progress_iterative_%d" %(d)
 train_config["training"]["logging_dir_name"] = name
 train_config["training"]["logging_dir"] = logging_dir
 train_config["dense_correspondence_network"]["descriptor_dimension"] = d
@@ -38,8 +38,65 @@ EVALUATE = True
 # All of the saved data for this network will be located in the
 # code/data_volume/pdc/trained_models/tutorials/caterpillar_3 folder
 
+
+### NON ITERATIVE
+
 if TRAIN:
     print "training descriptor of dimension %d" %(d)
     train = DenseCorrespondenceTraining(dataset=dataset, config=train_config)
     train.run()
     print "finished training descriptor of dimension %d" %(d)
+
+
+quit()
+
+### ITERATIVE
+
+num_iterations = num_iterations/4
+
+# First 
+config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence', 
+                               'dataset', 'composite', 'shoe_train_1_green_nike.yaml')
+config = utils.getDictFromYamlFilename(config_filename)
+dataset = SpartanDataset(config=config)
+
+print "training descriptor of dimension %d" %(d)
+train = DenseCorrespondenceTraining(dataset=dataset, config=train_config)
+train.run()
+print "finished training descriptor of dimension %d" %(d)
+
+# Second 
+config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence', 
+                               'dataset', 'composite', 'shoe_train_1_gray_nike.yaml')
+config = utils.getDictFromYamlFilename(config_filename)
+dataset = SpartanDataset(config=config)
+
+print "training descriptor of dimension %d" %(d)
+train_config["training"]["logging_dir_name"] = name+"1"
+train = DenseCorrespondenceTraining(dataset=dataset, config=train_config)
+train.run_from_pretrained("2018-10-15/"+name)
+print "finished training descriptor of dimension %d" %(d)
+
+# Third 
+config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence', 
+                               'dataset', 'composite', 'shoe_train_1_red_nike.yaml')
+config = utils.getDictFromYamlFilename(config_filename)
+dataset = SpartanDataset(config=config)
+
+print "training descriptor of dimension %d" %(d)
+train_config["training"]["logging_dir_name"] = name+"2"
+train = DenseCorrespondenceTraining(dataset=dataset, config=train_config)
+train.run_from_pretrained("2018-10-15/"+name+"1")
+print "finished training descriptor of dimension %d" %(d)
+
+# Fourth
+config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence', 
+                               'dataset', 'composite', 'shoe_train_1_brown_boot.yaml')
+config = utils.getDictFromYamlFilename(config_filename)
+dataset = SpartanDataset(config=config)
+
+print "training descriptor of dimension %d" %(d)
+train_config["training"]["logging_dir_name"] = name+"3"
+train = DenseCorrespondenceTraining(dataset=dataset, config=train_config)
+train.run_from_pretrained("2018-10-15/"+name+"2")
+print "finished training descriptor of dimension %d" %(d)
