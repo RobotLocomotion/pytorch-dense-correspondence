@@ -347,7 +347,7 @@ class DenseCorrespondenceTraining(object):
                 optimizer.step()
 
                 #if i % 10 == 0:
-                TPV.update(self._dataset, dcn)
+                TPV.update(self._dataset, dcn, loss_current_iteration, now_training_object_id=metadata["object_id"])
 
                 elapsed = time.time() - start_iter
 

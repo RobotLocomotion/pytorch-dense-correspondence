@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.INFO)
 from dense_correspondence.evaluation.evaluation import DenseCorrespondenceEvaluation
 
 config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence', 
-                               'dataset', 'composite', 'shoe_train_1_red_nike.yaml')
+                               'dataset', 'composite', 'caterpillar_only.yaml')
 config = utils.getDictFromYamlFilename(config_filename)
 
 train_config_file = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence', 
@@ -24,9 +24,9 @@ train_config = utils.getDictFromYamlFilename(train_config_file)
 dataset = SpartanDataset(config=config)
 
 logging_dir = "code/data_volume/pdc/trained_models/2018-10-15/"
-num_iterations = 800
+num_iterations = (1500/4)-1
 d = 2 # the descriptor dimension
-name = "shoes_progress_iterative_%d" %(d)
+name = "shoes_progress_actually_iterative_%d" %(d)
 train_config["training"]["logging_dir_name"] = name
 train_config["training"]["logging_dir"] = logging_dir
 train_config["dense_correspondence_network"]["descriptor_dimension"] = d
@@ -41,18 +41,16 @@ EVALUATE = True
 
 ### NON ITERATIVE
 
-if TRAIN:
-    print "training descriptor of dimension %d" %(d)
-    train = DenseCorrespondenceTraining(dataset=dataset, config=train_config)
-    train.run()
-    print "finished training descriptor of dimension %d" %(d)
+# if TRAIN:
+#     print "training descriptor of dimension %d" %(d)
+#     train = DenseCorrespondenceTraining(dataset=dataset, config=train_config)
+#     train.run()
+#     print "finished training descriptor of dimension %d" %(d)
 
-
-quit()
+# quit()
 
 ### ITERATIVE
 
-num_iterations = num_iterations/4
 
 # First 
 config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence', 

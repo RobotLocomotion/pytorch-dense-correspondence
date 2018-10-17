@@ -10,13 +10,16 @@ class TrainingProgressVisualizer():
 		self.title = "Training Progress"
 		self.init_keypoint_data()
 		self.init_plot()
-		self.counter = 0
 		# load the keypoint data
 
-	def make_ticklabels_invisible(self,fig):
+	def make_ticklabels_invisible(self,fig,iteration):
 	    for i, ax in enumerate(fig.axes):
 	        #ax.text(0.5, 0.5, "ax%d" % (i+1), va="center", ha="center")
 	        ax.tick_params(labelbottom=False, labelleft=False, labelright=False, labeltop=False, grid_alpha=0, bottom=False, top=False, left=False, right=False)
+	    ax_label = plt.subplot(self.gs1[-1,0])
+	    ax_label.clear()
+	    ax_label.text(0.5, 0.5, "iteration: %d" % (iteration), va="center", ha="center")
+	    ax_label.axis('off')
 		
 
 	def init_plot(self):
@@ -53,8 +56,9 @@ class TrainingProgressVisualizer():
 
 
 	def init_keypoint_data(self):
-		#keypoint_data_path = "/home/peteflo/code/data_volume/pdc/evaluation_labeled_data/shoe_annotated_keypoints.yaml"
-		keypoint_data_path = "/home/peteflo/code/data_volume/pdc/evaluation_labeled_data/single_scene_red_nike_keypoints.yaml"
+		keypoint_data_path = "/home/peteflo/code/data_volume/pdc/evaluation_labeled_data/shoe_annotated_keypoints.yaml"
+		#keypoint_data_path = "/home/peteflo/code/data_volume/pdc/evaluation_labeled_data/single_scene_red_nike_keypoints.yaml"
+		#keypoint_data_path = "/home/peteflo/code/data_volume/pdc/evaluation_labeled_data/multiple_scenes_red_nike_keypoints.yaml"
 		self.keypoint_data = utils.getDictFromYamlFilename(keypoint_data_path)
 		print "KEYPOINT DATA"
 		print self.keypoint_data
@@ -162,8 +166,7 @@ class TrainingProgressVisualizer():
 			return "brown"
 				
 
-	def update(self, dataset, network):
-		self.counter = self.counter + 1
+	def update(self, dataset, network, iteration, now_training_object_id=None):
 
 		#plt.clf()
 		#plt.cla()
@@ -186,10 +189,15 @@ class TrainingProgressVisualizer():
 		#l1 = plt.legend(bbox_to_anchor=(1.04,1), borderaxespad=0)
 		#plt.tight_layout()
 
-		self.make_ticklabels_invisible(self.fig)
 		plt.rcParams.update({'font.size': 6})
+		self.make_ticklabels_invisible(self.fig, iteration)
+		if object_id is not None:
+			ax_label = plt.subplot(self.gs1[-1,-1])
+			ax_label.clear()
+			ax_label.text(0.5, 0.5, "training: %s" % (now_training_object_id), va="center", ha="center")
+			ax_label.axis('off')
 		self.ax1.set_title('Descriptors (D=2) of keypoints')
-		self.fig.savefig("./progress_vis_2/new_"+str(self.counter).zfill(5)+".png", dpi=300)
+		self.fig.savefig("./progress_vis_2/new_"+str(iteration).zfill(5)+".png", dpi=300)
 
 		#plt.draw()
 		#plt.pause(0.001)
