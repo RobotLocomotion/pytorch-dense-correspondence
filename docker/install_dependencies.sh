@@ -19,7 +19,8 @@ apt install --no-install-recommends \
   python-pip \
   python-dev \
   ffmpeg \
-  nvidia-settings
+  nvidia-settings \
+  cmake-curses-gui
 
 pip install --upgrade pip==9.0.3
 pip install -U setuptools

@@ -91,7 +91,8 @@ class SceneStructure(object):
 
         N = number of cells for which we have descriptor information
 
-        - cell_valid: np.array of size N, dtype=np.int64
+        - cell_valid: np.array of size N, dtype=np.int64. Value is the 
+        index of that cell in the ply file description
         - cell_descriptor_mean: np.array with np.shape = [N,D] dtype = np.float64
         - cell_location: Location of the cell in object frame np.array with
                         np.shape = [N,3], dtype=np.float64
@@ -100,6 +101,11 @@ class SceneStructure(object):
         :rtype: str
         """
         return os.path.join(self.mesh_descriptors_dir, "mesh_descriptor_stats.npz")
+
+    @staticmethod
+    def descriptor_image_filename(img_idx):
+        filename = utils.getPaddedString(img_idx) + "_descriptor_image.npy"
+        return filename
 
 
 
