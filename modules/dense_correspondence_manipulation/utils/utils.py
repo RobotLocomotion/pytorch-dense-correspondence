@@ -96,8 +96,10 @@ def set_default_cuda_visible_devices():
     config = get_defaults_config()
     host_name = socket.gethostname()
     user_name = getpass.getuser()
-    gpu_list = config[host_name][user_name]["cuda_visible_devices"]
-    set_cuda_visible_devices(gpu_list)
+    if host_name in config:
+        if user_name in config[host_name]:
+            gpu_list = config[host_name][user_name]["cuda_visible_devices"]
+            set_cuda_visible_devices(gpu_list)
 
 def get_defaults_config():
     dc_source_dir = getDenseCorrespondenceSourceDir()

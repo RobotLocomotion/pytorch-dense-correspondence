@@ -24,11 +24,25 @@ COLOR_RED = np.array([0, 0, 255])
 COLOR_GREEN = np.array([0,255,0])
 
 utils.set_default_cuda_visible_devices()
-eval_config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence', 'evaluation', 'lucas_evaluation.yaml')
+eval_config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence', 'evaluation', 'evaluation.yaml')
 EVAL_CONFIG = utils.getDictFromYamlFilename(eval_config_filename)
 
 
+
+
 class HeatmapVisualization(object):
+    """
+    Launches a live interactive heatmap visualization.
+
+    Edit config/dense_correspondence/heatmap_vis/heatmap.yaml to specify which networks
+    to visualize. Specifically add the network you want to visualize to the "networks" list.
+    Make sure that this network appears in the file pointed to by EVAL_CONFIG
+
+    Usage: Launch this file with python after sourcing the environment with
+    `use_pytorch_dense_correspondence`
+
+    Then `python live_heatmap_visualization.py`.
+    """
 
     def __init__(self, config):
         self._config = config
