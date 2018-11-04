@@ -175,6 +175,8 @@ class DescriptorPoseEstimator(object):
         :rtype:
         """
 
+        return NotImplementedError()
+
     def get_nearest_neighbor(self, descriptor):
         """
         Nearest neighbor query
@@ -724,7 +726,24 @@ class DescriptorPoseEstimator(object):
 
 
     def test_pose_estimation(self, num_initial_hypotheses=100, random=False, img_idx=0,
-                             scene_name="2018-04-16-14-25-19", visualize=True):
+                             scene_name="2018-04-16-14-25-19", visualize=True,
+                             debug=False):
+
+        """
+        Runs the pose estimation pipeline
+        :param num_initial_hypotheses:
+        :type num_initial_hypotheses:
+        :param random:
+        :type random:
+        :param img_idx:
+        :type img_idx:
+        :param scene_name:
+        :type scene_name:
+        :param visualize:
+        :type visualize:
+        :return:
+        :rtype:
+        """
 
 
 
@@ -779,6 +798,8 @@ class DescriptorPoseEstimator(object):
             current_hypotheses = refined_hypotheses
 
 
+        estimated_transform = current_hypotheses[0]
+
         elapsed = time.time() - start_time
 
 
@@ -789,7 +810,7 @@ class DescriptorPoseEstimator(object):
 
 
         if visualize:
-            self.debug_vis(vis_prev_hypotheses=False)
+            # self.debug_vis(vis_prev_hypotheses=False)
 
             full_path_for_scene = self._dataset.get_full_path_for_scene(scene_name)
             config = utils.getDictFromYamlFilename(CHANGE_DETECTION_CONFIG_FILE)
@@ -797,10 +818,13 @@ class DescriptorPoseEstimator(object):
                                                                         config=config,
                                                                         load_foreground_mesh=False)
             scene_poly_data = fusion_reconstruction.poly_data
-            reconstruction_obj = vis.updatePolyData(scene_poly_data, "reconstruction", parent=self._vis_container,
+            reconstruction_obj = vis.updatePolyData(scene_poly_data, "ground truth", parent=self._vis_ground_truth,
                                color=[0,0.5,0])
 
             reconstruction_obj.setProperty('Alpha', 0.4)
+
+            self.visualize_pose_estimate(estimated_transform, "Aligned model", parent=self._vis_best_match)
+
 
 
 
@@ -826,6 +850,7 @@ class DescriptorPoseEstimator(object):
         obj.actor.SetUserTransform(transform)
         obj.setProperty('Visible', True)
         self.view.forceRender()
+        return obj
 
     def debug_vis(self, vis_prev_hypotheses=False):
 
