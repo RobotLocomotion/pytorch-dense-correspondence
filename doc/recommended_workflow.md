@@ -19,6 +19,16 @@ cd docker
 ./docker_run.py
 ```
 
+## Building director
+This version uses a director that is built from source.
+```
+mkdir -p ~/code/build/director
+cd ~/code/build/director
+cmake ~/code/director/distro/superbuild
+make -j4
+```
+
+
 ## Sourcing environment variables
 You will need to set a few environment variables to add our modules to the `PYTHONPATH`. There are two aliased commands, `use_pytorch_dense_correspondence` and `use_director`.
 
