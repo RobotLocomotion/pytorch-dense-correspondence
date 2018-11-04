@@ -49,9 +49,16 @@ class SceneStructure(object):
     def rendered_images_dir(self):
         return os.path.join(self._processed_folder_dir, 'rendered_images')
 
-    @property
-    def mesh_descriptors_dir(self):
-        return os.path.join(self._processed_folder_dir, 'mesh_descriptors')
+
+    def mesh_descriptors_dir(self, network_name):
+        """
+        Directory where we store descriptors corresponding to a particular network
+        :param network_name:
+        :type network_name:
+        :return:
+        :rtype:
+        """
+        return os.path.join(self._processed_folder_dir, 'mesh_descriptors', network_name)
 
     def mesh_cells_image_filename(self, img_idx):
         """
@@ -65,7 +72,7 @@ class SceneStructure(object):
         return os.path.join(self.rendered_images_dir, filename)
 
 
-    def mesh_descriptors_filename(self, img_idx):
+    def mesh_descriptors_filename(self, network_name, img_idx):
         """
         Returns the full filename for the .npz file that contains two arrays
 
@@ -83,9 +90,9 @@ class SceneStructure(object):
         """
 
         filename = utils.getPaddedString(img_idx) + "_mesh_descriptors.npz"
-        return os.path.join(self.mesh_descriptors_dir, filename)
+        return os.path.join(self.mesh_descriptors_dir(network_name), filename)
 
-    def mesh_descriptor_statistics_filename(self):
+    def mesh_descriptor_statistics_filename(self, network_name):
         """
         Filename containing mesh descriptor statistics
 
@@ -97,10 +104,11 @@ class SceneStructure(object):
         - cell_location: Location of the cell in object frame np.array with
                         np.shape = [N,3], dtype=np.float64
 
+        :param: network_name
         :return: filename
         :rtype: str
         """
-        return os.path.join(self.mesh_descriptors_dir, "mesh_descriptor_stats.npz")
+        return os.path.join(self.mesh_descriptors_dir(network_name), "mesh_descriptor_stats.npz")
 
     @staticmethod
     def descriptor_image_filename(img_idx):

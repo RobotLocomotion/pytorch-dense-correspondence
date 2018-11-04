@@ -22,10 +22,11 @@ class MeshDescriptors(object):
     later use in a pose estimation pipeline
     """
 
-    def __init__(self, scene_name, dataset, dcn, network_name="default"):
+    def __init__(self, scene_name, dataset, dcn, network_name):
         self._dataset = dataset
         self._scene_name = scene_name
         self._dcn = dcn
+        self._network_name = network_name
         self.initialize()
 
     def initialize(self):
@@ -69,7 +70,7 @@ class MeshDescriptors(object):
         start_time = time.time()
 
         # make the mesh_descriptors dir if it doesn't already exist
-        mesh_descriptors_dir = self._scene_structure.mesh_descriptors_dir
+        mesh_descriptors_dir = self._scene_structure.mesh_descriptors_dir(self._network_name)
         if not os.path.isdir(mesh_descriptors_dir):
             os.makedirs(mesh_descriptors_dir)
 
@@ -96,7 +97,7 @@ class MeshDescriptors(object):
                 raise ValueError("Ecnountered cell index %d that exceeds number of cells" %(max_cell_idx))
 
 
-            mesh_descriptors_filename = self._scene_structure.mesh_descriptors_filename(img_idx)
+            mesh_descriptors_filename = self._scene_structure.mesh_descriptors_filename(self._network_name, img_idx)
             np.savez(mesh_descriptors_filename, cell_ids=cell_ids_tensor.cpu(),
                      cell_descriptors=cell_descriptors_tensor.cpu(),
                      cell_idx=cell_idx_tensor.cpu())
@@ -134,7 +135,7 @@ class MeshDescriptors(object):
         D = dcn.descriptor_dimension
 
         num_cells = self._poly_data.GetNumberOfCells()
-        mesh_descriptors_dir = self._scene_structure.mesh_descriptors_dir
+        mesh_descriptors_dir = self._scene_structure.mesh_descriptors_dir(self._network_name)
 
         print "num_cells", num_cells
 
@@ -145,15 +146,14 @@ class MeshDescriptors(object):
 
             print "processing img %d of %d" %(img_idx, num_images)
 
-            filename = self._scene_structure.mesh_descriptors_filename(img_idx)
+            filename = self._scene_structure.mesh_descriptors_filename(self._network_name, img_idx)
             # instance of NpZ file class, also a dict storing the arrays
             data = np.load(filename)
             cell_descriptors = data['cell_descriptors']
             cell_ids = data['cell_ids']
 
 
-            print "num cell ids loaded", cell_ids.size
-
+            # print "num cell ids loaded", cell_ids.size
             # print "np.min(cell_ids)", np.min(cell_ids)
             # print "np.max(cell_ids)", np.max(cell_ids)
 
@@ -253,7 +253,7 @@ class MeshDescriptors(object):
         print "cell_valid.shape", save_dict["cell_valid"].shape
         print "cell_descriptor_mean.shape", save_dict['cell_descriptor_mean'].shape
 
-        save_file = self._scene_structure.mesh_descriptor_statistics_filename()
+        save_file = self._scene_structure.mesh_descriptor_statistics_filename(self._network_name)
         np.savez(save_file, **save_dict)
 
 
@@ -295,9 +295,6 @@ class MeshDescriptors(object):
         cell_ids = np.take(cell_id_img_flat, cell_idx_flat)
 
         num_unique_cells = cell_ids.size
-
-        print "num unique cells", num_unique_cells
-
 
         # [H,W] has been collapsed down to one dimension
         # so we will need to flatten the torch.FloatTensor of res to index into it

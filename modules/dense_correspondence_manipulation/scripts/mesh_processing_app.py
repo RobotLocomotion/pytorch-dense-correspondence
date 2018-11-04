@@ -27,6 +27,8 @@ if __name__ == "__main__":
 
     parser.add_argument("--colorize", action='store_true', default=False, help="(optional) colorize mesh with descriptors")
 
+    parser.add_argument("--network_name", type=str, help="(optional) which network to use when colorizing the mesh, ensure that the descriptor dimension is 3")
+
 
     args = parser.parse_args()
     if args.data_dir:
@@ -40,6 +42,8 @@ if __name__ == "__main__":
     app = globalsDict['app']
     reconstruction = globalsDict['reconstruction']
 
+    scene_structure = SceneStructure(data_folder)
+
     debug = True
     if debug:
         poly_data = reconstruction.poly_data
@@ -49,8 +53,8 @@ if __name__ == "__main__":
         poly_data_copy = vtk.vtkPolyData()
         poly_data_copy.CopyStructure(poly_data)
 
-        scene_structure = SceneStructure(data_folder)
-        dpe = DescriptorPoseEstimator(scene_structure.mesh_descriptor_statistics_filename())
+
+        dpe = DescriptorPoseEstimator(scene_structure.mesh_descriptor_statistics_filename(args.network_name))
         dpe.poly_data = poly_data_copy
         dpe.view = globalsDict['view']
         globalsDict['dpe'] = dpe
@@ -59,8 +63,14 @@ if __name__ == "__main__":
 
 
     if args.colorize:
-        dmc = DescriptorMeshColor(reconstruction.vis_obj, data_folder)
+        if not args.network_name:
+            raise ValueError("you must specify the `network_name` arg if you use"
+                             "the `colorize` flag")
+        network_name = args.network_name
+
+        dmc = DescriptorMeshColor(reconstruction.vis_obj)
         globalsDict['dmc'] = dmc
-        dmc.color_mesh_using_descriptors()
+        descriptor_stats_file = scene_structure.mesh_descriptor_statistics_filename(network_name)
+        dmc.color_mesh_using_descriptors(descriptor_stats_file)
 
     app.app.start(restoreWindow=True)

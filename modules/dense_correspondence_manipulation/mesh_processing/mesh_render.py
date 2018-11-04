@@ -165,24 +165,23 @@ class MeshColorizer(object):
 
 
 class DescriptorMeshColor(object):
+    """
+    Allows you to color a mesh using descriptors stored in a descriptor stats file
+    """
 
-    def __init__(self, poly_data_item, processed_data_folder):
+    def __init__(self, poly_data_item):
         self._poly_data_item = poly_data_item
         self._poly_data = self._poly_data_item.polyData
-        self._scene_structure = SceneStructure(processed_data_folder)
 
-        descriptor_stats_file = self._scene_structure.mesh_descriptor_statistics_filename()
-        self._descriptor_stats = np.load(descriptor_stats_file)
-        self._num_cells = self._poly_data_item.polyData.GetNumberOfCells()
-
-    def color_mesh_using_descriptors(self, std_dev_scale_factor=2.0):
+    def color_mesh_using_descriptors(self, descriptor_stats_file,  std_dev_scale_factor=2.0):
         """
         Add colors to mesh using computed mean descriptors
+        :param descriptor_stats_file: The path to descriptor stats file
+        given by scene_structure.mesh_descriptor_statistics_filename function
+        call
         :return:
         :rtype:
         """
-
-        descriptor_stats_file = self._scene_structure.mesh_descriptor_statistics_filename()
         descriptor_stats = np.load(descriptor_stats_file)
 
         # normalize data
