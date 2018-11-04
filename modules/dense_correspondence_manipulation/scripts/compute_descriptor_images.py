@@ -12,7 +12,27 @@ from dense_correspondence.evaluation.evaluation import DenseCorrespondenceEvalua
 from dense_correspondence.dataset.spartan_dataset_masked import SpartanDataset
 from dense_correspondence.dataset.scene_structure import SceneStructure
 
+"""
+Computes descriptor images for a given scene and network. Saves them as 
+npy files. 
 
+
+Usage: Modify the global variables in CAPS as needed
+"""
+
+
+DC_SOURCE_DIR = utils.getDenseCorrespondenceSourceDir()
+NETWORK_NAME = "caterpillar_M_background_0.500_3"
+EVALUATION_CONFIG_FILENAME = os.path.join(DC_SOURCE_DIR, 'config', 'dense_correspondence',
+                                   'evaluation', 'lucas_evaluation.yaml')
+DATASET_CONFIG_FILE = os.path.join(DC_SOURCE_DIR, 'config', 'dense_correspondence', 'dataset', 'composite',
+                                       'caterpillar_only_9.yaml')
+
+SCENE_NAME = "2018-04-16-14-25-19"
+
+SAVE_DIR = os.path.join("/home/manuelli/code/data_volume/pdc/logs_test",
+                            SCENE_NAME, "processed",
+                            "descriptor_images", NETWORK_NAME)
 
 
 def compute_descriptor_images_for_single_scene(dataset, scene_name, dcn, save_dir):
@@ -70,17 +90,10 @@ if __name__ == "__main__":
     dataset_config = utils.getDictFromYamlFilename(dataset_config_file)
     dataset = SpartanDataset(config=dataset_config)
 
-    scene_name = "2018-04-10-16-02-59"
 
-    save_dir = os.path.join("/home/manuelli/code/data_volume/pdc/logs_test/2018-04-10-16-02-59/processed", "descriptor_images", network_name)
-    # compute_descriptor_images_for_single_scene(dataset, scene_name, dcn, save_dir)
-
-    scene_name = "2018-04-16-14-25-19"
-    save_dir = os.path.join("/home/manuelli/code/data_volume/pdc/logs_test",
-                            scene_name, "processed",
-                            "descriptor_images", network_name)
+    scene_name = SCENE_NAME
+    save_dir = SAVE_DIR
     compute_descriptor_images_for_single_scene(dataset, scene_name, dcn, save_dir)
-
 
 
     print "finished cleanly"
