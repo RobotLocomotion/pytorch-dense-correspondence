@@ -16,7 +16,6 @@ RUN usermod -u $USER_ID $USER_NAME
 RUN groupmod -g $USER_GID $USER_NAME
 
 WORKDIR /home/$USER_NAME
-
 # require no sudo pw in docker
 # RUN echo $USER_PASSWORD | sudo -S bash -c 'echo "'$USER_NAME' ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/docker-user' && printf "\n"
 
@@ -30,21 +29,13 @@ COPY ./install_more.sh /tmp/install_more.sh
 RUN yes "Y" | /tmp/install_more.sh
 
 # install director
-#COPY ./install_director.sh /tmp/install_director.sh
-#RUN yes "Y" | /tmp/install_director.sh
-
-# visdom hotfix
-COPY ./visdom_download_scripts.sh /tmp/visdom_download_scripts.sh
-RUN yes "Y" | /tmp/visdom_download_scripts.sh
+COPY ./install_director.sh /tmp/install_director.sh
+RUN yes "Y" | /tmp/install_director.sh
 
 # set the terminator inside the docker container to be a different color
 RUN mkdir -p .config/terminator
 COPY ./terminator_config .config/terminator/config
 RUN chown $USER_NAME:$USER_NAME -R .config
-
-# build director from source
-COPY ./install_director_from_source.sh /tmp/install_director_from_source.sh
-RUN yes "Y" | /tmp/install_director_from_source.sh
 
 
 # change ownership of everything to our user
