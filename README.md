@@ -33,7 +33,7 @@ If you find this code useful in your work, please consider citing:
 @article{florencemanuelli2018dense,
   title={Dense Object Nets: Learning Dense Visual Object Descriptors By and For Robotic Manipulation},
   author={Florence, Peter and Manuelli, Lucas and Tedrake, Russ},
-  journal={arXiv preprint arXiv:1806.08756},
+  journal={Conference on Robot Learning},
   year={2018}
 }
 ```
