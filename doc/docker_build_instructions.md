@@ -32,6 +32,12 @@ sudo apt-get install nvidia-modprobe
 ```
 and then restart your machine.
 
+**Note**: It's possible that the latest nvidia-docker doesn't include `nvidia-smi`. Try testing your `docker` installation by running
+```
+nvidia-docker run --rm nvidia/cuda:9.1-base nvidia-smi.
+```
+instead.
+
 3) Clone, setup, and build docker image for `pytorch-dense-correspondence`. If using clone via `ssh`, you need to have ssh keys setup to clone the submodules. Make sure that these ssh keys don't have a password, otherwise it will not work.  Cloning via `https` should be OK.
 ```
 git clone git@github.com:RobotLocomotion/pytorch-dense-correspondence.git
