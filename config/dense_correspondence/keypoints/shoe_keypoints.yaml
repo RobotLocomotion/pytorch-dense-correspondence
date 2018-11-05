@@ -1,0 +1,7 @@
+network_name: "shoes_consistent_M_background_0.500_3"
+object_name: "shoes"
+reference_object: "shoe_green_nike"
+keypoints:
+  tongue: {'scene_name': '2018-05-14-23-44-17', 'descriptor': [0.5559151768684387, 0.2627679109573364, -0.4076569378376007], 'image_idx': 0, 'u': 285, 'v': 268}
+  bottom_of_laces: {'scene_name': '2018-05-14-23-44-17', 'descriptor': [0.07009787857532501, 0.7259923219680786, -0.2625909447669983], 'image_idx': 0, 'u': 312, 'v': 322}
+
