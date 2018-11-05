@@ -17,7 +17,7 @@ sd = SpartanDataset(config=config)
 sd.set_train_mode()
 
 KEYPOINT_LIST = ["toe", "top_of_shoelaces", "heel"]
-USE_FIRST_IMAGE = True # force using first image in each log
+USE_FIRST_IMAGE = False # force using first image in each log
 RANDOMIZE_TEST_TRAIN = False # randomize seletcting
 
 def numpy_to_cv2(numpy_img):
@@ -28,7 +28,11 @@ def pil_image_to_cv2(pil_image):
 
 def get_cv2_img_from_spartan():
     object_id = sd.get_random_object_id()
+    object_id = "shoe_red_nike"
     scene_name_a = sd.get_random_single_object_scene_name(object_id)
+
+    ## NOT RANDOM
+    #scene_name_a = "2018-05-14-22-10-53"
  
     if USE_FIRST_IMAGE:
         image_a_idx = 0
