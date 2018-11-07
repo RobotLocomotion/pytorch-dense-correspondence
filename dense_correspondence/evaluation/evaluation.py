@@ -276,13 +276,20 @@ class DenseCorrespondenceEvaluation(object):
         for annotated_pair in cross_scene_data:
 
             scene_name_a = annotated_pair["image_a"]["scene_name"]
-            scene_name_b = annotated_pair["image_b"]["scene_name"] 
-
+            scene_name_b = annotated_pair["image_b"]["scene_name"]
+            
+            if not os.path.isdir(dataset.get_full_path_for_scene(scene_name_a))\
+            or not os.path.isdir(dataset.get_full_path_for_scene(scene_name_b)):
+                print("at least one of these scene names does not exist:", scene_name_a, scene_name_b)
+                continue
+            print("these scene names both exist:", scene_name_a, scene_name_b)
+            
             image_a_idx = annotated_pair["image_a"]["image_idx"]
             image_b_idx = annotated_pair["image_b"]["image_idx"]
 
             img_a_pixels = annotated_pair["image_a"]["pixels"]
             img_b_pixels = annotated_pair["image_b"]["pixels"]
+
 
             dataframe_list_temp =\
                 DenseCorrespondenceEvaluation.single_cross_scene_image_pair_quantitative_analysis(dcn,
@@ -1538,8 +1545,14 @@ class DenseCorrespondenceEvaluation(object):
         for annotated_pair in cross_scene_data:
 
             scene_name_a = annotated_pair["image_a"]["scene_name"]
-            scene_name_b = annotated_pair["image_b"]["scene_name"] 
-
+            scene_name_b = annotated_pair["image_b"]["scene_name"]
+            # some labeled cross scene data may not be in the configured dataset
+            # this checks that the scenes actually exist (i.e., have been downloaded)
+            if not os.path.isdir(dataset.get_full_path_for_scene(scene_name_a))\
+            or not os.path.isdir(dataset.get_full_path_for_scene(scene_name_b)):
+                print("at least one of these scene names does not exist:", scene_name_a, scene_name_b)
+                continue
+            print("these scene names exist:", scene_name_a, scene_name_b)    
             image_a_idx = annotated_pair["image_a"]["image_idx"]
             image_b_idx = annotated_pair["image_b"]["image_idx"]
 
