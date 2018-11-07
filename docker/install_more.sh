@@ -2,6 +2,7 @@
 
 set -euxo pipefail
 
+sudo apt-get update
 sudo pip install requests
 sudo pip install matplotlib
 sudo pip install scipy
