@@ -6,16 +6,24 @@ import numpy as np
 # pdc
 import dense_correspondence_manipulation.utils.utils as utils
 import dense_correspondence_manipulation.utils.image_utils as image_utils
+import dense_correspondence_manipulation.utils.visualization as vis_utils
 utils.add_dense_correspondence_to_python_path()
 from dense_correspondence.evaluation.evaluation import *
 import dense_correspondence_manipulation.utils.constants as constants
 
+DC_SOURCE_DIR = utils.getDenseCorrespondenceSourceDir()
+CONFIG_FILE = os.path.join(DC_SOURCE_DIR, 'config', 'dense_correspondence',
+                           'keypoints', 'shoe_keypoints.yaml')
+
+EVAL_CONFIG_FILENAME = os.path.join(DC_SOURCE_DIR, 'config', 'dense_correspondence', 'evaluation', 'lucas_evaluation.yaml')
+
+
 class KeypointDetection(object):
 
-    def __init__(self, config, network_dict):
+    def __init__(self, config, eval_config):
         self._config = config
-        self._network_dict = network_dict
-        self._dce = DenseCorrespondenceEvaluation(network_dict)
+        self._eval_config = eval_config
+        self._dce = DenseCorrespondenceEvaluation(eval_config)
         self._dataset = None
         self._initialize()
 
@@ -33,7 +41,7 @@ class KeypointDetection(object):
             counter += 1
 
         self._load_networks()
-        self._construct_windows()
+
 
     def _load_networks(self):
         """
@@ -62,9 +70,38 @@ class KeypointDetection(object):
         :return:
         :rtype:
         """
-        cv2.namedWindow('source')
-        for network_name in self._network_dict:
+        self._source_window_name = 'source'
+        cv2.namedWindow(self._source_window_name)
+        for network_name in self._dcn_dict:
             cv2.namedWindow(network_name)
+
+    def _visualize_reference_image(self):
+        """
+        Visualize the reference image, with reticles at the keypoints
+        :return:
+        :rtype: cv2 image
+        """
+
+        img = None
+
+        for keypoint, data in self._config["keypoints"].iteritems():
+            scene_name = data['scene_name']
+            u = data['u']
+            v = data['v']
+            image_idx = data['image_idx']
+            color = data['color']
+
+            if img is None:
+                # load the image
+                rgb_pil, _, _, _ = self._dataset.get_rgbd_mask_pose(scene_name, image_idx)
+                img = image_utils.pil_image_to_cv2(rgb_pil)
+
+            vis_utils.draw_reticle(img, u, v, color)
+
+        print "scene_name", scene_name
+        print "image_idx", image_idx
+
+        return img
 
 
     def _get_random_image(self, randomize_images=False):
@@ -86,12 +123,12 @@ class KeypointDetection(object):
         image res
         :param res: array of dense descriptors res = [H,W,D]
         :type res: numpy array with shape [H,W,D]
-        :return:
+        :return: dict of results, keys are the names of the keypoints
         :rtype:
         """
         keypoint_detections = dict()
 
-        for keypoint, keypoint_data in self._config['keypoints']:
+        for keypoint, keypoint_data in self._config['keypoints'].iteritems():
             d = dict()
             keypoint_detections[keypoint] = d
             descriptor = keypoint_data['descriptor']
@@ -111,52 +148,74 @@ class KeypointDetection(object):
         :return:
         :rtype:
         """
-        rgb_tensor = self._dataset.image_to_tensor(img_pil)
+        rgb_tensor = self._dataset.rgb_image_to_tensor(img_pil)
         for network_name, dcn in self._dcn_dict.iteritems():
             self._res[network_name] = dcn.forward_single_image_tensor(rgb_tensor).data.cpu().numpy()
 
-    def _visualize_keypoints(self, img, keypoint_detections, network_name):
+    def _visualize_keypoints(self, img, keypoint_detections):
         """
-        Visualize the results of the network in the given window
+        Overlay the  the keypoint detections onto the image
         :param img:
         :type img: cv2 image
-        :param network_name:
-        :type network_name:
         :param keypoint_detections:
         :type keypoint_detections:
-        :return:
+        :return: cv2 image with keypoint detections
         :rtype:
         """
 
         img_w_keypoints = np.copy(img)
 
-        for keypoint in keypoint_detections:
+        print "type(img_w_keypoints)", type(img_w_keypoints)
+        print "img_w_keypoints.shape", img_w_keypoints.shape
+
+        for keypoint, data in keypoint_detections.iteritems():
             color = self._config["keypoints"][keypoint]["color"]
-            img_w_keypoints
+            u, v = data['best_match_uv']
+            vis_utils.draw_reticle(img_w_keypoints, u, v, color)
 
-
-        pass
-
-
+        return img_w_keypoints
 
     def _step(self):
         img_pil, scene_name, image_idx = self._get_random_image()
         img = image_utils.pil_image_to_cv2(img_pil)
         self._res = dict()
+        self._compute_descriptors(img_pil)
 
-        # descriptor image
-        for network_name in self._network_dict:
+
+        for network_name in self._dcn_dict:
+            # for each network, compute the descriptor image
+            # detect keypoints, visualize the keypoints
+            # note: there should only be one network, but it's easy to do it this way
+            print "network_name:", network_name
             res = self._res[network_name]
             keypoint_list = self._detect_keypoints(res)
-            self._visualize_keypoints(None, keypoint_list, network_name)
+            img_w_keypoints = self._visualize_keypoints(img, keypoint_list)
+
+            print "img_w_keypoints.shape", img_w_keypoints.shape
+            cv2.imshow(network_name, img_w_keypoints)
+
+    def run(self):
+        self._construct_windows()
+        reference_image = self._visualize_reference_image()
+        cv2.imshow(self._source_window_name, reference_image)
+
+        self._step()
+
+        while True:
+            k = cv2.waitKey(20) & 0xFF
+            if k == 27:
+                break
+            elif k == ord('n'):
+                print "Getting new target image"
+                self._step()
 
     @staticmethod
     def make_default():
         """
         Make a default KeypointDetection object from the shoe_keypoints.yaml
         config
-        :return: 
-        :rtype: 
+        :return:
+        :rtype:
         """
         dc_source_dir = utils.getDenseCorrespondenceSourceDir()
         config_filename = os.path.join(dc_source_dir, 'config',
@@ -167,11 +226,21 @@ class KeypointDetection(object):
         config = utils.getDictFromYamlFilename(config_filename)
 
 
-        network_dict_file = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence', 'evaluation', 'lucas_evaluation.yaml')
+        eval_config_file = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence', 'evaluation', 'lucas_evaluation.yaml')
 
-        network_dict = utils.getDictFromYamlFilename(network_dict_file)
+        eval_config = utils.getDictFromYamlFilename(eval_config_file)
 
-        kp = KeypointDetection(config, network_dict)
+        kp = KeypointDetection(config, eval_config)
         return kp
 
 
+
+if __name__ == "__main__":
+    config = utils.getDictFromYamlFilename(CONFIG_FILE)
+    eval_config = utils.getDictFromYamlFilename(EVAL_CONFIG_FILENAME)
+    keypoint_detection_vis = KeypointDetection(config, eval_config)
+    print "starting keypoint vis"
+    keypoint_detection_vis.run()
+    cv2.destroyAllWindows()
+
+cv2.destroyAllWindows()

@@ -18,7 +18,7 @@ from dense_correspondence.network.dense_correspondence_network import DenseCorre
 import dense_correspondence_manipulation.utils.visualization as vis_utils
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../simple-pixel-correspondence-labeler"))
-from annotate_correspondences import label_colors, draw_reticle, pil_image_to_cv2, drawing_scale_config, numpy_to_cv2, label_colors
+from annotate_correspondences import label_colors, draw_reticle, pil_image_to_cv2, drawing_scale_config, numpy_to_cv2
 
 
 
@@ -31,6 +31,7 @@ EVAL_CONFIG = utils.getDictFromYamlFilename(eval_config_filename)
 
 
 
+LOAD_SPECIFIC_DATASET = False
 
 class HeatmapVisualization(object):
     """
@@ -57,7 +58,8 @@ class HeatmapVisualization(object):
         self._load_networks()
         self._reticle_color = COLOR_GREEN
         self._paused = False
-        # self.load_specific_dataset() # uncomment if you want to load a specific dataset
+        if LOAD_SPECIFIC_DATASET:
+            self.load_specific_dataset() # uncomment if you want to load a specific dataset
 
     def _load_networks(self):
         # we will use the dataset for the first network in the series
@@ -84,9 +86,9 @@ class HeatmapVisualization(object):
         dataset_config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence',
                                             'dataset', 'composite', 'hats_3_demo_composite.yaml')
 
-        dataset_config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config',
-                                               'dense_correspondence',
-                                               'dataset', 'composite', '4_shoes_all.yaml')
+        # dataset_config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config',
+        #                                        'dense_correspondence',
+        #                                        'dataset', 'composite', '4_shoes_all.yaml')
 
         dataset_config = utils.getDictFromYamlFilename(dataset_config_filename)
         self._dataset = SpartanDataset(config=dataset_config)
@@ -173,6 +175,14 @@ class HeatmapVisualization(object):
         else:
             raise ValueError("At least one of the image types must be set tot True")
 
+
+        # caterpillar
+        # scene_name_1 = "2018-04-16-14-42-26"
+        # scene_name_2 = "2018-04-16-14-25-19"
+
+        # hats
+        # scene_name_1 = "2018-05-15-22-01-44"
+        # scene_name_2 = "2018-05-15-22-04-17"
 
         self.img1_pil = self._dataset.get_rgb_image_from_scene_name_and_idx(scene_name_1, image_1_idx)
         self.img2_pil = self._dataset.get_rgb_image_from_scene_name_and_idx(scene_name_2, image_2_idx)

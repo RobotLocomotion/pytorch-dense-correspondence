@@ -56,3 +56,4 @@ def draw_reticle(img, u, v, label_color):
     cv2.line(img, (u + 1, v), (u + 3, v), white, 1)
     cv2.line(img, (u, v - 1), (u, v - 3), white, 1)
     cv2.line(img, (u - 1, v), (u - 3, v), white, 1)
+
