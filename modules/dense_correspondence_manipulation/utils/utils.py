@@ -29,8 +29,8 @@ def saveToYaml(data, filename):
 def getDenseCorrespondenceSourceDir():
     return os.getenv("DC_SOURCE_DIR")
 
-def getPdcPath():
-    return os.path.join(getDenseCorrespondenceSourceDir(), "data_volume", "pdc")
+def get_data_dir():
+    return os.getenv("DC_DATA_DIR")
 
 def dictFromPosQuat(pos, quat):
     """
@@ -130,6 +130,24 @@ def convert_to_absolute_path(path):
 
     home_dir = os.path.expanduser("~")
     return os.path.join(home_dir, path)
+
+def convert_data_relative_path_to_absolute_path(path):
+    """
+    Expands a path that is relative to the DC_DATA_DIR
+    returned by `get_data_dir()`.
+
+    If the path is already an absolute path then just return the path
+    :param path:
+    :type path:
+    :return:
+    :rtype:
+    """
+
+    if os.path.isdir(path):
+        return path
+
+    return os.path.join(get_data_dir(), path)
+
 
 def get_current_time_unique_name():
     """
