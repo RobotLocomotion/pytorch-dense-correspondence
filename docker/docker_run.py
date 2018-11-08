@@ -51,7 +51,7 @@ if __name__=="__main__":
     # uncomment below to mount your data volume
     config_yaml = yaml.load(file(config_file))
     host_name = socket.gethostname()
-    cmd += " -v %s:%s/data_volume " %(config_yaml[host_name][user_name]['path_to_data_directory'], dense_correspondence_source_dir)
+    cmd += " -v %s:%s/data " %(config_yaml[host_name][user_name]['path_to_data_directory'], home_directory)
 
     # expose UDP ports
     cmd += " -p 8888:8888 "
