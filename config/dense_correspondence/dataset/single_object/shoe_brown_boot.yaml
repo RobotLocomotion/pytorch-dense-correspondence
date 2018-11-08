@@ -1,4 +1,4 @@
-logs_root_path: code/data_volume/pdc/logs_proto
+logs_root_path: logs_proto
 object_id: "hat_mit_red"
 train:
 - "2018-05-14-22-57-40" # brown boot
@@ -15,4 +15,4 @@ test:
 - "2018-05-14-23-44-17" # brown boot
 - "2018-05-14-23-46-34" # brown boot
 evaluation_labeled_data_path: 
-- "code/data_volume/pdc/evaluation_labeled_data/shoe_brown_boot.yaml"
+- "evaluation_labeled_data/shoe_brown_boot.yaml"
