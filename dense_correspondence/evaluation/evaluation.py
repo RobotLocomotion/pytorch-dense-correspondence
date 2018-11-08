@@ -127,7 +127,7 @@ class DenseCorrespondenceEvaluation(object):
 
 
         path_to_network_params = self._config["networks"][name]["path_to_network_params"]
-        path_to_network_params = utils.convert_to_absolute_path(path_to_network_params)
+        path_to_network_params = utils.convert_data_relative_path_to_absolute_path(path_to_network_params)
         model_folder = os.path.dirname(path_to_network_params)
 
         dcn = DenseCorrespondenceNetwork.from_model_folder(model_folder, model_param_file=path_to_network_params)
@@ -146,7 +146,7 @@ class DenseCorrespondenceEvaluation(object):
             raise ValueError("Network %s is not in config file" %(network_name))
 
         network_folder = os.path.dirname(self._config["networks"][network_name]["path_to_network_params"])
-        network_folder = utils.convert_to_absolute_path(network_folder)
+        network_folder = utils.convert_data_relative_path_to_absolute_path(network_folder)
         dataset_config = utils.getDictFromYamlFilename(os.path.join(network_folder, "dataset.yaml"))
 
         dataset = SpartanDataset(config=dataset_config)
@@ -181,7 +181,7 @@ class DenseCorrespondenceEvaluation(object):
         self._dataset = value
 
     def get_output_dir(self):
-        return utils.convert_to_absolute_path(self._config['output_dir'])
+        return utils.convert_data_relative_path_to_absolute_path(self._config['output_dir'])
 
     @staticmethod
     def get_image_pair_with_poses_diff_above_threshold(dataset, scene_name, threshold=0.05,
@@ -1938,7 +1938,7 @@ class DenseCorrespondenceEvaluation(object):
         if save_to_file:
             if filename is None:
                 path_to_params_folder = dcn.config['path_to_network_params_folder']
-                path_to_params_folder = utils.convert_to_absolute_path(path_to_params_folder)
+                path_to_params_folder = utils.convert_data_relative_path_to_absolute_path(path_to_params_folder)
                 filename = os.path.join(path_to_params_folder, 'descriptor_statistics.yaml')
 
             utils.saveToYaml(stats, filename)
@@ -1976,7 +1976,7 @@ class DenseCorrespondenceEvaluation(object):
 
         DCE = DenseCorrespondenceEvaluation
 
-        model_folder = utils.convert_to_absolute_path(model_folder)
+        model_folder = utils.convert_data_relative_path_to_absolute_path(model_folder)
 
         # save it to a csv file
         output_dir = os.path.join(model_folder, save_folder_name)
@@ -2483,7 +2483,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
         """
         DCEP = DenseCorrespondenceEvaluationPlotter
 
-        path_to_csv = utils.convert_to_absolute_path(path_to_df_csv)
+        path_to_csv = utils.convert_data_relative_path_to_absolute_path(path_to_df_csv)
 
         if output_dir is None:
             output_dir = os.path.dirname(path_to_csv)
@@ -2565,7 +2565,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
         """
         DCEP = DenseCorrespondenceEvaluationPlotter
 
-        path_to_csv = utils.convert_to_absolute_path(path_to_df_csv)
+        path_to_csv = utils.convert_data_relative_path_to_absolute_path(path_to_df_csv)
 
         if output_dir is None:
             output_dir = os.path.dirname(path_to_csv)
