@@ -225,9 +225,7 @@ class DenseCorrespondenceNetwork(nn.Module):
         """
         Simple forward pass on the network.
 
-        Normalize the image if we are in TEST mode
-        If we are in TRAIN mode then assume the dataset object has already normalized
-        the image
+        Assumes the image has already been normalized (i.e. subtract mean, divide by std dev)
 
         :param img_tensor: torch.FloatTensor with shape [3,H,W]
         :type img_tensor:
