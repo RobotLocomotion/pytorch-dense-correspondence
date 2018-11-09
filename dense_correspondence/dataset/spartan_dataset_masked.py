@@ -160,7 +160,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         Note that the scenes have absolute paths here
         """
 
-        self.logs_root_path = utils.convert_data_relative_path_to_absolute_path(config['logs_root_path'])
+        self.logs_root_path = utils.convert_data_relative_path_to_absolute_path(config['logs_root_path'], assert_path_exists=True)
 
 
         self._single_object_scene_dict = dict()
@@ -203,7 +203,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         self._config = config_expanded
         self._single_object_scene_dict = self._config["single_object"]
         self._multi_object_scene_dict = self._config["multi_object"] 
-        self.logs_root_path = utils.convert_data_relative_path_to_absolute_path(self._config["logs_root_path"])
+        self.logs_root_path = utils.convert_data_relative_path_to_absolute_path(self._config["logs_root_path"], assert_path_exists=True)
 
     def _setup_data_load_types(self):
 

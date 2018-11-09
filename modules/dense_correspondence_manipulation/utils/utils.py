@@ -131,7 +131,7 @@ def convert_to_absolute_path(path):
     home_dir = os.path.expanduser("~")
     return os.path.join(home_dir, path)
 
-def convert_data_relative_path_to_absolute_path(path):
+def convert_data_relative_path_to_absolute_path(path, assert_path_exists=False):
     """
     Expands a path that is relative to the DC_DATA_DIR
     returned by `get_data_dir()`.
@@ -139,14 +139,29 @@ def convert_data_relative_path_to_absolute_path(path):
     If the path is already an absolute path then just return the path
     :param path:
     :type path:
+    :param assert_path_exists: if you know this path should exist, then try to resolve it using a backwards compatibility check
     :return:
     :rtype:
     """
 
-    if os.path.isdir(path):
+    if os.path.isabs(path):
         return path
 
-    return os.path.join(get_data_dir(), path)
+    full_path = os.path.join(get_data_dir(), path)
+
+    if assert_path_exists:
+        if not os.path.exists(full_path):
+            # try a backwards compatibility check for old style
+            # "code/data_volume/pdc/<path>" rather than <path>
+            start_path = "code/data_volume/pdc"
+            rel_path = os.path.relpath(path, start_path)
+            full_path = os.path.join(get_data_dir(), rel_path)
+        
+        if not os.path.exists(full_path):
+            raise ValueError("full_path %s not found, you asserted that path exists" %(full_path))
+
+
+    return full_path
 
 
 def get_current_time_unique_name():
