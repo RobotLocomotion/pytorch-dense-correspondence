@@ -341,6 +341,72 @@ class DenseCorrespondenceEvaluation(object):
 
         return df
 
+    
+    def evaluate_single_network_cross_instance(self, network_name, full_path_cross_instance_labels, save=False):
+        """
+        Simple wrapper that uses class config and then calls static method
+        """
+        dcn = self.load_network_from_config(network_name)
+        dcn.eval()
+        dataset = dcn.load_training_dataset()
+        return DenseCorrespondenceEvaluation.evaluate_network_cross_instance(dcn, dataset, full_path_cross_instance_labels, save=False)
+
+    @staticmethod
+    def evaluate_network_cross_instance(dcn=None, dataset=None, full_path_cross_instance_labels=None, save=False):
+        """
+        This will grab the .yaml specified via its full path (full_path_cross_instance_labels)
+        and use globally class-consistent keypoints that have been human-labeled across instances.
+        """
+
+        utils.reset_random_seed()
+
+        cross_instance_keypoint_labels = utils.getDictFromYamlFilename(full_path_cross_instance_labels)
+
+        print cross_instance_keypoint_labels
+
+        # keypoints = dict()
+        # for label in cross_instance_keypoint_labels:
+        #     for keypoint_label in label['image']['pixels']:
+        #         if keypoint_label['keypoint'] not in keypoints:
+        #             print "Found new keypoint:", keypoint_label['keypoint']
+
+
+        pd_dataframe_list = []
+
+        # generate all pairs of images
+        import itertools
+        for subset in itertools.combinations(cross_instance_keypoint_labels, 2):
+            print(subset)
+
+            scene_name_a = subset[0]["image"]["scene_name"]
+            scene_name_b = subset[1]["image"]["scene_name"] 
+
+            image_a_idx = subset[0]["image"]["image_idx"]
+            image_b_idx = subset[1]["image"]["image_idx"]
+
+            img_a_pixels = subset[0]["image"]["pixels"]
+            img_b_pixels = subset[1]["image"]["pixels"]
+
+            dataframe_list_temp =\
+                DenseCorrespondenceEvaluation.single_cross_scene_image_pair_quantitative_analysis(dcn,
+                dataset, scene_name_a, image_a_idx, scene_name_b, image_b_idx,
+                img_a_pixels, img_b_pixels)
+
+            assert dataframe_list_temp is not None
+
+            pd_dataframe_list += dataframe_list_temp
+
+
+        df = pd.concat(pd_dataframe_list)
+        # save pandas.DataFrame to csv
+        if save:
+            output_dir = os.path.join(self.get_output_dir(), network_name, "cross-instance")
+            data_file = os.path.join(output_dir, "data.csv")
+            if not os.path.isdir(output_dir):
+                os.makedirs(output_dir)
+
+            df.to_csv(data_file)
+        return df
 
     @staticmethod
     def evaluate_network(dcn, dataset, num_image_pairs=25, num_matches_per_image_pair=100):
