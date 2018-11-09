@@ -227,6 +227,8 @@ class DenseCorrespondenceNetwork(nn.Module):
 
         Assumes the image has already been normalized (i.e. subtract mean, divide by std dev)
 
+        Color channel should be RGB
+
         :param img_tensor: torch.FloatTensor with shape [3,H,W]
         :type img_tensor:
         :return: torch.FloatTensor with shape  [H, W, D]
