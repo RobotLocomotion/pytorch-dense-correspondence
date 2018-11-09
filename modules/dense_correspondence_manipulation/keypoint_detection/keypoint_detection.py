@@ -89,7 +89,7 @@ class KeypointDetection(object):
         """
         Visualize the reference image, with reticles at the keypoints
         :return:
-        :rtype: cv2 image
+        :rtype: cv2 image, bgr color scheme
         """
 
         img = None
@@ -169,7 +169,7 @@ class KeypointDetection(object):
         :type img: cv2 image
         :param keypoint_detections:
         :type keypoint_detections:
-        :return: cv2 image with keypoint detections
+        :return: cv2 image with keypoint detections, bgr color encoding
         :rtype:
         """
 
