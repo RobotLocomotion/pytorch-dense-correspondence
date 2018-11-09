@@ -1,5 +1,6 @@
 logs_root_path: logs_proto
-object_id: "hat_mit_red"
+object_id: "shoe_brown_boot"
+
 train:
 - "2018-05-14-22-57-40" # brown boot
 - "2018-05-14-23-00-04" # brown boot
