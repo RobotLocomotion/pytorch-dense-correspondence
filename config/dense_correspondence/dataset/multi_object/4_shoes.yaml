@@ -1,4 +1,4 @@
-logs_root_path: code/data_volume/pdc/logs_proto
+logs_root_path: logs_proto
 object_id_list: ["shoe_gray_nike", "shoe_green_nike", "shoe_red_nike", "shoe_brown_boot"]
 train:
 - "2018-05-17-00-46-45"

@@ -43,7 +43,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         :param config: This is for creating a dataset from a composite dataset config file.
             This is of the form:
 
-                logs_root_path: code/data_volume/pdc/logs_proto
+                logs_root_path: logs_proto # path relative to utils.get_data_dir()
 
                 single_object_scenes_config_files:
                 - caterpillar_17_scenes.yaml
@@ -160,7 +160,8 @@ class SpartanDataset(DenseCorrespondenceDataset):
         Note that the scenes have absolute paths here
         """
 
-        self.logs_root_path = utils.convert_to_absolute_path(config['logs_root_path'])
+        self.logs_root_path = utils.convert_data_relative_path_to_absolute_path(config['logs_root_path'])
+
 
         self._single_object_scene_dict = dict()
 
@@ -202,7 +203,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         self._config = config_expanded
         self._single_object_scene_dict = self._config["single_object"]
         self._multi_object_scene_dict = self._config["multi_object"] 
-        self.logs_root_path =  utils.convert_to_absolute_path(self._config["logs_root_path"])
+        self.logs_root_path = utils.convert_data_relative_path_to_absolute_path(self._config["logs_root_path"])
 
     def _setup_data_load_types(self):
 

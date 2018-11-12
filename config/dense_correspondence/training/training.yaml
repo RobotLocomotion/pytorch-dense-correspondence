@@ -35,7 +35,7 @@ training:
   logging_rate: 10 # how often to print out
   save_rate: 500 # how often to save the network
   logging_dir_name: test # overwrites if this is here
-  logging_dir: code/data_volume/pdc/trained_models # where to store trained models
+  logging_dir: trained_models # where to store trained models
 
 dense_correspondence_network:
   descriptor_dimension: 3

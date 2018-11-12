@@ -475,7 +475,7 @@ class DenseCorrespondenceTraining(object):
 
         self._logging_dir_name = dir_name
 
-        self._logging_dir = os.path.join(utils.convert_to_absolute_path(self._config['training']['logging_dir']), dir_name)
+        self._logging_dir = os.path.join(utils.convert_data_relative_path_to_absolute_path(self._config['training']['logging_dir']), dir_name)
 
 
 
