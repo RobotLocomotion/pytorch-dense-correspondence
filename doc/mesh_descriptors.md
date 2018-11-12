@@ -11,9 +11,13 @@ There are a few steps required to annotate the mesh with the learned descriptors
     - Then `X Screen 0 --> Antialiasing Settings`
     - Select `Override Application Settings` in the spinbox.
 
-1. For each image in the dataset know the mapping from mesh cells to image pixels. Do this using the classes in `mesh_render.py`
-. Specifically launch `mesh_render_app.py` and use the command `mesh_render.render_images()`. This creates files in
-`processed/rendered_images/000000_mesh_cells.png`.
+1. For each image in the dataset know the mapping from mesh cells to image pixels. Do this using the classes in `mesh_render.py`. Specifically launch `mesh_render_app.py` as below and use the command `mesh_render.render_images()`. This creates files in `processed/rendered_images/000000_mesh_cells.png`.
+
+```
+use_pytorch_dense_correspondence
+use_directory
+directorPython mesh_render_app.py
+```
 
 2. Compute the descriptor images, and match them up with the cell_ids computed in the previous step. The main
 functionality for this is contained in `mesh_descriptors.py`. A convenience script allows you to run this.
