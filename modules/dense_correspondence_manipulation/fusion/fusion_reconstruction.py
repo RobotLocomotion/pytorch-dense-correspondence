@@ -323,7 +323,7 @@ class TSDFReconstruction(FusionReconstruction):
             foreground_reconstruction_filename =\
                 self.dataset_structure.foreground_fusion_reconstruction_file
             if not os.path.isfile(foreground_reconstruction_filename):
-                raise ValueError("Foreground reconstruction not found")
+                raise ValueError("Foreground reconstruction not found, you may need to re-run change detection to generate this file.")
 
             self.poly_data = ioUtils.readPolyData(foreground_reconstruction_filename)
         else:
