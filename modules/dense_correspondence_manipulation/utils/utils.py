@@ -34,6 +34,12 @@ def getDenseCorrespondenceSourceDir():
 def get_data_dir():
     return os.getenv("DC_DATA_DIR")
 
+def getPdcPath():
+    """
+    For backwards compatibility
+    """
+    return get_data_dir()
+
 def dictFromPosQuat(pos, quat):
     """
     Make a dictionary from position and quaternion vectors
