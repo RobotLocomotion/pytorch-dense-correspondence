@@ -225,7 +225,7 @@ class DenseCorrespondenceNetwork(nn.Module):
         """
         Simple forward pass on the network.
 
-        Normalize the image if we are in TEST mode
+        note: This assumes that you have already normalized the image
         If we are in TRAIN mode then assume the dataset object has already normalized
         the image
 
