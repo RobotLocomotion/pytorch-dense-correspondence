@@ -44,7 +44,6 @@ if __name__ == "__main__":
     obj_dict = MeshRender.from_data_folder(data_folder)
     app = obj_dict['app']
     mesh_render = obj_dict['mesh_render']
-    mesh_render.initialize_debug()
 
     globalsDict = globals()
     globalsDict.update(obj_dict)
