@@ -32,10 +32,6 @@ RUN yes "Y" | /tmp/install_more.sh
 COPY ./install_director.sh /tmp/install_director.sh
 RUN yes "Y" | /tmp/install_director.sh
 
-# visdom hotfix
-COPY ./visdom_download_scripts.sh /tmp/visdom_download_scripts.sh
-RUN yes "Y" | /tmp/visdom_download_scripts.sh
-
 # set the terminator inside the docker container to be a different color
 RUN mkdir -p .config/terminator
 COPY ./terminator_config .config/terminator/config
