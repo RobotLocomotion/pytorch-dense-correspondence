@@ -167,8 +167,11 @@ class KeypointDetection(object):
         Overlay the  the keypoint detections onto the image
         :param img:
         :type img: cv2 image
-        :param keypoint_detections:
+        :param keypoint_detections: List of keypoint detections, format
+        specified by output of _detect_keypoints function
         :type keypoint_detections:
+        :param copy_image: if set to true, then makes a copy of img. 
+        Otherwise it adds the reticles to the existing img object
         :return: cv2 image with keypoint detections, bgr color encoding
         :rtype:
         """
