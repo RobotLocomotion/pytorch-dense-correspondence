@@ -41,6 +41,8 @@ dense_correspondence_network:
   descriptor_dimension: 3
   image_width: 640
   image_height: 480
+  normalize: False
+
 
 loss_function:
   M_masked: 0.5 # margin for masked non-match desciptor distance
