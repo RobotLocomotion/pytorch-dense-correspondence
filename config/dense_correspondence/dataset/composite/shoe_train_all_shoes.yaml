@@ -1,0 +1,15 @@
+logs_root_path: logs_proto
+
+single_object_scenes_config_files:
+- shoe_gray_nike.yaml
+- shoe_green_nike_close_up.yaml
+- shoe_brown_nike_close_up.yaml
+- shoe_green_nike.yaml
+- shoe_fashion_or_sport_white.yaml
+- shoe_red_nike.yaml
+- shoe_brown_boot.yaml
+- shoe_globalwin_light_brown.yaml
+- shoe_tesla_maroon.yaml
+- shoe_globalwin_blue_grey.yaml
+
+multi_object_scenes_config_files: []
