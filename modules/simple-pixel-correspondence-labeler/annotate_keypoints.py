@@ -11,14 +11,14 @@ sys.path.append(os.path.join(dc_source_dir, "dense_correspondence", "corresponde
 from dense_correspondence.dataset.spartan_dataset_masked import SpartanDataset, ImageType
 
 config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence', 
-                               'dataset', 'composite', 'shoe_train_4_shoes.yaml')
+                               'dataset', 'composite', 'shoe_train_all_shoes.yaml')
 config = utils.getDictFromYamlFilename(config_filename)
 sd = SpartanDataset(config=config)
 sd.set_train_mode()
 
-KEYPOINT_LIST = ["toe", "top_of_shoelaces", "heel"]
-USE_FIRST_IMAGE = False # force using first image in each log
-RANDOMIZE_TEST_TRAIN = False # randomize seletcting
+KEYPOINT_LIST = ["toe", "top_of_shoelaces", "bottom_of_shoelaces", "heel"]
+USE_FIRST_IMAGE = True # force using first image in each log
+RANDOMIZE_TEST_TRAIN = False # randomize selecting
 
 def numpy_to_cv2(numpy_img):
     return numpy_img[:, :, ::-1].copy() # open and convert between BGR and RGB
@@ -33,9 +33,9 @@ def get_cv2_img_from_spartan():
 
     ## NOT RANDOM
     #scene_name_a = "2018-05-14-22-10-53"
- 
+
     if USE_FIRST_IMAGE:
-        image_a_idx = 0
+        image_a_idx = sd.get_first_image_index(scene_name_a)
     else:
         image_a_idx = sd.get_random_image_index(scene_name_a)
         
