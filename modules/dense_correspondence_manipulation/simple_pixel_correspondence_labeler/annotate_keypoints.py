@@ -5,6 +5,7 @@ import numpy as np
 import copy
 
 import dense_correspondence_manipulation.utils.utils as utils
+import dense_correspondence_manipulation.utils.image_utils as image_utils
 dc_source_dir = utils.getDenseCorrespondenceSourceDir()
 sys.path.append(dc_source_dir)
 sys.path.append(os.path.join(dc_source_dir, "dense_correspondence", "correspondence_tools"))
@@ -14,39 +15,15 @@ from dense_correspondence.dataset.spartan_dataset_masked import SpartanDataset, 
 KEYPOINT_LIST = ["toe", "bottom_of_shoelaces",  "top_of_shoelaces", "heel"]
 USE_FIRST_IMAGE = True # force using first image in each log
 RANDOMIZE_TEST_TRAIN = False # randomize selecting
+RANDOMIZE_SCENES = False
 DRAWING_SCALE_CONFIG = 2.0
 
 DATASET_CONFIG_FILENAME = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence',
                                'dataset', 'composite', 'shoe_train_all_shoes.yaml')
 COLOR_GREEN = np.array([0,255,0])
 
-def numpy_to_cv2(numpy_img):
-    return numpy_img[:, :, ::-1].copy() # open and convert between BGR and RGB
+DEBUG = True
 
-def pil_image_to_cv2(pil_image):
-    return np.array(pil_image)[:, :, ::-1].copy() # open and convert between BGR and RGB
-
-def get_cv2_img_from_spartan():
-    object_id = sd.get_random_object_id()
-    object_id = "shoe_red_nike"
-    scene_name_a = sd.get_random_single_object_scene_name(object_id)
-
-    ## NOT RANDOM
-    #scene_name_a = "2018-05-14-22-10-53"
-
-    if USE_FIRST_IMAGE:
-        image_a_idx = sd.get_first_image_index(scene_name_a)
-    else:
-        image_a_idx = sd.get_random_image_index(scene_name_a)
-        
-
-    img_a = sd.get_rgb_image_from_scene_name_and_idx(scene_name_a, image_a_idx)
-    
-    img_a = pil_image_to_cv2(img_a)
-    img_a = scale_image(img_a, DRAWING_SCALE_CONFIG)
-    return [img_a, scene_name_a, image_a_idx, object_id]
-
-####
 
 white = (255,255,255)
 black = (0,0,0)
@@ -54,6 +31,7 @@ black = (0,0,0)
 label_colors = [(255,0,0), (0,255,0), (0,0,255), (255,0,255), (0,125,125), (125,125,0), (200,255,50), (255, 125, 220), (10, 125, 255)]
 
 DRAWING_SCALE_CONFIG = 2.0
+TEXT_COLOR = (0,0,0)
 
 ###
 
@@ -69,60 +47,76 @@ def draw_reticle(img, x, y, label_color):
     cv2.line(img,(x+1,y),(x+3,y),white,1)
     cv2.line(img,(x,y-1),(x,y-3),white,1)
     cv2.line(img,(x-1,y),(x-3,y),white,1)
-
-# mouse callback function
-def draw_circle1(event,x,y,flags,param):
-    if event == cv2.EVENT_LBUTTONDOWN:
-        global img1_points_picked
-        this_pair_label_index = len(img1_points_picked)
-        label_color = label_colors[this_pair_label_index%len(label_colors)]
-        img1_points_picked.append((x/DRAWING_SCALE_CONFIG,y/DRAWING_SCALE_CONFIG))
-        draw_reticle(img1, x, y, label_color)
         
 def scale_image(img, scale):
-    return cv2.resize(img, (0,0), fx=scale, fy=scale) 
-
-def next_image():
-    global img1_points_picked, img1, scene_name_1, image_1_idx, object_1_id
-    img1_points_picked = []
-    [img1, scene_name_1, image_1_idx, object_1_id] = get_cv2_img_from_spartan()
-
-def to_savable_list(points_picked):
-    savable_list = []
-    for index, u_v_tuple in enumerate(points_picked):
-        u_v_dict = dict()
-        u_v_dict["keypoint"] = KEYPOINT_LIST[index]
-        u_v_dict["u"] = u_v_tuple[0]
-        u_v_dict["v"] = u_v_tuple[1]
-        savable_list.append(u_v_dict)
-    return savable_list
-
-def make_savable_correspondence_pairs():
-    new_dict = dict()
-    new_dict["image"] = dict()
-
-    new_dict["image"]["object_id"] = object_1_id
-    new_dict["image"]["scene_name"] = scene_name_1
-    
-    new_dict["image"]["image_idx"] = image_1_idx
-
-    new_dict["image"]["pixels"] = to_savable_list(img1_points_picked)
-
-    return copy.copy(new_dict)
+    return cv2.resize(img, (0,0), fx=scale, fy=scale)
 
 class KeypointAnnotationTool(object):
 
     def __init__(self, dataset,  keypoint_list):
         self._keypoint_list = keypoint_list
+        self._scene_list = dataset.get_scene_list()
         self._num_keypoints = len(keypoint_list)
         self._setup_config()
         self._dataset = dataset
         self._clear_cache()
+        self._setup_scene_list()
+
+        if DEBUG:
+            print "scene_list", self._scene_list
 
     def _setup_config(self):
         self._config = dict()
         self._config['use_first_image'] = USE_FIRST_IMAGE
         self._config['window_name'] = 'image'
+
+    def _setup_scene_list(self):
+        """
+        Populates self._object_list and self._scene_list
+
+        :return:
+        :rtype:
+        """
+        self._object_list = self._dataset.get_list_of_objects()
+        self._scene_dict = dict()
+
+        for object_id in self._object_list:
+            self._scene_dict[object_id] = self._dataset.get_scene_list_for_object(object_id)
+
+        self._object_id_counter = None
+        self._scene_counter = None
+
+        self._scene_data_list = []
+        for object_id in self._object_list:
+            for scene_name in self._dataset.get_scene_list_for_object(object_id):
+                self._scene_data_list.append([object_id, scene_name])
+
+        self._scene_generator = self._get_scene_generator()
+
+    def _get_scene_generator(self):
+        """
+        Generator for scenes
+        :return:
+        :rtype:
+        """
+        for idx, data in enumerate(self._scene_data_list):
+            print "Scene %d of %d" %(idx, len(self._scene_data_list))
+            yield data
+
+    def _get_next_object_id_and_scene(self):
+        if self._object_id_counter is None:
+            self._object_id_counter = 0
+            self._scene_counter = 0
+        else:
+            object_id = self._object_list[self._object_id_counter]
+            self._scene_counter += 1
+            if self._scene_counter >= len(self._scene_dict[object_id]):
+                self._object_id_counter += 1
+                if self._object_id_counter >= len(self._object_list):
+                    return False, False, False
+                self._scene_counter = 0
+
+        return (True, self._object_list[self._object_id_counter], self._scene_counter)
 
     def _clear_cache(self):
         """
@@ -134,18 +128,54 @@ class KeypointAnnotationTool(object):
         self._cache['pick_points'] = dict() # dict with keypoint names as keys
         self._cache['current_keypoint_idx'] = 0
 
-    def _get_new_image(self):
+    def _reset_image(self):
+        """
+        Clears the annotations on the current image
+        :return:
+        :rtype:
+        """
+        self._cache['pick_points'] = dict()  # dict with keypoint names as keys
+        self._cache['current_keypoint_idx'] = 0
+
+
+        scene_name_a = self._cache['scene_name']
+        image_a_idx = self._cache['image_idx']
+        img_a = sd.get_rgb_image_from_scene_name_and_idx(scene_name_a, image_a_idx)
+
+        img_a = image_utils.pil_image_to_cv2(img_a)
+        img_a = scale_image(img_a, DRAWING_SCALE_CONFIG)
+
+        self._cache['img'] = img_a
+        self._cache['img_with_live_reticle'] = np.copy(img_a)
+        self._update_window_text(self._cache['img'])
+
+
+    def _get_new_image(self, object_id=None, scene_name=None):
         """
         Gets a new image, populates the cache with the relevant information
         :return:
         :rtype:
         """
+        print "\n\n----------\n\n"
         self._clear_cache()
         sd = self._dataset
 
-        object_id = sd.get_random_object_id()
-        object_id = "shoe_red_nike"
-        scene_name_a = sd.get_random_single_object_scene_name(object_id)
+
+        if RANDOMIZE_SCENES:
+            object_id = sd.get_random_object_id()
+            scene_name_a = sd.get_random_single_object_scene_name(object_id)
+        else:
+            try:
+                object_id, scene_name_a = self._scene_generator.next()
+            except StopIteration:
+                print "you have labeled all scenes!!!"
+                img_w_text = np.copy(self._config['img'])
+                text = "DONE WITH ALL SCENES!!!"
+                cv2.putText(img_w_text, text, (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 3, (255, 255, 0))
+                cv2.imshow(self._config['window_name'], img_w_text)
+                return
+
+
 
         ## NOT RANDOM
         # scene_name_a = "2018-05-14-22-10-53"
@@ -157,7 +187,7 @@ class KeypointAnnotationTool(object):
 
         img_a = sd.get_rgb_image_from_scene_name_and_idx(scene_name_a, image_a_idx)
 
-        img_a = pil_image_to_cv2(img_a)
+        img_a = image_utils.pil_image_to_cv2(img_a)
         img_a = scale_image(img_a, DRAWING_SCALE_CONFIG)
 
         self._cache['img'] = img_a
@@ -200,7 +230,7 @@ class KeypointAnnotationTool(object):
             text = "DONE, 's' to save"
 
         img_w_text = np.copy(img)
-        cv2.putText(img_w_text, text, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 2, (255,255,255))
+        cv2.putText(img_w_text, text, (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 3, (255,255,0))
         cv2.imshow(self._config['window_name'], img_w_text)
 
     # mouse callback function
@@ -305,6 +335,9 @@ class KeypointAnnotationTool(object):
                 break
             elif k == ord('a'):
                 self._skip_keypoint()
+            elif k == ord('r'):
+                print "resetting image"
+                self._reset_image()
             elif k == ord('s'):
                 if len(self._cache['pick_points']) != len(KEYPOINT_LIST):
                     print "Need exactly", len(KEYPOINT_LIST), " annotations!"
@@ -315,7 +348,7 @@ class KeypointAnnotationTool(object):
                     new_dict = self._make_savable_correspondence_pairs()
                     annotated_data.append(new_dict)
                     utils.saveToYaml(annotated_data, "new_annotated_keypoints.yaml")
-                    next_image()
+                    self._get_new_image()
             elif k == ord('n'):
                 self._get_new_image()
 
