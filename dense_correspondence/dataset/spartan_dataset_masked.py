@@ -14,7 +14,7 @@ from torchvision import transforms
 
 import dense_correspondence_manipulation.utils.utils as utils
 from dense_correspondence_manipulation.utils.utils import CameraIntrinsics
-from dense_correspondence_manipulation.utils.scene_structure import SceneStructure
+
 
 import dense_correspondence_manipulation.utils.constants as constants
 
@@ -22,6 +22,8 @@ import dense_correspondence_manipulation.utils.constants as constants
 utils.add_dense_correspondence_to_python_path()
 import dense_correspondence.correspondence_tools.correspondence_finder as correspondence_finder
 import dense_correspondence.correspondence_tools.correspondence_augmentation as correspondence_augmentation
+
+from dense_correspondence.dataset.scene_structure import SceneStructure
 
 
 
@@ -1150,7 +1152,8 @@ class SpartanDataset(DenseCorrespondenceDataset):
             else:
                 first_image_index = min(metadata['normal_image_indices'])
         else:
-            first_image_index = min(self._pose_data[scene_name].keys())
+            pose_data = self.get_pose_data(scene_name)
+            first_image_index = min(pose_data.keys())
 
         return first_image_index
 
