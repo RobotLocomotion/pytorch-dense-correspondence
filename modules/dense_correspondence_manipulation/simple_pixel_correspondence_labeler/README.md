@@ -1,6 +1,5 @@
 # Simple Pixel Correspondence Labeler
 
-## How to use (in this repo)
 
 ## Regular Cross Scene Data
 
