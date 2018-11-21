@@ -284,8 +284,8 @@ class DenseCorrespondenceTraining(object):
         if not use_pretrained:
             self.save_network(dcn, optimizer, 0)
 
-        from training_progress_visualizer import TrainingProgressVisualizer
-        TPV = TrainingProgressVisualizer()
+        # from training_progress_visualizer import TrainingProgressVisualizer
+        # TPV = TrainingProgressVisualizer()
 
         for epoch in range(50):  # loop over the dataset multiple times
 
@@ -346,7 +346,7 @@ class DenseCorrespondenceTraining(object):
                 optimizer.step()
 
                 #if i % 10 == 0:
-                TPV.update(self._dataset, dcn, loss_current_iteration, now_training_object_id=metadata["object_id"])
+                # TPV.update(self._dataset, dcn, loss_current_iteration, now_training_object_id=metadata["object_id"])
 
                 elapsed = time.time() - start_iter
 
@@ -477,7 +477,7 @@ class DenseCorrespondenceTraining(object):
 
         self._logging_dir = os.path.join(utils.convert_data_relative_path_to_absolute_path(self._config['training']['logging_dir']), dir_name)
 
-
+        print "logging_dir:", self._logging_dir
 
         if os.path.isdir(self._logging_dir):
             shutil.rmtree(self._logging_dir)
@@ -490,6 +490,16 @@ class DenseCorrespondenceTraining(object):
         if not os.path.isdir(self._tensorboard_log_dir):
             os.makedirs(self._tensorboard_log_dir)
 
+        return self._logging_dir
+
+    @property
+    def logging_dir(self):
+        """
+        Sets up the directory where logs will be stored and config
+        files written
+        :return: full path of logging dir
+        :rtype: str
+        """
         return self._logging_dir
 
     def save_network(self, dcn, optimizer, iteration, logging_dict=None):
