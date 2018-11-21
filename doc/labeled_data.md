@@ -9,7 +9,7 @@ purposes.
 
 ### Labeling data
 - Use the `modules/simple_pixel_correspondence_labeler/annotate_keypoints.py` tool 
-- Edit the top of the file to change KEYPOINT_LIST = ["toe", "top_of_shoelaces", "heel"] to whatever you want
+- Edit the top of the file to change `KEYPOINT_LIST = ["toe", "top_of_shoelaces", "heel"]` to whatever you want
 - Edit the dataset configuration in the file too, any other parameters you see
 - `python annotate_keypoints.py`
 - One image at a time, label the keypoints in order as you specified
