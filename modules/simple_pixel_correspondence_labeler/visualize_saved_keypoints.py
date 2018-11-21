@@ -7,10 +7,10 @@ import copy
 import dense_correspondence_manipulation.utils.utils as utils
 dc_source_dir = utils.getDenseCorrespondenceSourceDir()
 sys.path.append(dc_source_dir)
-sys.path.append(os.path.join(dc_source_dir, "dense_correspondence", "correspondence_tools"))
+
 from dense_correspondence.dataset.spartan_dataset_masked import SpartanDataset, ImageType
 
-from annotate_correspondences import label_colors, draw_reticle, pil_image_to_cv2, drawing_scale_config
+from  dense_correspondence_manipulation.simple_pixel_correspondence.annotate_correspondences import label_colors, draw_reticle, pil_image_to_cv2, drawing_scale_config, numpy_to_cv2
 
 config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence', 
                                'dataset', 'composite', 'caterpillar_baymax_starbot_onlymulti_front.yaml')
@@ -18,7 +18,7 @@ config = utils.getDictFromYamlFilename(config_filename)
 sd = SpartanDataset(config=config)
 sd.set_train_mode()
 
-annotated_data_yaml_filename = os.path.join(dc_source_dir, "modules/simple-pixel-correspondence-labeler/new_annotated_keypoints.yaml")
+annotated_data_yaml_filename = os.path.join(dc_source_dir, "modules/simple_pixel_correspondence_labeler/new_annotated_keypoints.yaml")
 annotated_data = utils.getDictFromYamlFilename(annotated_data_yaml_filename)
 
 index_of_pair_to_display = 0
