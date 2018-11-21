@@ -1567,6 +1567,8 @@ class DenseCorrespondenceEvaluation(object):
         evaluation_labeled_data_paths = []
 
         # add the multi object list
+        # Note: (manuelli) why is this treated differently than the single object
+        # case?
         evaluation_labeled_data_paths += dataset.config["multi_object"]["evaluation_labeled_data_path"]
         
         # add all of the single object lists
@@ -1582,9 +1584,8 @@ class DenseCorrespondenceEvaluation(object):
 
         cross_scene_data = []
 
-        home = os.path.dirname(utils.getDenseCorrespondenceSourceDir())
         for i in evaluation_labeled_data_paths:
-            cross_scene_data_full_path = os.path.join(home, i)
+            cross_scene_data_full_path = utils.convert_data_relative_path_to_absolute_path(path, assert_path_exists=True)
             this_cross_scene_data = utils.getDictFromYamlFilename(cross_scene_data_full_path)
             cross_scene_data += this_cross_scene_data
 
