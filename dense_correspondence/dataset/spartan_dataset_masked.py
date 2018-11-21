@@ -5,6 +5,7 @@ import numpy as np
 import logging
 import glob
 import random
+import copy
 
 import torch
 
@@ -173,9 +174,16 @@ class SpartanDataset(DenseCorrespondenceDataset):
             config_file = os.path.join(prefix, 'single_object', config_file)
             single_object_scene_config = utils.getDictFromYamlFilename(config_file)
             object_id = single_object_scene_config["object_id"]
-            self._single_object_scene_dict[object_id] = single_object_scene_config
 
-        # will have test and train entries
+            # check if we already have this object in our dataset or not
+            if object_id not in self._single_object_scene_dict:
+                self._single_object_scene_dict[object_id] = single_object_scene_config
+            else:
+                existing_config = self._single_object_scene_dict[object_id]
+                merged_config = SpartanDataset.merge_single_object_configs([existing_config, single_object_scene_config])
+                self._single_object_scene_dict[object_id] = merged_config
+
+            # will have test and train entries
         # each one is a list of scenes
         self._multi_object_scene_dict = {"train": [], "test": [], "evaluation_labeled_data_path": []}
 
@@ -241,6 +249,43 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
         for scene_name in self._multi_object_scene_dict[mode]:
             yield scene_name
+
+    def get_scene_list(self, mode=None):
+        """
+        Returns a list of all scenes in this dataset
+        :return:
+        :rtype:
+        """
+        scene_generator = self.scene_generator(mode=mode)
+        scene_list = []
+        for scene_name in scene_generator:
+            scene_list.append(scene_name)
+
+        return scene_list
+    
+    def get_list_of_objects(self):
+        """
+        Returns a list of object ids
+        :return: list of object_ids
+        :rtype:
+        """
+        return self._single_object_scene_dict.keys()
+
+    def get_scene_list_for_object(self, object_id, mode=None):
+        """
+        Returns list of scenes for a given object. Return test/train
+        scenes depending on the mode
+        :param object_id:
+        :type object_id: string
+        :param mode: either "test" or "train"
+        :type mode:
+        :return:
+        :rtype:
+        """
+        if mode is None:
+            mode = self.mode
+
+        return copy.copy(self._single_object_scene_dict[object_id][mode])
 
     def _initialize_rgb_image_to_tensor(self):
         """
@@ -1148,7 +1193,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         if os.path.exists(metadata_file):
             metadata = utils.getDictFromYamlFilename(metadata_file)
             if len(metadata['close_up_image_indices']) > 0:
-                first_image_index = min(metadata_file['close_up_image_indices'])
+                first_image_index = min(metadata['close_up_image_indices'])
             else:
                 first_image_index = min(metadata['normal_image_indices'])
         else:
@@ -1160,6 +1205,32 @@ class SpartanDataset(DenseCorrespondenceDataset):
     @property
     def config(self):
         return self._config
+    
+    @staticmethod
+    def merge_single_object_configs(config_list):
+        config = config_list[0]
+        logs_root_path = config['logs_root_path']
+        object_id = config['object_id']
+
+        train_scenes = []
+        test_scenes = []
+        evaluation_labeled_data_path = []
+
+        for config in config_list:
+            train_scenes += config['train']
+            test_scenes += config['test']
+            evaluation_labeled_data_path += config['evaluation_labeled_data_path']
+
+
+
+        merged_config = dict()
+        merged_config['logs_root_path'] = logs_root_path
+        merged_config['object_id'] = object_id
+        merged_config['train'] = train_scenes
+        merged_config['test'] = test_scenes
+        merged_config['evaluation_labeled_data_path'] = evaluation_labeled_data_path
+
+        return merged_config
 
     @staticmethod
     def flatten_uv_tensor(uv_tensor, image_width):
