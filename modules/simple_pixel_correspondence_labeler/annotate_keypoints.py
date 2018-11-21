@@ -306,7 +306,7 @@ class KeypointAnnotationTool(object):
             elif k == ord('a'):
                 self._skip_keypoint()
             elif k == ord('s'):
-                if len(self._config['pick_points']) != len(KEYPOINT_LIST):
+                if len(self._cache['pick_points']) != len(KEYPOINT_LIST):
                     print "Need exactly", len(KEYPOINT_LIST), " annotations!"
                     print "These should be:"
                     print KEYPOINT_LIST
