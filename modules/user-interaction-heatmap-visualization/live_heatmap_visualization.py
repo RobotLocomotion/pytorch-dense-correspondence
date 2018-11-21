@@ -18,7 +18,8 @@ from dense_correspondence.network.dense_correspondence_network import DenseCorre
 
 import dense_correspondence_manipulation.utils.visualization as vis_utils
 
-from  dense_correspondence_manipulation.simple_pixel_correspondence.annotate_correspondences import label_colors, draw_reticle, pil_image_to_cv2, drawing_scale_config, numpy_to_cv2
+
+from dense_correspondence_manipulation.simple_pixel_correspondence_labeler.annotate_correspondences import label_colors, draw_reticle, pil_image_to_cv2, drawing_scale_config, numpy_to_cv2
 
 
 
