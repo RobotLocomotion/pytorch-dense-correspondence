@@ -82,24 +82,26 @@ Not yet supported:
 The resulting annotations are stored in `new_annotated_keypoints.yaml`. Example data is shown below for completeness.
 
 ```
-- image:
-    image_idx: 0
-    object_id: shoe_red_nike
-    pixels:
-    - keypoint: top_of_shoelaces
-      u: 279.0
-      v: 281.5
-    - keypoint: bottom_of_shoelaces
-      u: 263.0
-      v: 335.5
-    - keypoint: heel
-      u: 302.0
-      v: 210.5
-    - keypoint: toe
-      u: 249.5
-      v: 378.5
-    scene_name: 2018-05-14-22-17-00
-
+- image_idx: 3705
+  keypoints:
+    bottom_of_shoelaces:
+      keypoint: bottom_of_shoelaces
+      u: 396.5
+      v: 308.0
+    heel:
+      keypoint: heel
+      u: 387.5
+      v: 107.0
+    toe:
+      keypoint: toe
+      u: 406.0
+      v: 373.5
+    top_of_shoelaces:
+      keypoint: top_of_shoelaces
+      u: 391.5
+      v: 238.5
+  object_id: shoe_red_nike
+  scene_name: 2018-11-16-21-00-00
 ```
 
 ### Analyzing class-consistent keypoints
