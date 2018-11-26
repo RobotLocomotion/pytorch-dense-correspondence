@@ -83,23 +83,26 @@ The resulting annotations are stored in `new_annotated_keypoints.yaml`. Example 
 
 ```
 - image:
-    image_idx: 0
+    image_idx: 3705
+    keypoints:
+      bottom_of_shoelaces:
+        keypoint: bottom_of_shoelaces
+        u: 399.0
+        v: 311.0
+      heel:
+        keypoint: heel
+        u: 388.5
+        v: 107.5
+      toe:
+        keypoint: toe
+        u: 410.0
+        v: 371.0
+      top_of_shoelaces:
+        keypoint: top_of_shoelaces
+        u: 393.0
+        v: 230.0
     object_id: shoe_red_nike
-    pixels:
-    - keypoint: top_of_shoelaces
-      u: 279.0
-      v: 281.5
-    - keypoint: bottom_of_shoelaces
-      u: 263.0
-      v: 335.5
-    - keypoint: heel
-      u: 302.0
-      v: 210.5
-    - keypoint: toe
-      u: 249.5
-      v: 378.5
-    scene_name: 2018-05-14-22-17-00
-
+    scene_name: 2018-11-16-21-00-00
 ```
 
 ### Analyzing class-consistent keypoints
