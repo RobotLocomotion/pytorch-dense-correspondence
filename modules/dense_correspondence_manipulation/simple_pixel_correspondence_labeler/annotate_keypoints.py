@@ -273,7 +273,7 @@ class KeypointAnnotationTool(object):
 
 
 
-    def picked_points_to_savable_list(self, picked_points):
+    def picked_points_to_savable_dict(self, picked_points):
         """
         Converts the picked points to a savable list
         :param picked_points:
@@ -281,14 +281,14 @@ class KeypointAnnotationTool(object):
         :return:
         :rtype:
         """
-        savable_list = []
+        d = dict()
         for keypoint_name, u_v_tuple in picked_points.iteritems():
             u_v_dict = dict()
             u_v_dict["keypoint"] = keypoint_name
             u_v_dict["u"] = u_v_tuple[0]
             u_v_dict["v"] = u_v_tuple[1]
-            savable_list.append(u_v_dict)
-        return savable_list
+            d[keypoint_name] = u_v_dict
+        return d
 
 
     def _make_savable_correspondence_pairs(self):
@@ -299,14 +299,11 @@ class KeypointAnnotationTool(object):
         """
 
         new_dict = dict()
-        new_dict["image"] = dict()
 
-        new_dict["image"]["object_id"] = self._cache['object_id']
-        new_dict["image"]["scene_name"] = self._cache['scene_name']
-
-        new_dict["image"]["image_idx"] = self._cache['image_idx']
-
-        new_dict["image"]["pixels"] = self.picked_points_to_savable_list(self._cache['pick_points'])
+        new_dict["object_id"] = self._cache['object_id']
+        new_dict["scene_name"] = self._cache['scene_name']
+        new_dict["image_idx"] = self._cache['image_idx']
+        new_dict["keypoints"] = self.picked_points_to_savable_dict(self._cache['pick_points'])
 
         return copy.copy(new_dict)
 
