@@ -2203,7 +2203,8 @@ class DenseCorrespondenceEvaluation(object):
                                   save_folder_name="analysis",
                                   compute_descriptor_statistics=True, 
                                   cross_scene=True,
-                                  dataset=None):
+                                  dataset=None,
+                                  iteration=None):
         """
         Runs all the quantitative evaluations on the model folder
         Creates a folder model_folder/analysis that stores the information.
@@ -2239,7 +2240,7 @@ class DenseCorrespondenceEvaluation(object):
                 os.makedirs(dir)
 
 
-        dcn = DenseCorrespondenceNetwork.from_model_folder(model_folder)
+        dcn = DenseCorrespondenceNetwork.from_model_folder(model_folder, iteration=iteration)
         dcn.eval()
 
         if dataset is None:
