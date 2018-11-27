@@ -37,7 +37,7 @@ http://replace.with.actual.ip:8888/?token=a54c73014d7bcd57ea8f6c8e4f0803fb6d97d3
 
 There are just 3 steps. See this [link](https://stackoverflow.com/questions/37987839/how-can-i-run-tensorboard-on-a-remote-server/40413202?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa) for the complete explanation.
 
-1. Setup forwarding of port `6006` on remote machine to `16006` on your local machine.
+1. Setup forwarding of port `6006` on remote machine to `16006` on your local machine. On your local machine run.
 
 ```
 ssh -N -f -L localhost:16006:localhost:6006 <user@remote>
