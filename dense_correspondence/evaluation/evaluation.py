@@ -1347,11 +1347,11 @@ class DenseCorrespondenceEvaluation(object):
         DCE = DenseCorrespondenceEvaluation
 
         scene_name_a = keypoint_data_a['scene_name']
-        object_id_a = keypoint_data_a['scene_name']
+        object_id_a = keypoint_data_a['object_id']
         img_a_idx = keypoint_data_a['image_idx']
 
         scene_name_b = keypoint_data_b['scene_name']
-        object_id_b = keypoint_data_b['scene_name']
+        object_id_b = keypoint_data_b['object_id']
         img_b_idx = keypoint_data_b['image_idx']
 
         rgb_a, depth_a, mask_a, pose_a = dataset.get_rgbd_mask_pose(scene_name_a, img_a_idx)
