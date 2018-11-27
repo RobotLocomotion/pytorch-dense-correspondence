@@ -323,7 +323,12 @@ class DenseCorrespondenceNetwork(nn.Module):
         :rtype:
         """
 
-        fcn = resnet_dilated.Resnet34_8s(num_classes=config['descriptor_dimension'])
+        if "backbone" in config:
+            backbone = config['backbone']
+        else:
+            backbone = "Resnet34_8s"
+
+        fcn = getattr(resnet_dilated, backbone)(num_classes=config['descriptor_dimension'])
 
 
         if 'normalize' in config:

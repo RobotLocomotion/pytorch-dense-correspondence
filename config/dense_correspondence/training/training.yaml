@@ -42,10 +42,11 @@ dense_correspondence_network:
   image_width: 640
   image_height: 480
   normalize: False
+  backbone: "Resnet34_8s"
 
 
 loss_function:
-  M_masked: 0.5 # margin for masked non-match desciptor distance
+  M_masked: 0.5 # margin for masked non-match descriptor distance
   M_background: 0.5 # margin for background
   M_pixel: 50 # Clamp for pixel distance
   match_loss_weight: 1.0
