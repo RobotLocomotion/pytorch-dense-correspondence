@@ -43,6 +43,6 @@ There are just 3 steps. See this [link](https://stackoverflow.com/questions/3798
 ssh -N -f -L localhost:16006:localhost:6006 <user@remote>
 ```
 
-2. Launch tensorboard locally on the host machine. Note that I do this outside of a docker container by simply navigating to the directory I want and then running `tensorboard --logdir=$(pwd)`.
+2. Launch tensorboard locally on the host machine. Note that I do this outside of a docker container by simply navigating to the directory I want and then running `tensorboard --logdir=$(pwd)`. Doing this inside the docker container causes the tensorboard visualization to be messed up.
 
 3. Navigate to `http://localhost:16006` in your browser.
