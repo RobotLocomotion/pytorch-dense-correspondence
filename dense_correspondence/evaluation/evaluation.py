@@ -122,6 +122,10 @@ class DenseCorrespondenceEvaluation(object):
         self._dataset = None
 
 
+    @property
+    def config(self):
+        return self._configs
+
     def load_network_from_config(self, name):
         """
         Loads a network from config file. Puts it in eval mode by default
@@ -417,7 +421,7 @@ class DenseCorrespondenceEvaluation(object):
         return df
 
     @staticmethod
-    def evaluate_network_cross_scene_keypoints(dcn=None, dataset=None, full_path_cross_instance_labels=None):
+    def evaluate_network_cross_scene_keypoints(dcn, dataset, full_path_cross_instance_labels):
         """
         Evaluates the network on
         :param dcn:
@@ -434,10 +438,14 @@ class DenseCorrespondenceEvaluation(object):
 
         cross_instance_keypoint_labels = utils.getDictFromYamlFilename(full_path_cross_instance_labels)
 
+        print "num cross instance labels", len(cross_instance_keypoint_labels)
+
         pd_dataframe_list = []
 
         # generate all pairs of images
+        counter = 0
         for subset in itertools.combinations(cross_instance_keypoint_labels, 2):
+            counter += 1
             keypoint_data_a = subset[0]
             keypoint_data_b = subset[1]
 
@@ -450,7 +458,10 @@ class DenseCorrespondenceEvaluation(object):
 
             pd_dataframe_list += dataframe_list_temp
 
+
+        print "num_pairs considered", counter
         df = pd.concat(pd_dataframe_list)
+
         return df
 
     @staticmethod
@@ -1360,6 +1371,17 @@ class DenseCorrespondenceEvaluation(object):
         res_a = dcn.forward_single_image_tensor(rgb_a_tensor).data.cpu().numpy()
         res_b = dcn.forward_single_image_tensor(rgb_b_tensor).data.cpu().numpy()
 
+
+        # vectors to allow re-ordering
+        rgb = [rgb_a, rgb_b]
+        depth = [depth_a, depth_b]
+        mask = [mask_a, mask_b]
+        scene_name = [scene_name_a, scene_name_b]
+        img_idx = [img_a_idx, img_b_idx]
+        pose = [pose_a, pose_b]
+        res = [res_a, res_b]
+        object_id = [object_id_a, object_id_b]
+
         camera_intrinsics_a = dataset.get_camera_intrinsics(scene_name_a)
         camera_intrinsics_b = dataset.get_camera_intrinsics(scene_name_b)
         if not np.allclose(camera_intrinsics_a.K, camera_intrinsics_b.K):
@@ -1371,6 +1393,8 @@ class DenseCorrespondenceEvaluation(object):
         DCE = DenseCorrespondenceEvaluation
         dataframe_list = []
 
+        ordering = ["standard", "reverse"]
+
         for kp_name, data_a in keypoint_data_a['keypoints'].iteritems():
             if kp_name not in keypoint_data_b['keypoints']:
                 raise ValueError("keypoint %s appears in one list of annotated data but"
@@ -1378,34 +1402,52 @@ class DenseCorrespondenceEvaluation(object):
 
             data_b = keypoint_data_b['keypoints'][kp_name]
 
-            uv_a = DCE.clip_pixel_to_image_size_and_round((data_a['u'], data_a['v']), image_width, image_height)
-            uv_b = DCE.clip_pixel_to_image_size_and_round((data_b['u'], data_b['v']), image_width, image_height)
+            data = [data_a, data_b]
+
+            for order in ordering:
+                if order == "standard":
+                    idx_1 = 0
+                    idx_2 = 1
+                elif order == "reverse":
+                    idx_1 = 1
+                    idx_2 = 0
+                else:
+                    raise ValueError("you should never get here")
 
 
-            pd_template = DenseCorrespondenceEvaluation.compute_descriptor_match_statistics(depth_a,
-                                                                                            depth_b,
-                                                                                            mask_a,
-                                                                                            mask_b,
-                                                                                            uv_a,
-                                                                                            uv_b,
-                                                                                            pose_a,
-                                                                                            pose_b,
-                                                                                            res_a,
-                                                                                            res_b,
-                                                                                            camera_intrinsics_matrix,
-                                                                                            rgb_a=rgb_a, rgb_b=rgb_b,
-                                                                                            debug=False)
-
-            pd_template.set_value('img_a_idx', img_a_idx)
-            pd_template.set_value('img_b_idx', img_b_idx)
-            pd_template.set_value('scene_name_a', scene_name_a)
-            pd_template.set_value('scene_name_b', scene_name_b)
-            pd_template.set_value('object_id_a', object_id_a)
-            pd_template.set_value('object_id_b', object_id_b)
-            pd_template.set_value('keypoint_name', kp_name)
 
 
-            dataframe_list.append(pd_template.dataframe)
+                uv_a = DCE.clip_pixel_to_image_size_and_round((data_a['u'], data_a['v']), image_width, image_height)
+                uv_b = DCE.clip_pixel_to_image_size_and_round((data_b['u'], data_b['v']), image_width, image_height)
+
+                uv_1 = DCE.clip_pixel_to_image_size_and_round((data[idx_1]['u'], data[idx_2]['v']), image_width, image_height)
+                uv_2 = DCE.clip_pixel_to_image_size_and_round((data[idx_2]['u'], data[idx_2]['v']), image_width,
+                                                              image_height)
+
+                pd_template = DenseCorrespondenceEvaluation.compute_descriptor_match_statistics(depth[idx_1],
+                                                                                                depth[idx_2],
+                                                                                                mask[idx_1],
+                                                                                                mask[idx_2],
+                                                                                                uv_1,
+                                                                                                uv_2,
+                                                                                                pose[idx_1],
+                                                                                                pose[idx_2],
+                                                                                                res[idx_1],
+                                                                                                res[idx_2],
+                                                                                                camera_intrinsics_matrix,
+                                                                                                rgb_a=rgb[idx_1], rgb_b=rgb[idx_2],
+                                                                                                debug=False)
+
+                pd_template.set_value('img_a_idx', img_idx[idx_1])
+                pd_template.set_value('img_b_idx', img_idx[idx_2])
+                pd_template.set_value('scene_name_a', scene_name[idx_1])
+                pd_template.set_value('scene_name_b', scene_name[idx_2])
+                pd_template.set_value('object_id_a', object_id[idx_1])
+                pd_template.set_value('object_id_b', object_id[idx_2])
+                pd_template.set_value('keypoint_name', kp_name)
+
+
+                dataframe_list.append(pd_template.dataframe)
 
         return dataframe_list
 
@@ -2258,6 +2300,58 @@ class DenseCorrespondenceEvaluation(object):
 
 
         logging.info("Finished running evaluation on network")
+
+    @staticmethod
+    def run_cross_instance_keypoint_evaluation_on_network(model_folder, path_to_cross_instance_labels,
+                                  save_folder_name="analysis/cross_scene_keypoints",
+                                  dataset=None, save=True):
+        """
+        Runs cross instance keypoint evaluation on the given network.
+        Creates a folder model_folder/<save_folder_name> that stores the information.
+
+        :param model_folder: folder where trained network is
+        :type model_folder:
+        :param path_to_cross_instance_labels: path to location of cross instance data. Can be full path
+        or path relative to the data directory
+        :type path_to_cross_instance_labels: str
+        :param save_folder_name: place where data is being saved
+        :type save_folder_name: str
+        :param dataset: SpartanDataset
+        :type dataset:
+        :return:
+        :rtype:
+        """
+        utils.reset_random_seed()
+
+        DCE = DenseCorrespondenceEvaluation
+
+        model_folder = utils.convert_data_relative_path_to_absolute_path(model_folder, assert_path_exists=True)
+
+
+
+        dcn = DenseCorrespondenceNetwork.from_model_folder(model_folder)
+        dcn.eval()
+
+        if dataset is None:
+            dataset = dcn.load_training_dataset()
+
+        path_to_cross_instance_labels = utils.convert_data_relative_path_to_absolute_path(path_to_cross_instance_labels, assert_path_exists=True)
+        df = DCE.evaluate_network_cross_scene_keypoints(dcn, dataset, path_to_cross_instance_labels)
+
+
+        if save:
+            # save it to a csv file
+            output_dir = os.path.join(model_folder, save_folder_name)
+            # create the necessary directories
+            for dir in [output_dir]:
+                if not os.path.isdir(dir):
+                    os.makedirs(dir)
+
+            save_filename = os.path.join(output_dir, 'data.csv')
+            df.to_csv(save_filename)
+
+        logging.info("Finished running cross scene keypoint evaluation")
+        return df
 
 
     @staticmethod
