@@ -423,7 +423,7 @@ class DenseCorrespondenceEvaluation(object):
     @staticmethod
     def evaluate_network_cross_scene_keypoints(dcn, dataset, full_path_cross_instance_labels):
         """
-        Evaluates the network on
+        Evaluates the network on keypoint annotations across scenes
         :param dcn:
         :type dcn:
         :param dataset:
