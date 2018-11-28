@@ -1211,6 +1211,9 @@ class SpartanDataset(DenseCorrespondenceDataset):
         """
         Given a list of single object configs, merge them. This basically concatenates
         all the fields ('train', 'test', 'logs_root_path')
+
+        Asserts that 'object_id' is the same for all of the configs
+        Asserts that `logs_root_path` is the same for all the configs
         :param config_list:
         :type config_list:
         :return: single object config
