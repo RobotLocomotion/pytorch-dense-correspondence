@@ -1208,6 +1208,14 @@ class SpartanDataset(DenseCorrespondenceDataset):
     
     @staticmethod
     def merge_single_object_configs(config_list):
+        """
+        Given a list of single object configs, merge them. This basically concatenates
+        all the fields ('train', 'test', 'logs_root_path')
+        :param config_list:
+        :type config_list:
+        :return: single object config
+        :rtype: dict
+        """
         config = config_list[0]
         logs_root_path = config['logs_root_path']
         object_id = config['object_id']
@@ -1217,6 +1225,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         evaluation_labeled_data_path = []
 
         for config in config_list:
+            assert (config['object_id'] == object_id)
             train_scenes += config['train']
             test_scenes += config['test']
             evaluation_labeled_data_path += config['evaluation_labeled_data_path']
