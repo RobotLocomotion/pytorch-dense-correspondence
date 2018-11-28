@@ -1,0 +1,9 @@
+logs_root_path: logs_proto
+object_id: "shoe_brown_nike_close_up"
+train:
+  - "2018-11-16-21-00-00" # down
+  - "2018-11-16-21-06-15" # up right
+  - "2018-11-16-21-11-01" # up left
+  - "2018-11-16-21-42-19" # down left
+test: []
+evaluation_labeled_data_path: []
