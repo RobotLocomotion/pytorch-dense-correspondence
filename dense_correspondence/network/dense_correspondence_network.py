@@ -225,9 +225,9 @@ class DenseCorrespondenceNetwork(nn.Module):
         """
         Simple forward pass on the network.
 
-        note: This assumes that you have already normalized the image
-        If we are in TRAIN mode then assume the dataset object has already normalized
-        the image
+        Assumes the image has already been normalized (i.e. subtract mean, divide by std dev)
+
+        Color channel should be RGB
 
         :param img_tensor: torch.FloatTensor with shape [3,H,W]
         :type img_tensor:
@@ -323,7 +323,12 @@ class DenseCorrespondenceNetwork(nn.Module):
         :rtype:
         """
 
-        fcn = resnet_dilated.Resnet34_8s(num_classes=config['descriptor_dimension'])
+        if "backbone" in config:
+            backbone = config['backbone']
+        else:
+            backbone = "Resnet34_8s"
+
+        fcn = getattr(resnet_dilated, backbone)(num_classes=config['descriptor_dimension'])
 
 
         if 'normalize' in config:

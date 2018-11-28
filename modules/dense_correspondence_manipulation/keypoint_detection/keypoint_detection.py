@@ -14,7 +14,6 @@ import dense_correspondence_manipulation.utils.constants as constants
 DC_SOURCE_DIR = utils.getDenseCorrespondenceSourceDir()
 CONFIG_FILE = os.path.join(DC_SOURCE_DIR, 'config', 'dense_correspondence',
                            'keypoints', 'shoe_keypoints.yaml')
-
 EVAL_CONFIG_FILENAME = os.path.join(DC_SOURCE_DIR, 'config', 'dense_correspondence', 'evaluation', 'lucas_evaluation.yaml')
 
 
@@ -23,9 +22,19 @@ class KeypointDetection(object):
     def __init__(self, config, eval_config):
         self._config = config
         self._eval_config = eval_config
+        self._dcn = None
         self._dce = DenseCorrespondenceEvaluation(eval_config)
         self._dataset = None
         self._initialize()
+
+
+    @property
+    def dataset(self):
+        return self._dataset
+
+    @property
+    def dcn(self):
+        return self._dcn
 
     def _initialize(self):
         """
@@ -55,6 +64,7 @@ class KeypointDetection(object):
 
         network_name = self._config["network_name"]
         dcn = self._dce.load_network_from_config(network_name)
+        self._dcn = dcn
         dcn.eval()
         self._dcn_dict[network_name] = dcn
         self._network_reticle_color[network_name] = constants.LABEL_COLORS[0]
@@ -79,7 +89,7 @@ class KeypointDetection(object):
         """
         Visualize the reference image, with reticles at the keypoints
         :return:
-        :rtype: cv2 image
+        :rtype: cv2 image, bgr color scheme
         """
 
         img = None
@@ -152,21 +162,24 @@ class KeypointDetection(object):
         for network_name, dcn in self._dcn_dict.iteritems():
             self._res[network_name] = dcn.forward_single_image_tensor(rgb_tensor).data.cpu().numpy()
 
-    def _visualize_keypoints(self, img, keypoint_detections):
+    def _visualize_keypoints(self, img, keypoint_detections, copy_image=True):
         """
         Overlay the  the keypoint detections onto the image
         :param img:
         :type img: cv2 image
-        :param keypoint_detections:
+        :param keypoint_detections: List of keypoint detections, format
+        specified by output of _detect_keypoints function
         :type keypoint_detections:
-        :return: cv2 image with keypoint detections
+        :param copy_image: if set to true, then makes a copy of img. 
+        Otherwise it adds the reticles to the existing img object
+        :return: cv2 image with keypoint detections, bgr color encoding
         :rtype:
         """
 
-        img_w_keypoints = np.copy(img)
-
-        print "type(img_w_keypoints)", type(img_w_keypoints)
-        print "img_w_keypoints.shape", img_w_keypoints.shape
+        if copy_image:
+            img_w_keypoints = np.copy(img)
+        else:
+            img_w_keypoints = img
 
         for keypoint, data in keypoint_detections.iteritems():
             color = self._config["keypoints"][keypoint]["color"]
@@ -220,7 +233,7 @@ class KeypointDetection(object):
         dc_source_dir = utils.getDenseCorrespondenceSourceDir()
         config_filename = os.path.join(dc_source_dir, 'config',
                                        'dense_correspondence',
-                                       'keypoint_detection',
+                                       'keypoints',
                                        'shoe_keypoints.yaml')
 
         config = utils.getDictFromYamlFilename(config_filename)

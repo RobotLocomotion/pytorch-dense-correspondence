@@ -1,5 +1,6 @@
 logs_root_path: logs_proto
-object_id: "shoe_red_nike.yaml"
+object_id: "shoe_red_nike"
+
 train:
 - "2018-05-14-22-10-53" # red nike
 - "2018-05-14-22-15-08" # red nike

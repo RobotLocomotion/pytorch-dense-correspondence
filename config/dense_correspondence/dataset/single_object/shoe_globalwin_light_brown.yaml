@@ -5,5 +5,9 @@ train:
   - "2018-11-16-17-43-27" # pointing right
   - "2018-11-16-17-51-12" # pointing away from robot
   - "2018-11-16-17-57-22" # diagonal left/up
-test: []
+test:
+  - "2018-11-16-17-31-50" # pointing towards robot
+  - "2018-11-16-17-43-27" # pointing right
+  - "2018-11-16-17-51-12" # pointing away from robot
+  - "2018-11-16-17-57-22" # diagonal left/up
 evaluation_labeled_data_path: []

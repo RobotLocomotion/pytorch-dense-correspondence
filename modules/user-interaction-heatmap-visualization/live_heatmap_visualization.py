@@ -18,8 +18,8 @@ from dense_correspondence.network.dense_correspondence_network import DenseCorre
 
 import dense_correspondence_manipulation.utils.visualization as vis_utils
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "../simple-pixel-correspondence-labeler"))
-from annotate_correspondences import label_colors, draw_reticle, pil_image_to_cv2, drawing_scale_config, numpy_to_cv2
+
+from dense_correspondence_manipulation.simple_pixel_correspondence_labeler.annotate_correspondences import label_colors, draw_reticle, pil_image_to_cv2, drawing_scale_config, numpy_to_cv2
 
 
 

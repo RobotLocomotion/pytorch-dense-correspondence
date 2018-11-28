@@ -49,6 +49,14 @@ class SceneStructure(object):
     def rendered_images_dir(self):
         return os.path.join(self._processed_folder_dir, 'rendered_images')
 
+    @property
+    def images_dir(self):
+        return os.path.join(self._processed_folder_dir, 'images')
+
+    @property
+    def metadata_file(self):
+        return os.path.join(self.images_dir, 'metadata.yaml')
+
 
     def mesh_descriptors_dir(self, network_name):
         """
