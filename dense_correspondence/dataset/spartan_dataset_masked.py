@@ -1226,6 +1226,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
         for config in config_list:
             assert (config['object_id'] == object_id)
+            assert (config['logs_root_path'] == logs_root_path)
             train_scenes += config['train']
             test_scenes += config['test']
             evaluation_labeled_data_path += config['evaluation_labeled_data_path']
