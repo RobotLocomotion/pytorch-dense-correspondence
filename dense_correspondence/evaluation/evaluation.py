@@ -1415,11 +1415,6 @@ class DenseCorrespondenceEvaluation(object):
                     raise ValueError("you should never get here")
 
 
-
-
-                uv_a = DCE.clip_pixel_to_image_size_and_round((data_a['u'], data_a['v']), image_width, image_height)
-                uv_b = DCE.clip_pixel_to_image_size_and_round((data_b['u'], data_b['v']), image_width, image_height)
-
                 uv_1 = DCE.clip_pixel_to_image_size_and_round((data[idx_1]['u'], data[idx_2]['v']), image_width, image_height)
                 uv_2 = DCE.clip_pixel_to_image_size_and_round((data[idx_2]['u'], data[idx_2]['v']), image_width,
                                                               image_height)
