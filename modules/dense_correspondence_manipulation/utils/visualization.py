@@ -29,7 +29,6 @@ def compute_gaussian_kernel_heatmap_from_norm_diffs(norm_diffs, variance):
     heatmap = np.exp(-heatmap / variance)  # these are now in [0,1]
     heatmap *= 255
     heatmap = heatmap.astype(np.uint8)
-    print "heatmap dtype", heatmap.dtype
     heatmap_color = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
     return heatmap_color
 
