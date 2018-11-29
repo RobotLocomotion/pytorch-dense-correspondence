@@ -536,7 +536,14 @@ class DenseCorrespondenceTraining(object):
         utils.saveToYaml(self._config, training_params_file)
 
         dataset_params_file = os.path.join(self._logging_dir, 'dataset.yaml')
-        utils.saveToYaml(self._dataset.config, dataset_params_file)        
+        utils.saveToYaml(self._dataset.config, dataset_params_file)
+
+        # make unique identifier
+        identifier_file = os.path.join(self._logging_dir, 'identifier.yaml')
+        identifier_dict = dict()
+        identifier_dict['id'] = utils.get_unique_string()
+        utils.saveToYaml(identifier_dict, identifier_file)
+
 
     def adjust_learning_rate(self, optimizer, iteration):
         """
