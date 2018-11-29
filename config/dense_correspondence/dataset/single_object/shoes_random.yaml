@@ -1,0 +1,13 @@
+logs_root_path: logs_proto
+object_id: "shoes_random"
+train:
+- "2018-05-09-18-35-42" # katy trainer
+- "2018-05-09-18-23-00" # brown dress shoe
+- "2018-05-09-18-21-25" # black converse
+- "2018-05-09-18-19-27" # blue nike
+- "2018-05-09-18-13-50" # brown sneaker
+- "2018-05-09-18-11-53" # blue sneaker
+- "2018-05-09-18-10-18" # Pete Merrel
+- "2018-05-09-18-08-21" # Saucony trainer
+test: []
+evaluation_labeled_data_path: []
