@@ -1,17 +1,14 @@
-#!/usr/bin/python
-
-
+# system
 import os
-import dense_correspondence_manipulation.utils.utils as utils
-import logging
-utils.add_dense_correspondence_to_python_path()
-import matplotlib.pyplot as plt
-import cv2
 import numpy as np
 import pandas as pd
-import random
-import scipy.stats as ss
-import itertools
+import time
+import shutil
+
+
+import dense_correspondence_manipulation.utils.utils as utils
+utils.add_dense_correspondence_to_python_path()
+from dense_correspondence.dataset.spartan_dataset_masked import SpartanDataset
 
 class PandaDataFrameWrapper(object):
     """
@@ -109,3 +106,55 @@ class KeypointAnnotationsPandasTemplate(PandaDataFrameWrapper):
 
 
 
+def extract_descriptor_images_for_scene(dcn, dataset, scene_name, save_dir,
+                                        overwrite=False):
+    """
+    Save the descriptor images for a scene at the given directory
+    :param dcn:
+    :type dcn:
+    :param dataset:
+    :type dataset:
+    :param scene_name:
+    :type scene_name:
+    :param save_dir: Absolute path of where to save images
+    :type save_dir:
+    :return:
+    :rtype:
+    """
+
+    pose_data = dataset.get_pose_data(scene_name)
+    image_idxs = pose_data.keys()
+    image_idxs.sort()
+
+    num_images = len(pose_data)
+
+    logging_frequency = 50
+    start_time = time.time()
+
+    # make the mesh_descriptors dir if it doesn't already exist
+    if os.path.exists(save_dir):
+        if not overwrite:
+            raise ValueError("save_dir %s already exists and overwrite is False" %(save_dir))
+        else:
+            shutil.rmtree(save_dir)
+
+    os.makedirs(save_dir)
+
+    for counter, img_idx in enumerate(image_idxs):
+
+        if (counter % logging_frequency) == 0:
+            print "processing image %d of %d" % (counter, num_images)
+
+        rgb_img = dataset.get_rgb_image_from_scene_name_and_idx(scene_name, img_idx)
+
+        # note that this has already been normalized
+        rgb_img_tensor = dataset.rgb_image_to_tensor(rgb_img)
+        res = dcn.forward_single_image_tensor(rgb_img_tensor).data
+        descriptor_image_filename = utils.getPaddedString(img_idx, width=SpartanDataset.PADDED_STRING_WIDTH) + "_descriptor.npy"
+
+        full_filepath = os.path.join(save_dir, descriptor_image_filename)
+        np.save(full_filepath, res.cpu())
+
+
+    elapsed_time = time.time() - start_time
+    print "computing descriptor images took %d seconds" % (elapsed_time)
