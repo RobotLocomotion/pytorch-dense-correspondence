@@ -1,4 +1,4 @@
 [submodule "pytorch-segmentation-detection"]
-	path = pytorch-segmentation-detection
+	path = external/pytorch-segmentation-detection
 	url = https://github.com/warmspringwinds/pytorch-segmentation-detection.git
 
