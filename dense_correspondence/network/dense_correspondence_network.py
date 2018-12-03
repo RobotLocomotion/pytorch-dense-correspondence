@@ -305,15 +305,7 @@ class DenseCorrespondenceNetwork(nn.Module):
     @staticmethod
     def get_unet(config):
         """
-        Returns a Unet nn.module that satisfies these properties:
-
-        1. autodiffs
-        2. has forward() overloaded
-        3. can accept a ~Nx3xHxW (should double check)
-        4. outputs    a ~NxDxHxW (should double check)
-
-        :param config: Dict with dcn configuration parameters
-
+        Returns a Unet nn.module that satisifies the fcn properties stated in get_fcn() docstring
         """
         dc_source_dir = utils.getDenseCorrespondenceSourceDir()
         sys.path.append(os.path.join(dc_source_dir, 'external/unet-pytorch'))
@@ -324,6 +316,17 @@ class DenseCorrespondenceNetwork(nn.Module):
 
     @staticmethod
     def get_fcn(config):
+        """
+        Returns a pytorch nn.module that satisfies these properties:
+
+        1. autodiffs
+        2. has forward() overloaded
+        3. can accept a ~Nx3xHxW (should double check)
+        4. outputs    a ~NxDxHxW (should double check)
+
+        :param config: Dict with dcn configuration parameters
+
+        """
         
         if config["backbone"]["model_class"] == "Resnet":
             fcn = getattr(resnet_dilated, backbone)(num_classes=config['descriptor_dimension'])
