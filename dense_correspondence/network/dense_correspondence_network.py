@@ -213,7 +213,7 @@ class DenseCorrespondenceNetwork(nn.Module):
 
         res = self.fcn(img_tensor)
         if self._normalize:
-            print "normalizing descriptor norm"
+            #print "normalizing descriptor norm"
             norm = torch.norm(res, 2, 1) # [N,1,H,W]
             res = res/norm
 
@@ -301,16 +301,52 @@ class DenseCorrespondenceNetwork(nn.Module):
         config = utils.getDictFromYamlFilename(dataset_config_file)
         return SpartanDataset(config_expanded=config)
 
+
+    @staticmethod
+    def get_unet(config):
+        """
+        Returns a Unet nn.module that satisfies these properties:
+
+        1. autodiffs
+        2. has forward() overloaded
+        3. can accept a ~Nx3xHxW (should double check)
+        4. outputs    a ~NxDxHxW (should double check)
+
+        :param config: Dict with dcn configuration parameters
+
+        """
+        dc_source_dir = utils.getDenseCorrespondenceSourceDir()
+        sys.path.append(os.path.join(dc_source_dir, 'external/unet-pytorch'))
+        from unet_model import UNet
+        model = UNet(num_classes=config["descriptor_dimension"]).cuda()
+        return model
+
+
+    @staticmethod
+    def get_fcn(config):
+        
+        if config["backbone"]["model_class"] == "Resnet":
+            fcn = getattr(resnet_dilated, backbone)(num_classes=config['descriptor_dimension'])
+        
+        elif config["backbone"]["model_class"] == "Unet":
+            fcn = DenseCorrespondenceNetwork.get_unet(config)
+
+        else:
+            raise ValueError("Can't build backbone network.  I don't know this backbone model class!")
+        
+        return fcn
+
     @staticmethod
     def from_config(config, load_stored_params=True, model_param_file=None):
         """
-        Load a network from a config file
+        Load a network from a configuration
+
+
+        :param config: Dict specifying details of the network architecture
 
         :param load_stored_params: whether or not to load stored params, if so there should be
             a "path_to_network" entry in the config
         :type load_stored_params: bool
-
-        :param config: Dict specifying details of the network architecture
 
         e.g.
             path_to_network: /home/manuelli/code/dense_correspondence/recipes/trained_models/10_drill_long_3d
@@ -323,13 +359,12 @@ class DenseCorrespondenceNetwork(nn.Module):
         :rtype:
         """
 
-        if "backbone" in config:
-            backbone = config['backbone']
-        else:
-            backbone = "Resnet34_8s"
+        if "backbone" not in config:  
+            # default to CoRL 2018 backbone!
+            config["backbone"]["model_class"] = "Resnet"
+            config["backbone"]["resnet_name"] = "Resnet34_8s"
 
-        fcn = getattr(resnet_dilated, backbone)(num_classes=config['descriptor_dimension'])
-
+        fcn = get_fcn(config)
 
         if 'normalize' in config:
             normalize = config['normalize']
