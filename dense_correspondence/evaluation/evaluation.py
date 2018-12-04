@@ -416,6 +416,27 @@ class DenseCorrespondenceEvaluation(object):
 
         print "num cross instance labels", len(cross_instance_keypoint_labels)
 
+        # Two-layer dict with:
+        # - key:   the scene_name
+        # - key:   the image_idx
+        # - value: the descriptor image 
+        descriptor_images = dict()
+
+        # generate all descriptor images
+        for keypoint_label in cross_instance_keypoint_labels:
+            scene_name = keypoint_label["scene_name"]
+            image_idx = keypoint_label["image_idx"]
+            if scene_name not in descriptor_images:
+                descriptor_images[scene_name] = dict()
+            if image_idx in descriptor_images[scene_name]:
+                continue
+            rgb, _, _, _ = dataset.get_rgbd_mask_pose(scene_name, image_idx)
+            rgb_tensor = dataset.rgb_image_to_tensor(rgb)
+            res = dcn.forward_single_image_tensor(rgb_tensor).data.cpu().numpy()
+            
+            descriptor_images[scene_name][image_idx] = res
+
+
         pd_dataframe_list = []
 
         # generate all pairs of images
@@ -424,9 +445,12 @@ class DenseCorrespondenceEvaluation(object):
             counter += 1
             keypoint_data_a = subset[0]
             keypoint_data_b = subset[1]
+            
+            res_a = descriptor_images[keypoint_data_a["scene_name"]][keypoint_data_a["image_idx"]]
+            res_b = descriptor_images[keypoint_data_b["scene_name"]][keypoint_data_b["image_idx"]]
 
             dataframe_list_temp = \
-                DenseCorrespondenceEvaluation.single_image_pair_cross_scene_keypoints_quantitative_analysis(dcn, dataset, keypoint_data_a, keypoint_data_b)
+                DenseCorrespondenceEvaluation.single_image_pair_cross_scene_keypoints_quantitative_analysis(dcn, dataset, keypoint_data_a, keypoint_data_b, res_a, res_b)
 
             if dataframe_list_temp is None:
                 print "no matches found, skipping"
@@ -1393,7 +1417,7 @@ class DenseCorrespondenceEvaluation(object):
 
     @staticmethod
     def single_image_pair_cross_scene_keypoints_quantitative_analysis(dcn, dataset, keypoint_data_a,
-                                                                      keypoint_data_b):
+                                                                      keypoint_data_b, res_a=None, res_b=None):
         """
         Quantitative analysis of cross instance keypoint annotations. This is used in the
         class consistent setting
@@ -1429,13 +1453,14 @@ class DenseCorrespondenceEvaluation(object):
         mask_a = np.asarray(mask_a)
         mask_b = np.asarray(mask_b)
 
-        # compute dense descriptors
-        rgb_a_tensor = dataset.rgb_image_to_tensor(rgb_a)
-        rgb_b_tensor = dataset.rgb_image_to_tensor(rgb_b)
+        if res_a is None and res_b is None:
+            # compute dense descriptors
+            rgb_a_tensor = dataset.rgb_image_to_tensor(rgb_a)
+            rgb_b_tensor = dataset.rgb_image_to_tensor(rgb_b)
 
-        # these are Variables holding torch.FloatTensors, first grab the data, then convert to numpy
-        res_a = dcn.forward_single_image_tensor(rgb_a_tensor).data.cpu().numpy()
-        res_b = dcn.forward_single_image_tensor(rgb_b_tensor).data.cpu().numpy()
+            # these are Variables holding torch.FloatTensors, first grab the data, then convert to numpy
+            res_a = dcn.forward_single_image_tensor(rgb_a_tensor).data.cpu().numpy()
+            res_b = dcn.forward_single_image_tensor(rgb_b_tensor).data.cpu().numpy()
 
 
         # vectors to allow re-ordering

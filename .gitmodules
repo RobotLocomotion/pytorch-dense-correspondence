@@ -1,7 +1,12 @@
 [submodule "pytorch-segmentation-detection"]
-	path = pytorch-segmentation-detection
+	path = external/pytorch-segmentation-detection
 	url = https://github.com/warmspringwinds/pytorch-segmentation-detection.git
 
 [submodule "src/poser"]
 	path = src/poser
 	url = git@github.com:RobotLocomotion/poser.git
+
+[submodule "external/unet-pytorch"]
+	path = external/unet-pytorch
+	url = https://github.com/RobotLocomotion/unet-pytorch.git
+
