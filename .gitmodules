@@ -2,3 +2,6 @@
 	path = pytorch-segmentation-detection
 	url = https://github.com/warmspringwinds/pytorch-segmentation-detection.git
 
+[submodule "src/poser"]
+	path = src/poser
+	url = git@github.com:RobotLocomotion/poser.git
