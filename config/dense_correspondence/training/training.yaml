@@ -43,7 +43,7 @@ dense_correspondence_network:
   backbone:
     model_class: "Resnet"         # options: {Resnet, Unet}
     # If Resnet
-    resnet_name: "Resnet_101_8s"  # options: {Resnet_34_8s, Resnet_101_8s, etc.}
+    resnet_name: "Resnet101_8s"  # options: {Resnet34_8s, Resnet101_8s, etc.}
     # If Unet
     # currently no options supported
 

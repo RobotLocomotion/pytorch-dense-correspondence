@@ -329,7 +329,8 @@ class DenseCorrespondenceNetwork(nn.Module):
         """
         
         if config["backbone"]["model_class"] == "Resnet":
-            fcn = getattr(resnet_dilated, backbone)(num_classes=config['descriptor_dimension'])
+            resnet_model = config["backbone"]["resnet_name"]
+            fcn = getattr(resnet_dilated, resnet_model)(num_classes=config['descriptor_dimension'])
         
         elif config["backbone"]["model_class"] == "Unet":
             fcn = DenseCorrespondenceNetwork.get_unet(config)
@@ -367,7 +368,7 @@ class DenseCorrespondenceNetwork(nn.Module):
             config["backbone"]["model_class"] = "Resnet"
             config["backbone"]["resnet_name"] = "Resnet34_8s"
 
-        fcn = get_fcn(config)
+        fcn = DenseCorrespondenceNetwork.get_fcn(config)
 
         if 'normalize' in config:
             normalize = config['normalize']
