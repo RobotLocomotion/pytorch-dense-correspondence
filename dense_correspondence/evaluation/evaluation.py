@@ -426,11 +426,14 @@ class DenseCorrespondenceEvaluation(object):
         for keypoint_label in cross_instance_keypoint_labels:
             scene_name = keypoint_label["scene_name"]
             image_idx = keypoint_label["image_idx"]
+            if scene_name not in descriptor_images:
+                descriptor_images[scene_name] = dict()
+            if image_idx in descriptor_images[scene_name]:
+                continue
             rgb, _, _, _ = dataset.get_rgbd_mask_pose(scene_name, image_idx)
             rgb_tensor = dataset.rgb_image_to_tensor(rgb)
             res = dcn.forward_single_image_tensor(rgb_tensor).data.cpu().numpy()
-            if scene_name not in descriptor_images:
-                descriptor_images[scene_name] = dict()
+            
             descriptor_images[scene_name][image_idx] = res
 
 
