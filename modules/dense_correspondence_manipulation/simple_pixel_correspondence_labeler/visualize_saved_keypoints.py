@@ -23,27 +23,27 @@ annotated_data = utils.getDictFromYamlFilename(annotated_data_yaml_filename)
 
 index_of_pair_to_display = 0
 
-def draw_points(img, img_points_picked):
-    for index, img_point in enumerate(img_points_picked):
-        color = label_colors[index%len(label_colors)]
-        draw_reticle(img, int(img_point["u"]), int(img_point["v"]), color)
+def draw_points(img, keypoints):
+    counter = 0
+    for keypoint_name, data in keypoints.iteritems():
+        color = label_colors[counter%len(label_colors)]
+        draw_reticle(img, int(data["u"]), int(data["v"]), color)
+        counter +=1
 
 def next_image_from_saved():
     global img1, index_of_pair_to_display
     print annotated_data[index_of_pair_to_display]
     annotated_pair = annotated_data[index_of_pair_to_display]
     
-    scene_name_1 = annotated_pair["image"]["scene_name"]
+    scene_name_1 = annotated_pair["scene_name"]
     
-    image_1_idx = annotated_pair["image"]["image_idx"]
+    image_1_idx = annotated_pair["image_idx"]
 
-    img1_points_picked = annotated_pair["image"]["pixels"]
-
-    print img1_points_picked
+    keypoints = annotated_pair["keypoints"]
 
     img1 = pil_image_to_cv2(sd.get_rgb_image_from_scene_name_and_idx(scene_name_1, image_1_idx))
 
-    draw_points(img1, img1_points_picked)
+    draw_points(img1, keypoints)
 
     index_of_pair_to_display += 1
 

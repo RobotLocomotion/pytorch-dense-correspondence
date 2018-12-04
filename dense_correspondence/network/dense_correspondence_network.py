@@ -56,6 +56,7 @@ class DenseCorrespondenceNetwork(nn.Module):
 
         self._descriptor_image_stats = None
         self._normalize = normalize
+        self._constructed_from_model_folder = False
 
 
     @property
@@ -134,6 +135,7 @@ class DenseCorrespondenceNetwork(nn.Module):
 
         return self.config['path_to_network_params_folder']
 
+
     @property
     def descriptor_image_stats(self):
         """
@@ -152,6 +154,46 @@ class DenseCorrespondenceNetwork(nn.Module):
 
         return self._descriptor_image_stats
 
+    @property
+    def constructed_from_model_folder(self):
+        """
+        Returns True if this model was constructed from
+        :return:
+        :rtype:
+        """
+        return self._constructed_from_model_folder
+
+    @constructed_from_model_folder.setter
+    def constructed_from_model_folder(self, value):
+        self._constructed_from_model_folder = value
+
+    @property
+    def unique_identifier(self):
+        """
+        Return the unique identifier for this network, if it has one.
+        If no identifier.yaml found (or we don't even have a model params folder)
+        then return None
+        :return:
+        :rtype:
+        """
+
+        try:
+            path_to_network_params_folder = self.path_to_network_params_folder
+        except ValueError:
+            return None
+
+        identifier_file = os.path.join(path_to_network_params_folder, 'identifier.yaml')
+        if not os.path.exists(identifier_file):
+            return None
+
+        if not self.constructed_from_model_folder:
+            return None
+
+
+
+        d = utils.getDictFromYamlFilename(identifier_file)
+        unique_identifier = d['id'] + "+" + self.config['model_param_filename_tail']
+        return unique_identifier
 
     def _update_normalize_tensor_transform(self):
         """
@@ -371,10 +413,12 @@ class DenseCorrespondenceNetwork(nn.Module):
         :rtype:
         """
 
+        from_model_folder = False
         model_folder = utils.convert_to_absolute_path(model_folder)
 
         if model_param_file is None:
             model_param_file, _, _ = utils.get_model_param_file_from_directory(model_folder, iteration=iteration)
+            from_model_folder = True
 
         model_param_file = utils.convert_to_absolute_path(model_param_file)
 
@@ -382,12 +426,22 @@ class DenseCorrespondenceNetwork(nn.Module):
         training_config = utils.getDictFromYamlFilename(training_config_filename)
         config = training_config["dense_correspondence_network"]
         config["path_to_network_params_folder"] = model_folder
+        config["model_param_filename_tail"] = os.path.split(model_param_file)[1]
+
+
 
 
         dcn = DenseCorrespondenceNetwork.from_config(config,
                                                      load_stored_params=load_stored_params,
                                                      model_param_file=model_param_file)
 
+
+        # whether or not network was constructed from model folder
+        dcn.constructed_from_model_folder = from_model_folder
+
+
+
+        dcn.model_folder = model_folder
         return dcn
 
     @staticmethod

@@ -1,0 +1,158 @@
+params:
+  num_image_pairs: 25
+  num_matches_per_image_pair: 100
+
+networks:
+  baymax_3:
+    path_to_network_params: trained_models/single_objects_updated/baymax_3/003500.pth
+
+  caterpillar_3:
+    path_to_network_params: trained_models/single_objects_updated/caterpillar_3/003500.pth
+
+  caterpillar_new_3:
+    path_to_network_params: trained_models/caterpillar_new_3/002000.pth
+
+  caterpillar_standard_3:
+    path_to_network_params: trained_models/caterpillar_standard_3/002000.pth
+
+  caterpillar_reverted_3:
+    path_to_network_params: trained_models/caterpillar_reverted_3/002500.pth
+
+  l2_masked_l2_background:
+    path_to_network_params: trained_models/l2_questions/l2_masked_l2_background/003500.pth
+
+  l2_masked_no_l2_background:
+    path_to_network_params: trained_models/l2_questions/l2_masked_no_l2_background/003500.pth
+
+  no_l2_masked_no_l2_background:
+    path_to_network_params: trained_models/l2_questions/no_l2_masked_no_l2_background/003500.pth
+
+  headphones_l2_masked_l2_background:
+    path_to_network_params: trained_models/l2_questions_headphones/l2_masked_l2_background/003000.pth
+
+  headphones_l2_masked_no_l2_background:
+    path_to_network_params: trained_models/l2_questions_headphones/l2_masked_no_l2_background/003000.pth
+
+  caterpillar_lambda_3:
+    path_to_network_params: trained_models/caterpillar_lambda_3/000500.pth
+
+  starbot_1_train_3:
+    path_to_network_params: trained_models/starbot_1_train_3/003500.pth
+
+  starbot_1_train_no_l2_3:
+    path_to_network_params: trained_models/star_bot_front/starbot_1_train_no_l2_3/003500.pth
+
+  starbot_1_train_3:
+    path_to_network_params: trained_models/star_bot_front/starbot_1_train_3/003500.pth
+
+  star_bot_front_background_0.5_3:
+    path_to_network_params: trained_models/star_bot_front/star_bot_front_background_0.5_3/003500.pth
+
+  baymax_front_3:
+    path_to_network_params: trained_models/baymax_front/baymax_front_3/003500.pth
+
+  star_bot_front_background_l2_3:
+    path_to_network_params: trained_models/star_bot_front/star_bot_front_background_l2_3/003500.pth
+
+  all_single_object_3:
+    path_to_network_params: trained_models/baymax_starbot_caterpillar/all_single_object_3/003500.pth
+
+  all_single_object_3_500_steps:
+    path_to_network_params: trained_models/baymax_starbot_caterpillar/all_single_object_3/000500.pth
+
+  baymax_starbot_caterpillar_3:
+    path_to_network_params: trained_models/baymax_starbot_caterpillar/baymax_starbot_caterpillar_3/003500.pth
+
+  baymax_starbot_caterpillar_only_multi_3:
+    path_to_network_params: trained_models/baymax_starbot_caterpillar/baymax_starbot_caterpillar_only_multi_3/003500.pth
+
+  all_single_object_DIFFERENT_OBJECT_3:
+    path_to_network_params: trained_models/baymax_starbot_caterpillar/all_single_object_DIFFERENT_OBJECT_3/003500.pth
+
+  all_single_object_DIFFERENT_OBJECT_10K_9:
+    path_to_network_params: trained_models/baymax_starbot_caterpillar/all_single_object_DIFFERENT_OBJECT_10K_9/010000.pth
+
+  all_single_object_10K_9:
+    path_to_network_params: trained_models/baymax_starbot_caterpillar/all_single_object_10K_9/010000.pth
+
+
+  caterpillar_standard_params_3:
+    path_to_network_params: trained_models/caterpillar_standard_params_3/003500.pth
+
+
+  caterpillar_standard_params_3_500_steps:
+    path_to_network_params: trained_models/caterpillar_standard_params_3/000500.pth
+
+  caterpillar_background_5_3:
+    path_to_network_params: trained_models/caterpillar/caterpillar_background_5_3/000500.pth
+
+  caterpillar_background_0.5_3:
+    path_to_network_params: trained_models/caterpillar/caterpillar_background_0.5_3/000500.pth
+
+  caterpillar_stable_3:
+    path_to_network_params: trained_models/caterpillar/caterpillar_standard_params_3/003500.pth
+
+  caterpillar_M_background_0.500_6:
+    path_to_network_params: trained_models/caterpillar_new/caterpillar_M_background_0.500_6/003500.pth
+
+  caterpillar_M_background_0.500_3:
+    path_to_network_params: trained_models/caterpillar_new/caterpillar_M_background_0.500_3/003500.pth
+
+  hats_consistent_M_background_0.500_3:
+    path_to_network_params: trained_models/hats/hats_consistent_M_background_0.500_3/003500.pth
+
+  hats_specific_M_background_0.500_9:
+    path_to_network_params: trained_models/hats/hats_specific_M_background_0.500_9/003500.pth
+
+  hats_specific_M_background_2.000_9:
+    path_to_network_params: trained_models/hats/hats_specific_M_background_2.000_9/003500.pth
+
+  shoes_specific_M_background_2.000_16:
+    path_to_network_params: trained_models/shoes/shoes_specific_M_background_2.000_16/003500.pth
+
+  shoes_consistent_M_background_0.500_3:
+    path_to_network_params: trained_models/shoes/shoes_consistent_M_background_0.500_3/003500.pth
+
+  shoes_specific_M_background_2.000_6:
+    path_to_network_params: trained_models/shoes/shoes_specific_M_background_2.000_6/003500.pth
+
+  shoes_specific_M_background_2.000_6_with_synthetic:
+    path_to_network_params: trained_models/shoes/shoes_specific_M_background_2.000_6_with_synthetic/003500.pth
+
+
+  shoes_consistent_M_background_1.000_3:
+    path_to_network_params: trained_models/shoes/shoes_consistent_M_background_1.000_3/003501.pth
+
+
+  mugs_consistent_M_background_1.000_3:
+    path_to_network_params: trained_models/mugs/mugs_consistent_M_background_1.000_3/003501.pth
+
+  mugs_consistent_M_background_1.000_3_run_2:
+    path_to_network_params: trained_models/mugs/mugs_consistent_M_background_1.000_3_run_2/003501.pth
+
+  baymax_M_background_1.000_3:
+    path_to_network_params: trained_models/baymax/baymax_M_background_1.000_3/003501.pth
+
+  baymax_M_background_0.500_3:
+    path_to_network_params: trained_models/baymax/baymax_M_background_0.500_3/003501.pth
+
+  starbot_M_background_1.000_3:
+    path_to_network_params: trained_models/starbot/starbot_M_background_1.000_3/003501.pth
+
+  starbot_M_background_0.500_3:
+    path_to_network_params: trained_models/starbot/starbot_M_background_0.500_3/003501.pth
+
+  normalize_descriptors_4:
+    path_to_network_params: trained_models/sandbox/normalize_descriptors_4/003501.pth
+
+  red_nike_normalize_M_0.50_16:
+    path_to_network_params: trained_models/sandbox/red_nike_normalize_M_0.50_16/003501.pth
+
+  shoes_consistent_M_background_0.500_3_15K_training:
+    path_to_network_params: "trained_models/shoes_consistent/shoes_consistent_M_background_0.500_3_15K_training/015001.pth"
+
+  shoes_consistent_new_dataset_M_background_0.500_3:
+    path_to_network_params: "trained_models/shoes_consistent/shoes_consistent_M_background_0.500_3/003501.pth"
+dataset: [] # which dataset to use, not used for now
+
+output_dir: analysis
