@@ -116,14 +116,44 @@ Note from above:
 
 ## Data output format
 
-The output matches the input format but with the computed result:
+The output `poser_out.yaml` copies all of the input data (for redundancy and no ".yaml correspondence" problem) and also adds the computed result:
 
 ```
 object_1_name:
+  template: /path/to/model_1.pcd
   image_1:
-    affine_model_to_observation: # 4 x 4 matrix
+    descriptor_img: /path/to/img.png
+    rgb_img: /path/to/img.png
+    depth_img: /path/to/img.png
+    mask_img: /path/to/img.png
+    camera_to_world:
+      quaternion:
+        w: 0.0
+        x: 0.0
+        y: 0.0
+        z: 1.0
+      translation:
+        x: 0.0
+        y: 0.0
+        z: 0.0
+     affine_model_to_observation: # some 4 x 4 matrix
 object_2_name:
+  template: /path/to/model_2.pcd
   image_1:
-    affine_model_to_observation: # 4 x 4 matrix
+    descriptor_img: /path/to/img.png
+    rgb_img: /path/to/img.png
+    depth_img: /path/to/img.png
+    mask_img: /path/to/img.png
+    camera_to_world:
+      quaternion:
+        w: 0.0
+        x: 0.0
+        y: 0.0
+        z: 1.0
+      translation:
+        x: 0.0
+        y: 0.0
+        z: 0.0
+    affine_model_to_observation: # some 4 x 4 matrix
 ```
 
