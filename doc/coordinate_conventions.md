@@ -37,4 +37,17 @@ as:
     ```
 - To convert between (u,v) and single index the formulas are n = u + image_width * v. Similarly (u,v) = (n % image_width, n / image_width).
 
+## Frames
+
+This screenshot of rviz shows the primary frames in use:
+
+<p align="center">
+  <img src="./pdc_frames.png" width="450"/>
+</p>
+
+- The frame at the bottom of the robot arm (it says "base" but is hidden) is considered "world" frame.
+- The RGB optical frame
+- The depth optical frame * (but note that all data by the time it hits this repo is instead in the RGB optical frame after registering the depth image)
+
+Note that in the rviz screenshot, red=x, green=y, blue=z.
 
