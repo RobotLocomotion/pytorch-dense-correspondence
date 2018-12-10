@@ -22,7 +22,7 @@ In this repo we would like to follow this simple convention for cartesian 3D fra
 But we currently have a more hybrid / mixed approach with accessing pixel data:
 
 - <b>When doing 3D vision, we use the OpenCV "(u,v)" convention for pixel coordinates.  This aligns with our
-cartesian coordinate system as follows in this diagram:
+cartesian coordinate system as follows in this diagram</b>:
 
 <p align="center">
   <img src="./OpenCVcoordinates.png" width="450"/>
@@ -30,7 +30,7 @@ cartesian coordinate system as follows in this diagram:
 
 - <b>All data stored as numpy arrays or torch tensors should be stored in row, column format</b>.  This means
 that in order to access the correct pixel in this data, if using (u,v) coordinates, you should access the data
-as:
+as</b>:
 
     ```python
     pixel_at_u_v = data_tensor[v,u]
