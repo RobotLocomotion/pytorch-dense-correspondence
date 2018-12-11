@@ -5,6 +5,7 @@ set -euxo pipefail
 # The dependency for poser
 sudo apt install libpcl-dev
 sudo apt install libopencv-dev
+sudo apt install libyaml-cpp-dev
 sudo apt install libproj-dev
 sudo apt install libgoogle-glog-dev
 
