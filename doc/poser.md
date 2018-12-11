@@ -16,13 +16,13 @@ At a high level the interface is:
 - *input*: a `poser_request.yaml` file, which specifies paths to data
 - *output*: a `poser_out.yaml` file containing the output computed by poser
 
-The idea is to be able to call the poser executable (`poser_run`) with a single argument, for example:
+The idea is to be able to call the poser executable (`poser_don_app`) with a single argument, for example:
 
 ```
-/full/path/to/poser_run /full/path/to/some_folder/poser_request.yaml
+/full/path/to/poser_don_app /full/path/to/some_folder/poser_request.yaml
 ```
 
-And then `poser_run` would create the `poser_out.yaml` file in this location:
+And then `poser_don_app` would create the `poser_out.yaml` file in this location:
 
 ```
 /full/path/to/some_folder/poser_out.yaml
@@ -40,6 +40,7 @@ object_1_name:
     rgb_img: /path/to/img.png
     depth_img: /path/to/img.png
     mask_img: /path/to/img.png
+    visualize: 1
     camera_to_world:
       quaternion:
         w: 0.0
@@ -57,6 +58,7 @@ object_2_name:
     rgb_img: /path/to/img.png
     depth_img: /path/to/img.png
     mask_img: /path/to/img.png
+    visualize: 1
     camera_to_world:
       quaternion:
         w: 0.0
@@ -80,6 +82,7 @@ shoe_1:
     rgb_img: /home/wei/pdc/logs_proto/2018-04-06-11-34-13/processed/images/000001_rgb.png
     depth_img: /home/wei/pdc/logs_proto/2018-04-06-11-34-13/processed/images/000001_depth.png
     mask_img: /home/wei/pdc/logs_proto/2018-04-06-11-34-13/mask_rcnn/000001/mask_001.png
+    visualize: 1
     camera_to_world:
       quaternion:
         w: 0.13912495440375003
@@ -97,6 +100,7 @@ shoe_2:
     rgb_img: /home/wei/pdc/logs_proto/2018-04-06-11-34-13/processed/images/000001_rgb.png
     depth_img: /home/wei/pdc/logs_proto/2018-04-06-11-34-13/processed/images/000001_depth.png
     mask_img: /home/wei/pdc/logs_proto/2018-04-06-11-34-13/mask_rcnn/000001/mask_002.png
+    visualize: 1
     camera_to_world:
       quaternion:
         w: 0.13912495440375003
@@ -113,6 +117,8 @@ Note from above:
 
 - the data does not need to be copied anywhere, the .yaml can just specify their paths
 - it is up to the user to decide where the mask_img comes from (could be from mask_rcnnk, or "ground truth" mask)
+- The mask should be a image at the same resolution of RGBD and have one channel uint8. The value 0 will be interperted as background, and all other values are foreground.
+- The visualization field is a 0-1 optional flag. If the flag is 1, the `poser_don_app` will create a window to visualize the registration result. The window is blocking and you need to close the window manually to continue. 
 
 ## Data output format
 
