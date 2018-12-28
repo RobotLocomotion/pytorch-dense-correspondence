@@ -407,6 +407,7 @@ class DenseCorrespondenceNetwork(nn.Module):
 
         if "backbone" not in config:  
             # default to CoRL 2018 backbone!
+            config["backbone"] = dict()
             config["backbone"]["model_class"] = "Resnet"
             config["backbone"]["resnet_name"] = "Resnet34_8s"
 
