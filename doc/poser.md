@@ -71,8 +71,7 @@ object_2_name:
         z: 0.0
 ```
 
-
-By example here is a proposed valid `poser_request.yaml` file:
+One note is that the `mask_img` field is optional, as detailed below. By example here is a proposed valid `poser_request.yaml` file:
 
 ```
 shoe_1:
@@ -119,6 +118,9 @@ Note from above:
 - it is up to the user to decide where the mask_img comes from (could be from mask_rcnnk, or "ground truth" mask)
 - The mask should be a image at the same resolution of RGBD and have one channel uint8. The value 0 will be interperted as background, and all other values are foreground.
 - The visualization field is a 0-1 optional flag. If the flag is 1, the `poser_don_app` will create a window to visualize the registration result. The window is blocking and you need to close the window manually to continue. 
+
+#### Notes on the Mask and Bounding Box
+Internally `poser` crops the pointcloud to a bounding box before doing any estimation, see [these](https://github.com/RobotLocomotion/poser/blob/master/apps/poser_don/preprocessing.cpp#L154) lines. If you omit the `mask_img` field then it defaults to not applying any mask, and only using the bounding box.
 
 ## Data output format
 
