@@ -19,14 +19,10 @@ At a high level the interface is:
 The idea is to be able to call the poser executable (`poser_don_app`) with a single argument, for example:
 
 ```
-/full/path/to/poser_don_app /full/path/to/some_folder/poser_request.yaml
+/full/path/to/poser_don_app /full/path/to/some_folder/poser_request.yaml  <poser_response_filename.yaml>
 ```
 
-And then `poser_don_app` would create the `poser_out.yaml` file in this location:
-
-```
-/full/path/to/some_folder/poser_out.yaml
-```
+And then `poser_don_app` would create write the results to `<poser_response_filename.yaml>`. The third argument is optional, if it is not specified then the results are written to a file named `response.yaml` in the current directory.
 
 ## Data input format
 
