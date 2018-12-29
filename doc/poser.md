@@ -36,7 +36,7 @@ The description of the input format in a `poser_request.yaml` is:
 object_1_name:
   template: /path/to/model_1.pcd
   image_1:
-    descriptor_img: /path/to/img.png
+    descriptor_img: /path/to/img.npy
     rgb_img: /path/to/img.png
     depth_img: /path/to/img.png
     mask_img: /path/to/img.png
@@ -55,7 +55,7 @@ object_1_name:
 object_2_name:
   template: /path/to/model_2.pcd
   image_1:
-    descriptor_img: /path/to/img.png
+    descriptor_img: /path/to/img.npy
     rgb_img: /path/to/img.png
     depth_img: /path/to/img.png
     mask_img: /path/to/img.png
@@ -135,7 +135,7 @@ The output `poser_out.yaml` copies all of the input data (for redundancy and no 
 object_1_name:
   template: /path/to/model_1.pcd
   image_1:
-    descriptor_img: /path/to/img.png
+    descriptor_img: /path/to/img.npy
     rgb_img: /path/to/img.png
     depth_img: /path/to/img.png
     mask_img: /path/to/img.png
@@ -154,7 +154,7 @@ object_1_name:
 object_2_name:
   template: /path/to/model_2.pcd
   image_1:
-    descriptor_img: /path/to/img.png
+    descriptor_img: /path/to/img.npy
     rgb_img: /path/to/img.png
     depth_img: /path/to/img.png
     mask_img: /path/to/img.png
