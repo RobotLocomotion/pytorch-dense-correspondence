@@ -168,3 +168,5 @@ object_2_name:
     rigid_transform: # column major 4 x 4 matrix
 ```
 
+The transforms outputted transform the model to the observation, so they are `T_observation_model`.
+
