@@ -4,6 +4,8 @@ set -e
 export DATA_DIR=~/data
 export DC_DATA_DIR=$DATA_DIR/pdc
 export DC_SOURCE_DIR=~/code
+export PDC_BUILD_DIR=$DC_SOURCE_DIR/build
+export POSER_BUILD_DIR=$PDC_BUILD_DIR/poser
 
 
 function use_pytorch_dense_correspondence()
