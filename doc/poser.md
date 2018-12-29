@@ -36,7 +36,8 @@ object_1_name:
     rgb_img: /path/to/img.png
     depth_img: /path/to/img.png
     mask_img: /path/to/img.png
-    save_processed_cloud: /path/to/save.pcd
+    save_processed_cloud: /path/to/save[.pcd/.ply]
+    save_template: /path/to/save[.pcd/.ply]
     visualize: 1
     camera_to_world:
       quaternion:
@@ -55,7 +56,8 @@ object_2_name:
     rgb_img: /path/to/img.png
     depth_img: /path/to/img.png
     mask_img: /path/to/img.png
-    save_processed_cloud: /path/to/save.pcd
+    save_processed_cloud: /path/to/save[.pcd/.ply]
+    save_template: /path/to/save[.pcd/.ply]
     visualize: 1
     camera_to_world:
       quaternion:
@@ -69,7 +71,7 @@ object_2_name:
         z: 0.0
 ```
 
-One note is that the `mask_img`, `visualize` and `save_processed_cloud` fields are optional, as detailed below. By example here is a proposed valid `poser_request.yaml` file:
+One note is that the `mask_img`, `visualize`, `save_processed_cloud` and `save_template` fields are optional, as detailed below. By example here is a proposed valid `poser_request.yaml` file:
 
 ```
 shoe_1:
@@ -80,6 +82,7 @@ shoe_1:
     depth_img: /home/wei/pdc/logs_proto/2018-04-06-11-34-13/processed/images/000001_depth.png
     mask_img: /home/wei/pdc/logs_proto/2018-04-06-11-34-13/mask_rcnn/000001/mask_001.png
     save_processed_cloud: /home/wei/Coding/poser/data/processed_cloud_world.pcd
+    save_template: /home/wei/Coding/poser/data/template.ply
     visualize: 1
     camera_to_world:
       quaternion:
@@ -118,7 +121,7 @@ Note from above:
 - The mask should be a image at the same resolution of RGBD and have one channel uint8. The value 0 will be interperted as background, and all other values are foreground.
 - The visualization field is a 0-1 optional flag. If the flag is 1, the `poser_don_app` will create a window to visualize the registration result. The window is blocking and you need to close the window manually to continue. 
 - If the user specifies a path for `save_processed_cloud`, the `poser_don_app` will save the cropped, subsampled depth point cloud expressed in **world frame** to the given path for further processing.
-
+- If the user specifies a path for `save_template`, the `poser_don_app` will save the template (currently geometry only) to the given path for further processing.
 
 #### Notes on the Mask and Bounding Box
 Internally `poser` crops the pointcloud to a bounding box before doing any estimation, see [these](https://github.com/RobotLocomotion/poser/blob/master/apps/poser_don/preprocessing.cpp#L154) lines. If you omit the `mask_img` field then it defaults to not applying any mask, and only using the bounding box.
