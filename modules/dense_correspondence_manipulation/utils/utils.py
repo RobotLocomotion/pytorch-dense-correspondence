@@ -22,12 +22,23 @@ def getDictFromYamlFilename(filename):
     """
     return yaml.load(file(filename), Loader=CLoader)
 
-def saveToYaml(data, filename):
+def saveToYaml(data, filename, flush=False):
     """
-    Save a data to a YAML file
+
+    :param data:
+    :type data:
+    :param filename:
+    :type filename:
+    :param flush: Forces a flush to disk if true
+    :type flush: bool
+    :return:
+    :rtype:
     """
     with open(filename, 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
+        if flush:
+            outfile.flush()
+
 
 def getDenseCorrespondenceSourceDir():
     return os.getenv("DC_SOURCE_DIR")
