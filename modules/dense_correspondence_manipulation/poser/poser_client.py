@@ -14,82 +14,51 @@ from director import ioUtils
 # pdc
 import dense_correspondence_manipulation.poser.utils as poser_utils
 import dense_correspondence_manipulation.utils.utils as pdc_utils
-
+from dense_correspondence.network.dense_correspondence_network import DenseCorrespondenceNetwork
 
 
 class PoserClient(object):
     """
-    Python client for interfacing with poser. Includes visualization using director
+    Python client for interfacing with poser.
     """
 
-    def __init__(self, use_director=True, visualize=True):
+    def __init__(self, use_director=True, visualize=True, config=None):
 
         self._use_director = use_director
         self._visualize = visualize
 
         self._poser_vis_container = None
+        self._config = config
+        self._template_file = None
 
-    def _setup_visualization(self):
+    def load_network(self):
         """
-        Initialize the visualization by creating the appropriate containers
+        Loads the network
         :return:
         :rtype:
         """
-        assert (self._use_director == True)
-        self._clear_visualization()
 
-    def _clear_visualization(self):
-        """
-        Delete the Poser vis container, create a new one with the same name
-        :return:
-        :rtype:
-        """
-        self._poser_vis_container = om.getOrCreateContainer("Poser")
-        om.removeFromObjectModel(self._poser_vis_container)
-        self._poser_vis_container = om.getOrCreateContainer("Poser")
+        print "loading dcn"
 
+        pdc_utils.set_default_cuda_visible_devices()
 
-    def test_poser_on_example_data(self):
-        """
-        Runs poser using the supplied example data.
-        Visualizes the result using director
-        :return:
-        :rtype:
-        """
-        example_data_dir = poser_utils.poser_don_example_data_dir()
+        path_to_network_params = self._config['network']['path_to_network_params']
+        path_to_network_params = pdc_utils.convert_data_relative_path_to_absolute_path(path_to_network_params,
+                                                                                   assert_path_exists=True)
+        model_folder = os.path.dirname(path_to_network_params)
 
+        self._dcn = DenseCorrespondenceNetwork.from_model_folder(model_folder, model_param_file=path_to_network_params)
+        self._dataset = self._dcn.load_training_dataset()  # why do we need to do this?
 
-        output_dir = PoserClient.get_poser_output_dir()
+        print "finished loading dcn"
 
-        if os.path.exists(output_dir):
-            shutil.rmtree(output_dir)
+    @property
+    def template_file(self):
+        if self._template_file is None:
+            return pdc_utils.convert_data_relative_path_to_absolute_path(self._config['template'])
+        else:
+            return self._template_file
 
-        os.makedirs(output_dir)
-
-        poser_request_file = os.path.join(example_data_dir, 'poser_request.yaml')
-
-        poser_request = pdc_utils.getDictFromYamlFilename(poser_request_file)
-        poser_request['shoe_1']['template'] = os.path.join(example_data_dir, 'descriptor_template.pcd')
-
-        poser_request['shoe_1']['image_1']['descriptor_img'] = os.path.join(example_data_dir, '000000_descriptor.npy')
-
-        poser_request['shoe_1']['image_1']['rgb_img'] = os.path.join(example_data_dir, '000000_rgb.png')
-
-        poser_request['shoe_1']['image_1']['depth_img'] = os.path.join(example_data_dir, '000000_depth.png')
-
-        # don't use a mask for now
-        del poser_request['shoe_1']['image_1']['mask_img']
-
-        poser_request['shoe_1']['image_1']['visualize'] = 0
-
-        poser_request['shoe_1']['image_1']['save_processed_cloud'] = os.path.join(output_dir, 'processed_world_cloud.ply')
-
-
-        PoserClient.copy_input_files_to_output_dir(poser_request, output_dir)
-        poser_response, output_dir = self.run_poser(poser_request, output_dir)
-
-        if self._visualize:
-            self.visualize_result(poser_response)
 
     def run_poser(self, poser_request, output_dir):
         """
@@ -126,23 +95,71 @@ class PoserClient(object):
 
         return poser_response, output_dir
 
-    def visualize_result(self, poser_response):
-        """
-        Visualizes the results of running poser
 
-        :param poser_response:
-        :type poser_response: dict
-        :return:
+    def run_on_images(self, image_data_list, output_dir=None):
+        """
+
+        :param image_data_list: list of dicts. Each dict contains the following fields
+        - 'rgb': rgb image of type PIL.Image
+        - 'depth': rgb image of type PIL.Image, encoding uint8???
+        - 'camera_to_world': itself dict of form
+
+            camera_to_world:
+              quaternion:
+                w: 0.11955521666256178
+                x: -0.7072223465820128
+                y: 0.6767424859550267
+                z: -0.16602021071908557
+              translation:
+                x: 0.29710354158229585
+                y: -0.008081499080098517
+                z: 0.8270976316822616
+
+
+        :type image_data_list: list of dicts
+        :return: str, path to poser_output folder
         :rtype:
         """
+        if output_dir is None:
+            output_dir = self.get_poser_output_dir()
 
-        # visualize the observation
-        for object_name, data in poser_response.iteritems():
-            rigid_transform = []
+        # make output directory, clear existing data if it exists
+        if os.path.exists(output_dir):
+            shutil.rmtree(output_dir)
 
-            template_pcd = data['template']
-            ioUtils.readPolyData(template_pcd)
-            image_name = 'image_1'
+        os.makedirs(output_dir)
+
+        poser_request = dict()
+
+
+        object_names = ["shoe"]
+        for object_name in object_names:
+            poser_request[object_name] = dict()
+            poser_request['template'] = self.template_file
+            for image_num, img_data in enumerate(image_data_list):
+                image_key = "image_%d" %(image_num)
+                poser_request[object_name][image_key] = dict()
+                poser_data = poser_request[object_name][image_key]
+                file_prefix = "%s_image_%d_" %(object_name, image_num)
+
+                rgb_img_filename = os.path.join(output_dir, file_prefix+"_rgb.png")
+                depth_img_filename = os.path.join(output_dir, file_prefix + "_depth.png")
+
+                img_data['rgb'].save(rgb_img_filename)
+                poser_data['rgb_img'] = rgb_img_filename
+
+                img_data['depth'].save(depth_img_filename)
+                poser_data['depth_img'] = depth_img_filename
+
+                img_data['save_template'] = os.path.join(output_dir, file_prefix + "_template.pcd")
+                img_data['save_processed_cloud'] = os.path.join(output_dir, file_prefix + "_processed_cloud.pcd")
+                img_data['visualize'] = 0
+
+
+
+        # pdc_utils.saveToYaml(poser_request, os.path.join(output_dir, "poser_request.yaml"))
+        self.run_poser(poser_request, output_dir)
+
 
     @staticmethod
     def get_poser_output_dir():
@@ -203,14 +220,63 @@ class PoserClient(object):
 
         pr_new = copy.deepcopy(poser_response)
 
-        files_to_copy = ['descriptor_img', 'rgb_img', 'depth_img', 'save_processed_cloud']
+        files_to_modify = ['descriptor_img', 'rgb_img', 'depth_img', 'save_processed_cloud',
+                           'save_template']
         for obj_name, data in pr_new.iteritems():
             data['template'] = os.path.relpath(data['template'], output_dir)
-            for key in files_to_copy:
+            for key in files_to_modify:
                 data['image_1'][key] = os.path.relpath(data['image_1'][key], output_dir)
 
 
         return pr_new
+
+    def test_poser_on_example_data(self):
+        """
+        Runs poser using the supplied example data.
+        Visualizes the result using director
+        :return:
+        :rtype:
+        """
+        example_data_dir = poser_utils.poser_don_example_data_dir()
+
+
+        output_dir = PoserClient.get_poser_output_dir()
+
+        if os.path.exists(output_dir):
+            shutil.rmtree(output_dir)
+
+        os.makedirs(output_dir)
+
+        poser_request_file = os.path.join(example_data_dir, 'poser_request.yaml')
+
+        poser_request = pdc_utils.getDictFromYamlFilename(poser_request_file)
+        poser_request['shoe_1']['template'] = os.path.join(example_data_dir, 'descriptor_template.pcd')
+
+
+
+        poser_request['shoe_1']['image_1']['descriptor_img'] = os.path.join(example_data_dir, '000000_descriptor.npy')
+
+        poser_request['shoe_1']['image_1']['rgb_img'] = os.path.join(example_data_dir, '000000_rgb.png')
+
+        poser_request['shoe_1']['image_1']['depth_img'] = os.path.join(example_data_dir, '000000_depth.png')
+
+        # don't use a mask for now
+        del poser_request['shoe_1']['image_1']['mask_img']
+
+        poser_request['shoe_1']['image_1']['visualize'] = 0
+
+        # poser_request['shoe_1']['image_1']['save_processed_cloud'] = os.path.join(output_dir, 'processed_world_cloud.ply')
+
+        poser_request['shoe_1']['image_1']['save_processed_cloud'] = os.path.join(output_dir,
+                                                                                  'processed_world_cloud.pcd')
+
+        # poser_request['shoe_1']['image_1']['save_template'] = os.path.join(output_dir, 'descriptor_template.ply')
+
+        poser_request['shoe_1']['image_1']['save_template'] = os.path.join(output_dir, 'descriptor_template.pcd')
+
+
+        PoserClient.copy_input_files_to_output_dir(poser_request, output_dir)
+        poser_response, output_dir = self.run_poser(poser_request, output_dir)
 
 
 

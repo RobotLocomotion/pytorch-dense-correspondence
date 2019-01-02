@@ -14,6 +14,7 @@ from director.timercallback import TimerCallback
 
 # pdc
 from dense_correspondence_manipulation.poser.poser_client import PoserClient
+from dense_correspondence_manipulation.poser.poser_visualizer import PoserVisualizer
 from dense_correspondence.dataset.scene_structure import SceneStructure
 
 
@@ -21,7 +22,10 @@ from dense_correspondence.dataset.scene_structure import SceneStructure
 Launches a poser client app
 """
 
-VISUALIZE = False
+VISUALIZE = True
+POSER_OUTPUT_FOLDER = "/home/manuelli/code/tmp/poser"
+
+
 
 if __name__ == "__main__":
 
@@ -47,13 +51,19 @@ if __name__ == "__main__":
 
 
     poser = PoserClient(use_director=VISUALIZE, visualize=VISUALIZE)
+    poser_vis = PoserVisualizer(POSER_OUTPUT_FOLDER)
 
     def single_shot_function():
         poser.test_poser_on_example_data()
 
+    def poser_vis_function():
+        poser_response = poser_vis.load_poser_response()
+        poser_vis.visualize_result(poser_response)
+
 
     if VISUALIZE:
         TimerCallback(callback=single_shot_function).singleShot(0)
+        # TimerCallback(callback=poser_vis_function).singleShot(0)
         app.app.start(restoreWindow=True)
     else:
         poser.test_poser_on_example_data()
