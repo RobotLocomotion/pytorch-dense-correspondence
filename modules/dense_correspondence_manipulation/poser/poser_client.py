@@ -4,12 +4,8 @@ import subprocess
 import time
 import shutil
 import copy
-
-# director
-import director.objectmodel as om
-from director import transformUtils
-from director import visualization as vis
-from director import ioUtils
+import cv2
+import numpy as np
 
 # pdc
 import dense_correspondence_manipulation.poser.utils as poser_utils
@@ -101,7 +97,7 @@ class PoserClient(object):
 
         :param image_data_list: list of dicts. Each dict contains the following fields
         - 'rgb': rgb image of type PIL.Image
-        - 'depth': rgb image of type PIL.Image, encoding uint8???
+        - 'depth': rgb image of type cv2 image (numpy array, dtype=uint16)
         - 'camera_to_world': itself dict of form
 
             camera_to_world:
@@ -130,35 +126,55 @@ class PoserClient(object):
         os.makedirs(output_dir)
 
         poser_request = dict()
+        descriptor_images = dict()
+
+        # compute the descriptor images
+        for image_num, img_data in enumerate(image_data_list):
+            rgb_img_tensor = self._dataset.rgb_image_to_tensor(img_data['rgb'])
+            res_numpy = self._dcn.forward_single_image_tensor(rgb_img_tensor).data.cpu().numpy()
+
+
+            img_data['descriptor_img'] = res_numpy
+            img_data['descriptor_image_filename'] = os.path.join(output_dir, "%d_descriptor.npy" %(image_num))
+
+            np.save(img_data['descriptor_image_filename'], res_numpy)
 
 
         object_names = ["shoe"]
         for object_name in object_names:
             poser_request[object_name] = dict()
-            poser_request['template'] = self.template_file
-            for image_num, img_data in enumerate(image_data_list):
+            poser_request[object_name]['template'] = self.template_file
+            for img_num, img_data in enumerate(image_data_list):
+                image_num = img_num + 1
                 image_key = "image_%d" %(image_num)
-                poser_request[object_name][image_key] = dict()
-                poser_data = poser_request[object_name][image_key]
+                
+                poser_data = dict()
                 file_prefix = "%s_image_%d_" %(object_name, image_num)
 
-                rgb_img_filename = os.path.join(output_dir, file_prefix+"_rgb.png")
-                depth_img_filename = os.path.join(output_dir, file_prefix + "_depth.png")
+                rgb_img_filename = os.path.join(output_dir, file_prefix+"rgb.png")
+                depth_img_filename = os.path.join(output_dir, file_prefix + "depth.png")
 
                 img_data['rgb'].save(rgb_img_filename)
                 poser_data['rgb_img'] = rgb_img_filename
 
-                img_data['depth'].save(depth_img_filename)
+                cv2.imwrite(depth_img_filename, img_data['depth'])
                 poser_data['depth_img'] = depth_img_filename
 
-                img_data['save_template'] = os.path.join(output_dir, file_prefix + "_template.pcd")
-                img_data['save_processed_cloud'] = os.path.join(output_dir, file_prefix + "_processed_cloud.pcd")
-                img_data['visualize'] = 0
+                poser_data['descriptor_img'] = img_data['descriptor_image_filename']
+
+                poser_data['save_template'] = os.path.join(output_dir, file_prefix + "template.pcd")
+                poser_data['save_processed_cloud'] = os.path.join(output_dir, file_prefix + "processed_cloud.pcd")
+                poser_data['visualize'] = 0
+
+                poser_data['camera_to_world'] = img_data['camera_to_world']
+
+                poser_request[object_name][image_key] = poser_data
 
 
 
         # pdc_utils.saveToYaml(poser_request, os.path.join(output_dir, "poser_request.yaml"))
         self.run_poser(poser_request, output_dir)
+        return output_dir
 
 
     @staticmethod
