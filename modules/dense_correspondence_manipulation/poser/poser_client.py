@@ -92,7 +92,7 @@ class PoserClient(object):
         return poser_response, output_dir
 
 
-    def run_on_images(self, image_data_list, output_dir=None):
+    def run_on_images(self, image_data_list, output_dir=None, visualize=True):
         """
 
         :param image_data_list: list of dicts. Each dict contains the following fields
@@ -164,7 +164,11 @@ class PoserClient(object):
 
                 poser_data['save_template'] = os.path.join(output_dir, file_prefix + "template.pcd")
                 poser_data['save_processed_cloud'] = os.path.join(output_dir, file_prefix + "processed_cloud.pcd")
-                poser_data['visualize'] = 0
+
+                if visualize:
+                    poser_data['visualize'] = 1
+                else:
+                    poser_data['visualize'] = 0
 
                 poser_data['camera_to_world'] = img_data['camera_to_world']
 
