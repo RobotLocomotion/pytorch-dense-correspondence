@@ -92,7 +92,7 @@ class PoserClient(object):
         return poser_response, output_dir
 
 
-    def run_on_images(self, image_data_list, output_dir=None, visualize=True):
+    def run_on_images(self, image_data_list, output_dir=None, visualize=False):
         """
 
         :param image_data_list: list of dicts. Each dict contains the following fields
