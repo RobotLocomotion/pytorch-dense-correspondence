@@ -2,7 +2,7 @@
 
 set -euxo pipefail
 
-sudo pip install http://download.pytorch.org/whl/cu80/torch-0.3.0.post4-cp27-cp27mu-linux_x86_64.whl 
+sudo pip install http://download.pytorch.org/whl/cu90/torch-0.3.0.post4-cp27-cp27mu-linux_x86_64.whl 
 sudo pip install torchvision==0.2.1
 
 #sudo apt-get install python3-pip

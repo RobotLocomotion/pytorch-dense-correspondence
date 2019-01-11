@@ -1,4 +1,4 @@
-FROM nvidia/cuda:8.0-devel-ubuntu16.04
+FROM nvidia/cuda:9.0-devel-ubuntu16.04
 
 ARG USER_NAME
 ARG USER_PASSWORD
@@ -34,6 +34,10 @@ RUN yes "Y" | /tmp/install_poser.sh
 # install director
 COPY ./install_director.sh /tmp/install_director.sh
 RUN yes "Y" | /tmp/install_director.sh
+
+# make pytorch 1_0 virtualenv
+COPY ./install_pytorch_virtualenv.sh /tmp/install_pytorch_virtualenv.sh
+RUN /tmp/install_pytorch_virtualenv.sh
 
 # set the terminator inside the docker container to be a different color
 RUN mkdir -p .config/terminator

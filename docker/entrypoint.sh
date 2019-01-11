@@ -22,6 +22,12 @@ use_director(){
 
 export -f use_director
 
+activate_pytorch_virtualenv(){
+    source ~/venv_pytorch_1_0/bin/activate
+}
+
+export -f activate_pytorch_virtualenv
+
 exec "$@"
 
 cd $DC_SOURCE_DIR
