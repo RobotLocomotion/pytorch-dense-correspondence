@@ -35,6 +35,10 @@ RUN yes "Y" | /tmp/install_poser.sh
 COPY ./install_director.sh /tmp/install_director.sh
 RUN yes "Y" | /tmp/install_director.sh
 
+RUN cd $WORKDIR
+COPY ./install_coco_api.sh /tmp/install_coco_api.sh
+RUN yes "Y" | /tmp/install_coco_api.sh
+
 # set the terminator inside the docker container to be a different color
 RUN mkdir -p .config/terminator
 COPY ./terminator_config .config/terminator/config
