@@ -26,7 +26,7 @@ pip install torch_nightly -f https://download.pytorch.org/whl/nightly/cu90/torch
 pip install ninja yacs cython matplotlib
 pip install \
     requests \
-    opencv-python
+    opencv-python==3.4.5.20
 
 # create director for stashing some dependencies
 cd $root_dir
