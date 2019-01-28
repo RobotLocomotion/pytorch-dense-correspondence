@@ -11,5 +11,5 @@
 	url = https://github.com/RobotLocomotion/unet-pytorch.git
 
 [submodule "maskrcnn-benchmark"]
-	path = maskrcnn-benchmark
+	path = external/maskrcnn-benchmark
 	url = git@github.com:facebookresearch/maskrcnn-benchmark.git

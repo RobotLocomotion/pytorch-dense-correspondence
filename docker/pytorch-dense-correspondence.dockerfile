@@ -1,9 +1,18 @@
-FROM nvidia/cuda:9.0-devel-ubuntu16.04
+# FROM nvidia/cuda:9.0-devel-ubuntu16.04
+FROM nvidia/cuda:9.0-cudnn7-devel-ubuntu16.04
 
 ARG USER_NAME
 ARG USER_PASSWORD
 ARG USER_ID
 ARG USER_GID
+
+# see http://gbraad.nl/blog/non-root-user-inside-a-docker-container.html
+# RUN dnf install -y sudo && \
+#     adduser $USER_NAMEuser && \
+#     echo "user ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/user && \
+#     chmod 0440 /etc/sudoers.d/user
+
+
 
 RUN apt-get update
 RUN apt install sudo
@@ -37,16 +46,66 @@ RUN yes "Y" | /tmp/install_director.sh
 
 # make pytorch 1_0 virtualenv
 COPY ./install_pytorch_virtualenv.sh /tmp/install_pytorch_virtualenv.sh
-RUN /tmp/install_pytorch_virtualenv.sh
+RUN yes "Y" | /tmp/install_pytorch_virtualenv.sh
 
 # set the terminator inside the docker container to be a different color
 RUN mkdir -p .config/terminator
 COPY ./terminator_config .config/terminator/config
 RUN chown $USER_NAME:$USER_NAME -R .config
 
+# install GLX-Gears
+RUN apt-get update && apt-get install -y \
+   mesa-utils && \
+   rm -rf /var/lib/apt/lists/*
+
+
+
+# needed to get OpenGL running inside the docker
+# https://github.com/machinekoder/nvidia-opengl-docker
+
+# optional, if the default user is not "root", you might need to switch to root here and at the end of the script to the original user again.
+# e.g.
+# USER root
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        pkg-config \
+        libxau-dev \
+        libxdmcp-dev \
+        libxcb1-dev \
+        libxext-dev \
+        libx11-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# replace with other Ubuntu version if desired
+# see: https://hub.docker.com/r/nvidia/opengl/
+# e.g. nvidia/opengl:1.1-glvnd-runtime-ubuntu16.04)
+COPY --from=machinekoder/nvidia-opengl-docker:1.1-glvnd-runtime-stretch \
+  /usr/local/lib/x86_64-linux-gnu \
+  /usr/local/lib/x86_64-linux-gnu
+
+# replace with other Ubuntu version if desired
+# see: https://hub.docker.com/r/nvidia/opengl/
+# e.g. nvidia/opengl:1.1-glvnd-runtime-ubuntu16.04
+COPY --from=machinekoder/nvidia-opengl-docker:1.1-glvnd-runtime-stretch \
+  /usr/local/share/glvnd/egl_vendor.d/10_nvidia.json \
+  /usr/local/share/glvnd/egl_vendor.d/10_nvidia.json
+
+RUN echo '/usr/local/lib/x86_64-linux-gnu' >> /etc/ld.so.conf.d/glvnd.conf && \
+    ldconfig && \
+    echo '/usr/local/$LIB/libGL.so.1' >> /etc/ld.so.preload && \
+    echo '/usr/local/$LIB/libEGL.so.1' >> /etc/ld.so.preload
+
+# nvidia-container-runtime
+ENV NVIDIA_VISIBLE_DEVICES \
+    ${NVIDIA_VISIBLE_DEVICES:-all}
+ENV NVIDIA_DRIVER_CAPABILITIES \
+    ${NVIDIA_DRIVER_CAPABILITIES:+$NVIDIA_DRIVER_CAPABILITIES,}graphics
+
+# USER original_user
+
 
 # change ownership of everything to our user
-RUN cd $WORKDIR && chown $USER_NAME:$USER_NAME -R .
+RUN cd $WORKDIR
+RUN chown $USER_NAME:$USER_NAME -R .
 
 
 
