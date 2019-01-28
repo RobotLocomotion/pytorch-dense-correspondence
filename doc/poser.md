@@ -71,6 +71,10 @@ object_2_name:
         z: 0.0
 ```
 
+
+
+
+
 One note is that the `mask_img`, `visualize`, `save_processed_cloud` and `save_template` fields are optional, as detailed below. By example here is a proposed valid `poser_request.yaml` file:
 
 ```
@@ -172,4 +176,68 @@ object_2_name:
 ```
 
 The transforms outputted transform the model to the observation, so they are `T_observation_model`.
+
+
+# Keypoint Detection
+
+
+## Input Format
+```
+object_1_name:
+  template: /path/to/model_1.pcd (optional)
+  image_1:
+    descriptor_img: /path/to/img.npy (optional)
+    rgb_img: /path/to/img.png
+    depth_img: /path/to/img.png
+    mask_img: /path/to/img.png
+    save_processed_cloud: /path/to/save[.pcd/.ply] (optional)
+    save_template: /path/to/save[.pcd/.ply] (optional)
+    visualize: 1
+    camera_to_world:
+      quaternion:
+        w: 0.0
+        x: 0.0
+        y: 0.0
+        z: 1.0
+      translation:
+        x: 0.0
+        y: 0.0
+        z: 0.0
+```
+
+## Output Format
+```
+object_1_name:
+  template: /path/to/model_1.pcd (optional)
+  image_1:
+    descriptor_img: /path/to/img.npy (optional)
+    rgb_img: /path/to/img.png
+    depth_img: /path/to/img.png
+    mask_img: /path/to/img.png
+    save_processed_cloud: /path/to/save[.pcd/.ply] (optional)
+    save_template: /path/to/save[.pcd/.ply] (optional)
+    visualize: 1
+    camera_to_world:
+      quaternion:
+        w: 0.0
+        x: 0.0
+        y: 0.0
+        z: 1.0
+      translation:
+        x: 0.0
+        y: 0.0
+        z: 0.0
+     keypoints_world_frame:
+      <keypoint_name_1>: # name
+        position: [0.03947, -0.00042, -0.04980]
+
+      <keypoint_name_2>:
+        position: [0.00083, 0.04006, -0.04980]
+
+      <keypoint_name_3>:
+        position: [-0.03764, -0.00052, -0.04998]
+
+      <keypoint_name_4>:
+        position: [0.00233, -0.03790, -0.05000]
+```
 
