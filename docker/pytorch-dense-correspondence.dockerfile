@@ -106,13 +106,6 @@ COPY ./install_coco_api.sh /tmp/install_coco_api.sh
 RUN yes "Y" | /tmp/install_coco_api.sh
 
 
-# make pytorch 1_0 virtualenv
-# RUN cd $WORKDIR
-# ENV PYTORCH_VIRTUALENV_DIR=/home/$USER_NAME/venv_pytorch_1_0
-# COPY ./install_pytorch_virtualenv.sh /tmp/install_pytorch_virtualenv.sh
-# RUN yes "Y" | /tmp/install_pytorch_virtualenv.sh
-
-
 # make python3 pytorch 1.0 virtualenv
 RUN cd $WORKDIR
 ENV PYTHON3_PYTORCH_VIRTUALENV_DIR=/home/${USER_NAME}/venv_python3
