@@ -8,9 +8,9 @@ PDC_COCO_DATA_DIR = os.path.join(os.getenv("DC_DATA_DIR"), "coco")
 class DatasetCatalog(object):
     DATA_DIR = "datasets"
     DATASETS = {
-        "multi_shoe_train": {
-            "img_dir": PDC_COCO_DATA_DIR + "/shoes/multi_shoe_train/images",
-            "ann_file": PDC_COCO_DATA_DIR + "/shoes/multi_shoe_train/multi_shoe_train.json"
+        "multi_shoe_train_10k": {
+            "img_dir": PDC_COCO_DATA_DIR + "/shoes/multi_shoe_train_10k/images",
+            "ann_file": PDC_COCO_DATA_DIR + "/shoes/multi_shoe_train_10k/multi_shoe_train_10k.json"
         },
         "multi_shoe_val_10": {
             "img_dir": PDC_COCO_DATA_DIR + "/shoes/multi_shoe_val_10/images",

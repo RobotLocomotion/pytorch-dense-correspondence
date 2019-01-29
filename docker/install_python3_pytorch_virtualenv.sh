@@ -11,6 +11,7 @@ root_dir=$(pwd)
 apt-get update
 apt install python3-venv
 apt install python3-dev
+apt install python3-tk
 
 virtual_env_folder=$PYTHON3_PYTORCH_VIRTUALENV_DIR
 

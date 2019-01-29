@@ -29,7 +29,7 @@ MODEL:
     SHARE_BOX_FEATURE_EXTRACTOR: False
   MASK_ON: True
 DATASETS:
-  TRAIN: ("multi_shoe_dev",)
+  TRAIN: ("multi_shoe_train_10k",)
   TEST: ("multi_shoe_val_10",)
 DATALOADER:
   SIZE_DIVISIBILITY: 32
