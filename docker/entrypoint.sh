@@ -37,6 +37,13 @@ activate_python3_virtualenv(){
 
 export -f activate_python3_virtualenv
 
+build_maskrcnn_benchmark(){
+    cd $DC_SOURCE_DIR/external/maskrcnn-benchmark
+    python setup.py build develop
+}
+
+export -f build_maskrcnn_benchmark
+
 exec "$@"
 
 cd $DC_SOURCE_DIR
