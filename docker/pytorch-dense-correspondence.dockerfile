@@ -44,9 +44,12 @@ RUN yes "Y" | /tmp/install_poser.sh
 COPY ./install_director.sh /tmp/install_director.sh
 RUN yes "Y" | /tmp/install_director.sh
 
+
 # make pytorch 1_0 virtualenv
+RUN cd $WORKDIR
 COPY ./install_pytorch_virtualenv.sh /tmp/install_pytorch_virtualenv.sh
 RUN yes "Y" | /tmp/install_pytorch_virtualenv.sh
+
 
 # set the terminator inside the docker container to be a different color
 RUN mkdir -p .config/terminator

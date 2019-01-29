@@ -7,6 +7,8 @@ export DC_SOURCE_DIR=~/code
 export PDC_BUILD_DIR=$DC_SOURCE_DIR/build
 export POSER_BUILD_DIR=$PDC_BUILD_DIR/poser
 
+# location of custom COCO data
+export COCO_CUSTOM_DATA_DIR=$DC_DATA_DIR/coco
 
 function use_pytorch_dense_correspondence()
 {
