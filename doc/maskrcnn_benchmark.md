@@ -2,7 +2,7 @@
 When you enter the container you need to build the maskrcnn-benchmark code. There is a bash function `build_maskrcnn_benchmark` that does this. Equivalently you can do
 
 ```
-cd ~/code/external/,askrcnn-benchmark
+cd ~/code/external/maskrcnn-benchmark
 python setup.py build develop
 ```
 
