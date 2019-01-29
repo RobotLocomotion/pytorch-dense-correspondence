@@ -3,16 +3,18 @@
 # This script is run by the dockerfile during the docker build.
 #
 
+# don't use -u option due to https://github.com/pypa/virtualenv/issues/150
 set -ex
 
 root_dir=$(pwd)
 
+apt-get update
+apt install python3-venv
+apt install python3-dev
 
-virtual_env_folder=$PYTORCH_VIRTUALENV_DIR
+virtual_env_folder=$PYTHON3_PYTORCH_VIRTUALENV_DIR
 
-
-pip install virtualenv
-virtualenv $virtual_env_folder # create virtualenv
+python3 -m venv $virtual_env_folder # create virtualenv
 source $virtual_env_folder/bin/activate # activate virtualenv
 
 venv_pip=$virtual_env_folder/bin/pip
@@ -21,34 +23,44 @@ venv_python=$virtual_env_folder/bin/python
 
 # it seems these are needed following the suggestions here
 # https://stackoverflow.com/questions/48561981/activate-python-virtualenv-in-dockerfile?rq=1
-$venv_pip install ipython
-$venv_pip install jupyter
+pip install \
+	ipython \
+	jupyter \
+
+pip install --upgrade setuptools
+pip install --upgrade pip
 
 
 
 # install pytorch 1.0 nightly
-$venv_pip install numpy torchvision_nightly
-$venv_pip install torch_nightly -f https://download.pytorch.org/whl/nightly/cu90/torch_nightly.html
+pip install numpy torchvision_nightly
+pip install torch_nightly -f https://download.pytorch.org/whl/nightly/cu90/torch_nightly.html
 
 
 # maskrcnn_benchmark and coco api dependencies
-$venv_pip install ninja yacs cython matplotlib
-$venv_pip install \
+pip install \
+	ninja \
+	yacs \
+	cython \
+	matplotlib \
     requests \
-    opencv-python
+    opencv-python \
+    attrs \
+    pyyaml
 
-# create director for stashing some dependencies
+# create directory for stashing some dependencies
 cd $root_dir
-mkdir github_venv
+tmp_dir=$root_dir/github_python3
+mkdir $tmp_dir
 
-# install torchvision
-cd $root_dir/github_venv
-git clone https://github.com/pytorch/vision.git
-cd vision
-python setup.py install
+# # install torchvision
+# cd $tmp_dir
+# git clone https://github.com/pytorch/vision.git
+# cd vision
+# python setup.py install
 
 # install pycocotools
-cd $root_dir/github_venv
+cd $tmp_dir
 git clone https://github.com/cocodataset/cocoapi.git
 cd cocoapi/PythonAPI
 python setup.py build_ext install

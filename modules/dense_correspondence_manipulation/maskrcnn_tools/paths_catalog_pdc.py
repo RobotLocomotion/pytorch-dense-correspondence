@@ -15,6 +15,10 @@ class DatasetCatalog(object):
         "multi_shoe_val_10": {
             "img_dir": PDC_COCO_DATA_DIR + "/shoes/multi_shoe_val_10/images",
             "ann_file": PDC_COCO_DATA_DIR + "/shoes/multi_shoe_val_10/multi_shoe_val_10.json"
+        },
+        "multi_shoe_dev": {
+            "img_dir": PDC_COCO_DATA_DIR + "/shoes/multi_shoe_dev/images",
+            "ann_file": PDC_COCO_DATA_DIR + "/shoes/multi_shoe_dev/multi_shoe_dev.json"
         }
     }
 

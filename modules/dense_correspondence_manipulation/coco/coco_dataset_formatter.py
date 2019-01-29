@@ -96,7 +96,7 @@ class COCOSpartanDatasetLoader(object):
     This will make the correct calls to SpartanDataset for loading COCO data.
     """
 
-    def __init__(self, config_filename, train_config_filename, random=False):
+    def __init__(self, config_filename, train_config_filename=None, random=False):
 
         # TODO(ethan): understand why both a config file and train_config file are needed
         config = utils.getDictFromYamlFilename(config_filename)
@@ -198,6 +198,10 @@ class COCODataFormatter(object):
             'supercategory': 'objects',
         }
     ]
+
+    AREA_THRESHOLD = 25.0
+    BBOX_MIN_WIDTH = 5.0
+    BBOX_MIN_HEIGHT = 5.0
 
     def __init__(self, name_of_set, base_folder_path=None):
         """
@@ -333,6 +337,30 @@ class COCODataFormatter(object):
 
         return polygons
 
+    def check_annotation_valid(self, ann):
+        """
+        Checks whether the annotation is valid
+        :param annotation:
+        :type annotation:
+        :return:
+        :rtype:
+        """
+
+
+        if len(ann['segmentation']) == 0:
+            return False
+
+        if ann['area'] < COCODataFormatter.AREA_THRESHOLD:
+            return False
+
+        [x,y,width,height] = ann['bbox']
+        if (width < COCODataFormatter.BBOX_MIN_WIDTH) or (height < COCODataFormatter.BBOX_MIN_HEIGHT):
+            return False
+
+
+        return True
+
+
     def get_annotation_info(self, annotation_id, image_id, category_id, image_mask):
         """
         referencing code from https://github.com/waspinator/pycococreator/blob/master/pycococreatortools/pycococreatortools.py
@@ -353,13 +381,19 @@ class COCODataFormatter(object):
         encoded_mask = self.get_encoded_image_mask(image_mask)
 
         area = self.get_area_of_encoded_mask(encoded_mask)
-        if area < 1:
-            raise ValueError("The area of the mask was 0.")
+        # if area < 1:
+        #     raise ValueError("The area of the mask was 0.")
 
         x, y, width, height = self.get_bounding_box(encoded_mask)
 
         # using polygon (iscrowd = 0)
         segmentation = self.get_polygons(image_mask)
+
+        # if len(segmentation) == 0:
+        #     print("Segmentation length was zero, even though mask area was > 0")
+        #     raise RuntimeError("Segmentation length was zero, even though mask area was > 0")
+
+
 
         annotation = {
             "id": annotation_id,
@@ -371,7 +405,9 @@ class COCODataFormatter(object):
             "iscrowd": 0,  # assume polygon for now
         }
 
-        return annotation
+        is_valid = self.check_annotation_valid(annotation)
+
+        return is_valid, annotation
 
     def get_category(self):
         # categories[{
@@ -455,7 +491,7 @@ class COCODataFormatter(object):
 
         return merged_image, merged_mask
 
-    def get_image_mask_pair(self, data_loader, save_image=True):
+    def get_image_mask_pair(self, data_loader):
         """
         Get an image, optionally also save the image for coco style training
         :param data_loader:
@@ -476,7 +512,7 @@ class COCODataFormatter(object):
 
         return current_image_rgb, current_image_mask, rgb_filename
 
-    def get_random_merged_image(self, data_loader, min_items, max_items):
+    def get_random_merged_image(self, data_loader, min_items, max_items, save_image=False):
         # takes in the loader
         # returns merged_image, merged_mask, rgb_filename (where rgb_filename is the full path)
 
@@ -488,10 +524,8 @@ class COCODataFormatter(object):
             current_image_rgb, current_image_mask = \
                 self.merge_images(current_image_rgb, current_image_mask, image_rgb, image_mask, foreground_mask_value=i)
 
-        # save the rgb image so that we can return the filename as well
-        rgb_filename = self.save_rgb_image(current_image_rgb)
 
-        return current_image_rgb, current_image_mask, rgb_filename
+        return current_image_rgb, current_image_mask
 
     def save_rgb_image(self, image_rgb):
         # TODO(ethan): need to save the generated images somewhere

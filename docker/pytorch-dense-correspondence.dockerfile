@@ -45,10 +45,7 @@ COPY ./install_director.sh /tmp/install_director.sh
 RUN yes "Y" | /tmp/install_director.sh
 
 
-# make pytorch 1_0 virtualenv
-RUN cd $WORKDIR
-COPY ./install_pytorch_virtualenv.sh /tmp/install_pytorch_virtualenv.sh
-RUN yes "Y" | /tmp/install_pytorch_virtualenv.sh
+
 
 
 # set the terminator inside the docker container to be a different color
@@ -105,6 +102,22 @@ ENV NVIDIA_DRIVER_CAPABILITIES \
 
 # USER original_user
 
+COPY ./install_coco_api.sh /tmp/install_coco_api.sh
+RUN yes "Y" | /tmp/install_coco_api.sh
+
+
+# make pytorch 1_0 virtualenv
+# RUN cd $WORKDIR
+# ENV PYTORCH_VIRTUALENV_DIR=/home/$USER_NAME/venv_pytorch_1_0
+# COPY ./install_pytorch_virtualenv.sh /tmp/install_pytorch_virtualenv.sh
+# RUN yes "Y" | /tmp/install_pytorch_virtualenv.sh
+
+
+# make python3 pytorch 1.0 virtualenv
+RUN cd $WORKDIR
+ENV PYTHON3_PYTORCH_VIRTUALENV_DIR=/home/${USER_NAME}/venv_python3
+COPY ./install_python3_pytorch_virtualenv.sh /tmp/install_python3_pytorch_virtualenv.sh
+RUN yes "Y" | /tmp/install_python3_pytorch_virtualenv.sh
 
 # change ownership of everything to our user
 RUN cd $WORKDIR

@@ -7,8 +7,9 @@ export DC_SOURCE_DIR=~/code
 export PDC_BUILD_DIR=$DC_SOURCE_DIR/build
 export POSER_BUILD_DIR=$PDC_BUILD_DIR/poser
 
-# location of custom COCO data
 export COCO_CUSTOM_DATA_DIR=$DC_DATA_DIR/coco
+
+
 
 function use_pytorch_dense_correspondence()
 {
@@ -24,11 +25,17 @@ use_director(){
 
 export -f use_director
 
-activate_pytorch_virtualenv(){
-    source ~/venv_pytorch_1_0/bin/activate
+# activate_pytorch_virtualenv(){
+#     source ~/venv_pytorch_1_0/bin/activate
+# }
+
+# export -f activate_pytorch_virtualenv
+
+activate_python3_virtualenv(){
+    source $PYTHON3_PYTORCH_VIRTUALENV_DIR/bin/activate
 }
 
-export -f activate_pytorch_virtualenv
+export -f activate_python3_virtualenv
 
 exec "$@"
 
