@@ -5,7 +5,7 @@
 
 set -exu
 
-root_dir=$(pwd)
+root_dir=$USER_HOME_DIR
 install_dir=$root_dir/install
 
 apt-get update

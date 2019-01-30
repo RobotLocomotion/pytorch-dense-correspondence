@@ -208,6 +208,6 @@ def zero_loss():
     return Variable(torch.FloatTensor([0]).cuda())
 
 def is_zero_loss(loss):
-    return loss.data[0] < 1e-20
+    return loss.item() < 1e-20
 
 

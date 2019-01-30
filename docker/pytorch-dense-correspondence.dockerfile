@@ -1,18 +1,9 @@
-# FROM nvidia/cuda:9.0-devel-ubuntu16.04
-FROM nvidia/cuda:9.0-cudnn7-devel-ubuntu16.04
+FROM nvidia/cuda:10.0-cudnn7-devel-ubuntu16.04
 
 ARG USER_NAME
 ARG USER_PASSWORD
 ARG USER_ID
 ARG USER_GID
-
-# see http://gbraad.nl/blog/non-root-user-inside-a-docker-container.html
-# RUN dnf install -y sudo && \
-#     adduser $USER_NAMEuser && \
-#     echo "user ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/user && \
-#     chmod 0440 /etc/sudoers.d/user
-
-
 
 RUN apt-get update
 RUN apt install sudo
@@ -25,8 +16,8 @@ RUN usermod -u $USER_ID $USER_NAME
 RUN groupmod -g $USER_GID $USER_NAME
 
 WORKDIR /home/$USER_NAME
-# require no sudo pw in docker
-# RUN echo $USER_PASSWORD | sudo -S bash -c 'echo "'$USER_NAME' ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/docker-user' && printf "\n"
+ENV USER_HOME_DIR=/home/$USER_NAME
+
 
 COPY ./install_dependencies.sh /tmp/install_dependencies.sh
 RUN yes "Y" | /tmp/install_dependencies.sh
@@ -42,11 +33,7 @@ RUN yes "Y" | /tmp/install_poser.sh
 
 # install director
 COPY ./install_director.sh /tmp/install_director.sh
-RUN yes "Y" | /tmp/install_director.sh
-
-
-
-
+RUN cd $WORKDIR && yes "Y" | /tmp/install_director.sh
 
 # set the terminator inside the docker container to be a different color
 RUN mkdir -p .config/terminator
@@ -57,7 +44,6 @@ RUN chown $USER_NAME:$USER_NAME -R .config
 RUN apt-get update && apt-get install -y \
    mesa-utils && \
    rm -rf /var/lib/apt/lists/*
-
 
 
 # needed to get OpenGL running inside the docker
@@ -102,19 +88,18 @@ ENV NVIDIA_DRIVER_CAPABILITIES \
 
 # USER original_user
 
+
 COPY ./install_coco_api.sh /tmp/install_coco_api.sh
 RUN yes "Y" | /tmp/install_coco_api.sh
 
 
 # make python3 pytorch 1.0 virtualenv
-RUN cd $WORKDIR
-ENV PYTHON3_PYTORCH_VIRTUALENV_DIR=/home/${USER_NAME}/venv_python3
-COPY ./install_python3_pytorch_virtualenv.sh /tmp/install_python3_pytorch_virtualenv.sh
-RUN yes "Y" | /tmp/install_python3_pytorch_virtualenv.sh
+# ENV PYTHON3_PYTORCH_VIRTUALENV_DIR=/home/${USER_NAME}/venv_python3
+# COPY ./install_python3_pytorch_virtualenv.sh /tmp/install_python3_pytorch_virtualenv.sh
+# RUN yes "Y" | /tmp/install_python3_pytorch_virtualenv.sh
 
 # change ownership of everything to our user
-RUN cd $WORKDIR
-RUN chown $USER_NAME:$USER_NAME -R .
+RUN cd $WORKDIR && chown $USER_NAME:$USER_NAME -R .
 
 
 

@@ -370,49 +370,49 @@ class DenseCorrespondenceTraining(object):
                     # Don't update any plots if the entry corresponding to that term
                     # is a zero loss
                     if not loss_composer.is_zero_loss(match_loss):
-                        self._logging_dict['train']['match_loss'].append(match_loss.data[0])
-                        self._tensorboard_logger.log_value("train match loss", match_loss.data[0], loss_current_iteration)
+                        self._logging_dict['train']['match_loss'].append(match_loss.item())
+                        self._tensorboard_logger.log_value("train match loss", match_loss.item(), loss_current_iteration)
 
                     if not loss_composer.is_zero_loss(masked_non_match_loss):
-                        self._logging_dict['train']['masked_non_match_loss'].append(masked_non_match_loss.data[0])
+                        self._logging_dict['train']['masked_non_match_loss'].append(masked_non_match_loss.item())
 
-                        self._tensorboard_logger.log_value("train masked non match loss", masked_non_match_loss.data[0], loss_current_iteration)
+                        self._tensorboard_logger.log_value("train masked non match loss", masked_non_match_loss.item(), loss_current_iteration)
 
                     if not loss_composer.is_zero_loss(background_non_match_loss):
-                        self._logging_dict['train']['background_non_match_loss'].append(background_non_match_loss.data[0])
-                        self._tensorboard_logger.log_value("train background non match loss", background_non_match_loss.data[0], loss_current_iteration)
+                        self._logging_dict['train']['background_non_match_loss'].append(background_non_match_loss.item())
+                        self._tensorboard_logger.log_value("train background non match loss", background_non_match_loss.item(), loss_current_iteration)
 
                     if not loss_composer.is_zero_loss(blind_non_match_loss):
 
                         if data_type == SpartanDatasetDataType.SINGLE_OBJECT_WITHIN_SCENE:
-                            self._tensorboard_logger.log_value("train blind SINGLE_OBJECT_WITHIN_SCENE", blind_non_match_loss.data[0], loss_current_iteration)
+                            self._tensorboard_logger.log_value("train blind SINGLE_OBJECT_WITHIN_SCENE", blind_non_match_loss.item(), loss_current_iteration)
 
                         if data_type == SpartanDatasetDataType.DIFFERENT_OBJECT:
-                            self._tensorboard_logger.log_value("train blind DIFFERENT_OBJECT", blind_non_match_loss.data[0], loss_current_iteration)
+                            self._tensorboard_logger.log_value("train blind DIFFERENT_OBJECT", blind_non_match_loss.item(), loss_current_iteration)
 
 
                     # loss is never zero
                     if data_type == SpartanDatasetDataType.SINGLE_OBJECT_WITHIN_SCENE:
                         print "logging train loss"
-                        self._tensorboard_logger.log_value("train loss SINGLE_OBJECT_WITHIN_SCENE", loss.data[0], loss_current_iteration)
+                        self._tensorboard_logger.log_value("train loss SINGLE_OBJECT_WITHIN_SCENE", loss.item(), loss_current_iteration)
 
                     elif data_type == SpartanDatasetDataType.DIFFERENT_OBJECT:
-                        self._tensorboard_logger.log_value("train loss DIFFERENT_OBJECT", loss.data[0], loss_current_iteration)
+                        self._tensorboard_logger.log_value("train loss DIFFERENT_OBJECT", loss.item(), loss_current_iteration)
 
                     elif data_type == SpartanDatasetDataType.SINGLE_OBJECT_ACROSS_SCENE:
-                        self._tensorboard_logger.log_value("train loss SINGLE_OBJECT_ACROSS_SCENE", loss.data[0], loss_current_iteration)
+                        self._tensorboard_logger.log_value("train loss SINGLE_OBJECT_ACROSS_SCENE", loss.item(), loss_current_iteration)
 
                     elif data_type == SpartanDatasetDataType.MULTI_OBJECT:
-                        self._tensorboard_logger.log_value("train loss MULTI_OBJECT", loss.data[0], loss_current_iteration)
+                        self._tensorboard_logger.log_value("train loss MULTI_OBJECT", loss.item(), loss_current_iteration)
                     
                     elif data_type == SpartanDatasetDataType.SYNTHETIC_MULTI_OBJECT:
-                        self._tensorboard_logger.log_value("train loss SYNTHETIC_MULTI_OBJECT", loss.data[0], loss_current_iteration)
+                        self._tensorboard_logger.log_value("train loss SYNTHETIC_MULTI_OBJECT", loss.item(), loss_current_iteration)
                     else:
                         raise ValueError("unknown data type")
 
 
                     if data_type == SpartanDatasetDataType.DIFFERENT_OBJECT:
-                        self._tensorboard_logger.log_value("train different object", loss.data[0], loss_current_iteration)
+                        self._tensorboard_logger.log_value("train different object", loss.item(), loss_current_iteration)
 
                 update_plots(loss, match_loss, masked_non_match_loss, background_non_match_loss, blind_non_match_loss)
 
