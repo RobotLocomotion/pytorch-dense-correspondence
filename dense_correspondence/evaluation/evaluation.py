@@ -1852,7 +1852,7 @@ class DenseCorrespondenceEvaluation(object):
 
         cross_scene_data = []
 
-        for i in evaluation_labeled_data_paths:
+        for path in evaluation_labeled_data_paths:
             cross_scene_data_full_path = utils.convert_data_relative_path_to_absolute_path(path, assert_path_exists=True)
             this_cross_scene_data = utils.getDictFromYamlFilename(cross_scene_data_full_path)
             cross_scene_data += this_cross_scene_data
