@@ -94,13 +94,12 @@ RUN yes "Y" | /tmp/install_coco_api.sh
 
 
 # make python3 pytorch 1.0 virtualenv
-# ENV PYTHON3_PYTORCH_VIRTUALENV_DIR=/home/${USER_NAME}/venv_python3
-# COPY ./install_python3_pytorch_virtualenv.sh /tmp/install_python3_pytorch_virtualenv.sh
-# RUN yes "Y" | /tmp/install_python3_pytorch_virtualenv.sh
+ENV PYTHON3_PYTORCH_VIRTUALENV_DIR=/home/${USER_NAME}/venv_python3
+COPY ./install_python3_pytorch_virtualenv.sh /tmp/install_python3_pytorch_virtualenv.sh
+RUN yes "Y" | /tmp/install_python3_pytorch_virtualenv.sh
 
 # change ownership of everything to our user
-RUN cd $WORKDIR && chown $USER_NAME:$USER_NAME -R .
-
+RUN cd ${USER_HOME_DIR} && echo $(pwd) && chown $USER_NAME:$USER_NAME -R .
 
 
 ENTRYPOINT bash -c "source ~/code/docker/entrypoint.sh && /bin/bash"

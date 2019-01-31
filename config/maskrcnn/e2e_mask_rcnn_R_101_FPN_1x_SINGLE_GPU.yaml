@@ -43,7 +43,6 @@ SOLVER:
   # https://github.com/facebookresearch/Detectron/blob/master/configs/getting_started/tutorial_1gpu_e2e_faster_rcnn_R-50-FPN.yaml#L14-L30
   IMS_PER_BATCH: 2
   BASE_LR: 0.0025
-  MAX_ITER: 60000
   STEPS: [0, 30000, 40000]
   MAX_ITER: 40000
 TEST:

@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 # Basic I/O utils
 import yaml
 from yaml import CLoader
@@ -14,13 +16,15 @@ import datetime
 from PIL import Image
 
 
+
+
 import dense_correspondence_manipulation.utils.transformations as transformations
 
 def getDictFromYamlFilename(filename):
     """
     Read data from a YAML files
     """
-    return yaml.load(file(filename), Loader=CLoader)
+    return yaml.load(open(filename), Loader=CLoader)
 
 def saveToYaml(data, filename, flush=False):
     """
@@ -100,14 +104,14 @@ def set_cuda_visible_devices(gpu_list):
     """
 
     if len(gpu_list) == 0:
-        print "using all CUDA gpus"
+        print("using all CUDA gpus")
         return
 
     cuda_visible_devices = ""
     for gpu in gpu_list:
         cuda_visible_devices += str(gpu) + ","
 
-    print "setting CUDA_VISIBLE_DEVICES = ", cuda_visible_devices
+    print("setting CUDA_VISIBLE_DEVICES = ", cuda_visible_devices)
     os.environ["CUDA_VISIBLE_DEVICES"] = cuda_visible_devices
 
 def set_default_cuda_visible_devices():
@@ -299,7 +303,6 @@ def get_model_param_file_from_directory(model_folder, iteration=None):
         model_param_file = prefix + ".pth"
         optim_param_file = prefix + ".pth.opt"
 
-    print "model_param_file", model_param_file
     model_param_file = os.path.join(model_folder, model_param_file)
     optim_param_file = os.path.join(model_folder, optim_param_file)
 
