@@ -46,6 +46,8 @@ RUN apt-get update && apt-get install -y \
    rm -rf /var/lib/apt/lists/*
 
 
+
+###### COMMENT OUT THIS BLOCK IF USING NVIDIA-DOCKER1 ###########
 # needed to get OpenGL running inside the docker
 # https://github.com/machinekoder/nvidia-opengl-docker
 
@@ -87,8 +89,10 @@ ENV NVIDIA_DRIVER_CAPABILITIES \
     ${NVIDIA_DRIVER_CAPABILITIES:+$NVIDIA_DRIVER_CAPABILITIES,}graphics
 
 # USER original_user
+###### END BLOCK ###########
 
 
+# install coco_api
 COPY ./install_coco_api.sh /tmp/install_coco_api.sh
 RUN yes "Y" | /tmp/install_coco_api.sh
 
@@ -103,5 +107,4 @@ RUN cd ${USER_HOME_DIR} && echo $(pwd) && chown $USER_NAME:$USER_NAME -R .
 
 
 ENTRYPOINT bash -c "source ~/code/docker/entrypoint.sh && /bin/bash"
-
 
