@@ -6,6 +6,10 @@ paladin-23:
   manuelli:
     path_to_data_directory: '/home/manuelli/data'
 
+paladin-44:
+  manuelli:
+    path_to_data_directory: '/media/hdd/data'
+
 iiwa-2:
   manuelli:
     path_to_data_directory: '/home/manuelli/data'

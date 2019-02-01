@@ -13,7 +13,6 @@ from PIL import Image
 import torch
 import torch.nn as nn
 from torchvision import transforms
-from torch.autograd import Variable
 import pytorch_segmentation_detection.models.resnet_dilated as resnet_dilated
 from dense_correspondence.dataset.spartan_dataset_masked import SpartanDataset
 
@@ -229,7 +228,7 @@ class DenseCorrespondenceNetwork(nn.Module):
         warnings.warn("use forward method instead", DeprecationWarning)
 
         img = img.unsqueeze(0)
-        img = Variable(img.cuda())
+        img = torch.tensor(img, device=torch.device("cuda"))
         res = self.fcn(img)
         res = res.squeeze(0)
         res = res.permute(1, 2, 0)
@@ -283,9 +282,10 @@ class DenseCorrespondenceNetwork(nn.Module):
         # transform to shape [1,3,H,W]
         img_tensor = img_tensor.unsqueeze(0)
 
-        # The fcn throws and error if we don't use a variable here . . .
-        # Maybe it's because it is in train mode?
-        img_tensor = Variable(img_tensor.cuda(), requires_grad=False)
+        # make sure it's on the GPU
+        img_tensor = torch.tensor(img_tensor, device=torch.device("cuda"))
+
+
         res = self.forward(img_tensor) # shape [1,D,H,W]
         # print "res.shape 1", res.shape
 

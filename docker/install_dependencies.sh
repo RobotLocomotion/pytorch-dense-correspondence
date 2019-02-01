@@ -20,7 +20,8 @@ apt install --no-install-recommends \
   python-dev \
   ffmpeg \
   nvidia-settings \
-  cmake-curses-gui
+  cmake-curses-gui \
+  libyaml-dev
 
 pip install --upgrade pip==9.0.3
 pip install -U setuptools
@@ -31,4 +32,6 @@ pip install \
   opencv-python \
   plyfile \
   pandas \
-  tensorflow
+  tensorflow \
+  future \
+  typing

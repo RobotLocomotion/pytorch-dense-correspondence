@@ -77,7 +77,7 @@ networks:
 
 
   caterpillar_standard_params_3:
-    path_to_network_params: trained_models/caterpillar_standard_params_3/003500.pth
+    path_to_network_params: trained_models/stable/caterpillar_standard_params_3/003500.pth
 
 
   caterpillar_standard_params_3_500_steps:
