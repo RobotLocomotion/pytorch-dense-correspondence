@@ -6,7 +6,7 @@
 # don't use -u option due to https://github.com/pypa/virtualenv/issues/150
 set -ex
 
-root_dir=$(pwd)
+root_dir=$USER_HOME_DIR
 
 apt-get update
 apt install python3-venv
