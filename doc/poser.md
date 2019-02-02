@@ -245,7 +245,7 @@ object_1_name:
 
 Example data are provided in `${mankey_root}/experiment/inference_pdc_data` , please modify the path in `mankey_request.yaml` according to your directory structure. 
 
-Prepare the network weight, which will be used as a script argument.
+Prepare the network weight, which will be used as a script argument. An example network weight can be downloaded at [here](https://drive.google.com/file/d/1fVWa4I2DcnApESc1RYvRjMSCg2lq2uSG/view?usp=sharing).
 
 Once everything is ready, run
 
