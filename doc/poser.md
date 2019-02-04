@@ -251,9 +251,9 @@ Once everything is ready, run
 
 ```shell
 cd ${mankey_root}
-export PYTHONPATH="${PWD}:${PYTHONPATH}"
+use_mankey
 cd ${mankey_root}/experiment
 python inference_pdc.py --request_path path/to/request.yaml --response_path path/to/response.yaml --network_chkpt_path path/to/network/checkpoint.pth
 ```
 
-Note that the python interpreter should be python3 in virtualenv. If everything is OK, you should see 3d visualization window (if enabled) and the keypoint in world frame will be written to response.yaml
+Note that the python interpreter should be python3 in virtualenv. If everything is OK, you should see 3d visualization window (if enabled) and the keypoint in world frame will be written to response.yaml. The `use_mankey` function adds mankey to the `PYTHONPATH`
