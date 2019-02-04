@@ -31,6 +31,11 @@ export -f use_director
 
 # export -f activate_pytorch_virtualenv
 
+use_mankey(){
+	export PYTHONPATH=$DC_SOURCE_DIR/src/mankey${PYTHONPATH}
+}
+export -f use_mankey
+
 activate_python3_virtualenv(){
     source $PYTHON3_PYTORCH_VIRTUALENV_DIR/bin/activate
 }
