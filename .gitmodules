@@ -13,3 +13,6 @@
 [submodule "maskrcnn-benchmark"]
 	path = external/maskrcnn-benchmark
 	url = git@github.com:facebookresearch/maskrcnn-benchmark.git
+[submodule "src/mankey"]
+	path = src/mankey
+	url = git@github.com:weigao95/mankey.git

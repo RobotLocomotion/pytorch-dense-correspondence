@@ -46,6 +46,7 @@ pip install \
 	matplotlib \
     requests \
     opencv-python \
+	open3d-python \
     attrs \
     pyyaml
 

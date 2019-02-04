@@ -241,3 +241,19 @@ object_1_name:
         position: [0.00233, -0.03790, -0.05000]
 ```
 
+## How the run mankey Inference
+
+Example data are provided in `${mankey_root}/experiment/inference_pdc_data` , please modify the path in `mankey_request.yaml` according to your directory structure. 
+
+Prepare the network weight, which will be used as a script argument. If you want a quick start, an example network weight can be downloaded [here](https://drive.google.com/file/d/1fVWa4I2DcnApESc1RYvRjMSCg2lq2uSG/view?usp=sharing). The trained model is also available at `/sixTBdata/pdc/trained_models/keypoints/shoes` on the Kuka-1 machine. Please **use weights in `checkpoint_nostage`**  currently as the staged network has not been integrated yet (TODO: wei).
+
+Once everything is ready, run
+
+```shell
+cd ${mankey_root}
+use_mankey
+cd ${mankey_root}/experiment
+python inference_pdc.py --request_path path/to/request.yaml --response_path path/to/response.yaml --network_chkpt_path path/to/network/checkpoint.pth
+```
+
+Note that the python interpreter should be python3 in virtualenv. If everything is OK, you should see 3d visualization window (if enabled) and the keypoint in world frame will be written to response.yaml. The `use_mankey` function adds mankey to the `PYTHONPATH`
