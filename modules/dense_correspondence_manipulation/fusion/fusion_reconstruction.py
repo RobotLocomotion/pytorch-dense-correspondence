@@ -347,7 +347,7 @@ class TSDFReconstruction(FusionReconstruction):
         return self.kinematics_pose_data.get_camera_pose(idx)
 
 
-    def visualize_reconstruction(self, view, vis_uncropped=False, name=None):
+    def visualize_reconstruction(self, view, vis_uncropped=False, name=None, parent=None):
 
 
         if name is None:
@@ -356,11 +356,11 @@ class TSDFReconstruction(FusionReconstruction):
             vis_name = name
 
         self.reconstruction_vis_obj = vis.updatePolyData(self.poly_data, vis_name,
-                                                       view=view, colorByName='RGB')
+                                                       view=view, colorByName='RGB', parent=parent)
 
         if vis_uncropped:
             vis_obj = vis.updatePolyData(self.poly_data_raw, 'Uncropped Fusion Reconstruction',
-                               view=view, colorByName='RGB')
+                               view=view, colorByName='RGB', parent=parent)
 
     @staticmethod
     def from_data_folder(data_folder, config=None, name=None, load_foreground_mesh=True):

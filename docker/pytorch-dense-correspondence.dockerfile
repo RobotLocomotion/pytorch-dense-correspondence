@@ -38,7 +38,7 @@ RUN cd $WORKDIR && yes "Y" | /tmp/install_director.sh
 # set the terminator inside the docker container to be a different color
 RUN mkdir -p .config/terminator
 COPY ./terminator_config .config/terminator/config
-RUN chown $USER_NAME:$USER_NAME -R .config
+
 
 # install GLX-Gears
 RUN apt-get update && apt-get install -y \

@@ -66,7 +66,7 @@ def createApp(globalsDict=None):
     app.viewOptions.setProperty('View angle', 30)
     app.sceneBrowserDock.setVisible(True)
     app.propertiesDock.setVisible(False)
-    app.mainWindow.setWindowTitle('Depth Scanner')
+    app.mainWindow.setWindowTitle('Mesh Processing')
     app.mainWindow.show()
     app.mainWindow.resize(920,600)
     app.mainWindow.move(0,0)
