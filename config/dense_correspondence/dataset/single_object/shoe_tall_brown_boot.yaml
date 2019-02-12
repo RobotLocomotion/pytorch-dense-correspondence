@@ -1,0 +1,7 @@
+
+logs_root_path: logs_proto
+object_id: "shoe_tall_brown_boot"
+train:
+- "2019-02-12-16-39-00" # facing towards robot
+test: []
+evaluation_labeled_data_path: []
