@@ -257,7 +257,3 @@ python inference_pdc.py --request_path path/to/request.yaml --response_path path
 ```
 
 Note that the python interpreter should be python3 in virtualenv. If everything is OK, you should see 3d visualization window (if enabled) and the keypoint in world frame will be written to response.yaml. The `use_mankey` function adds mankey to the `PYTHONPATH`
-
-
-### Miscellaneous
-When you have varying number of keypoints you need to modify this [line](https://github.com/weigao95/mankey/blob/bfcb48e7ca0f67fa943d4d1ce1ed8cac8c02e74d/experiment/inference_pdc.py#L125) to match the number of keypoints that the network should be predicting. Usually it's 3 for mugs, 6 for shoes.
