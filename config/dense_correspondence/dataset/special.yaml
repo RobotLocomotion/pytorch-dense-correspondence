@@ -4,5 +4,6 @@ train:
 - "2018-05-14-22-10-53" # mug rack
 - "2019-02-16-18-49-39" # left table background
 - "2019-02-16-20-56-23" # left table w/ mug rack
+- "logs_special/2019-01-03-22-43-55" # empty background
 test: []
 evaluation_labeled_data_path: []
