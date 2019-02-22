@@ -8,10 +8,12 @@ import director.visualization as vis
 from director.debugVis import DebugData
 import director.objectmodel as om
 import director.transformUtils as transformUtils
+import director.ioUtils as ioUtils
 
 # pdc
 import dense_correspondence_manipulation.utils.utils as pdc_utils
 from dense_correspondence_manipulation.fusion.fusion_reconstruction import TSDFReconstruction
+import dense_correspondence_manipulation.annotation.utils as annotation_utils
 
 
 class KeypointAnnotation(object):
@@ -26,12 +28,27 @@ class KeypointAnnotation(object):
         self._measurement_panel = measurement_panel
 
 
+    def setup(self):
+        """
+        Call this before using for annotations
+        :return:
+        :rtype:
+        """
         self._scene_list = self._config["scene_list"]
         self.keypoint_names = self._config["keypoint_names"]
 
         self._current_scene_name = None
 
         self.load_next_scene()
+        self.start()
+
+    def setup_for_synthetic_mesh_annotation(self, mesh_filepath):
+        self.keypoint_names = self._config["keypoint_names"]
+        self._scene_name = "synthetic_mesh"
+
+        poly_data = ioUtils.readPolyData(mesh_filepath)
+        vis.showPolyData(poly_data, "mesh", parent=self._vis_container)
+
         self.start()
 
     def load_next_scene(self):
@@ -220,3 +237,53 @@ class KeypointAnnotation(object):
 
         print("annotation_filename", annotation_filename)
         self._annotation_dict = annotation_dict
+
+
+
+
+
+class KeypointAnnotationVisualizer(object):
+
+    def __init__(self, view):
+        self._view = view
+
+    def clear_vis_container(self):
+        """
+        Clear the vis container
+        :return:
+        :rtype:
+        """
+        container_name = "Keypoint Annotation Visualizer"
+        c = om.getOrCreateContainer(container_name)
+        om.removeFromObjectModel(c)
+        self._vis_container = om.getOrCreateContainer(container_name)
+
+
+    def visualize_annotation(self, annotation_dict):
+        """
+        Load the annotations
+        :param annotation_dict:
+        :type annotation_dict:
+        :return:
+        :rtype:
+        """
+        self.clear_vis_container()
+        self._keypoint_container = om.getOrCreateContainer("Keypoints", parentObj=self._vis_container)
+        self._annotation = annotation_dict
+
+        scene_name = self._annotation['scene_name']
+        logs_dir = "logs_proto"
+        self._data_folder = pdc_utils.convert_data_relative_path_to_absolute_path(
+            os.path.join(logs_dir, scene_name, "processed"))
+
+        # load fusion reconstruction
+        self._fusion_reconstruction = TSDFReconstruction.from_data_folder(self._data_folder, load_foreground_mesh=True)
+        self._fusion_reconstruction.visualize_reconstruction(self._view, vis_uncropped=True, parent=self._vis_container)
+
+        # visualize keypoints
+        annotation_utils.visualize_keypoints(annotation_dict['keypoints'], parent=self._keypoint_container)
+
+
+
+
+

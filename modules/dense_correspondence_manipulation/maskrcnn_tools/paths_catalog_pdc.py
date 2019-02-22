@@ -19,7 +19,20 @@ class DatasetCatalog(object):
         "multi_shoe_dev": {
             "img_dir": PDC_COCO_DATA_DIR + "/shoes/multi_shoe_dev/images",
             "ann_file": PDC_COCO_DATA_DIR + "/shoes/multi_shoe_dev/multi_shoe_dev.json"
-        }
+        },
+        "shoes_with_boot_10K": {
+            "img_dir": PDC_COCO_DATA_DIR + "/shoes/shoes_with_boot_10K/images",
+            "ann_file": PDC_COCO_DATA_DIR + "/shoes/shoes_with_boot_10K/shoes_with_boot_10K.json"
+        },
+        "mugs_10K": {
+            "img_dir": PDC_COCO_DATA_DIR + "/mugs/mugs_10K/images",
+            "ann_file": PDC_COCO_DATA_DIR + "/mugs/mugs_10K/mugs_10K.json"
+        },
+        "mugs_test_10": {
+            "img_dir": PDC_COCO_DATA_DIR + "/mugs/mugs_test_10/images",
+            "ann_file": PDC_COCO_DATA_DIR + "/mugs/mugs_test_10/mugs_test_10.json"
+        },
+
     }
 
     @staticmethod

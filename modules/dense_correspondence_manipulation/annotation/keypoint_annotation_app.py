@@ -7,7 +7,7 @@ import os
 from director import mainwindowapp
 
 # pdf
-from dense_correspondence_manipulation.annotation.keypoint_annotation import KeypointAnnotation
+from dense_correspondence_manipulation.annotation.keypoint_annotation import KeypointAnnotation, KeypointAnnotationVisualizer
 import dense_correspondence_manipulation.utils.utils as pdc_utils
 
 
@@ -33,8 +33,24 @@ if __name__ == "__main__":
     globalsDict['view'] = view
 
     keypoint_annotation = KeypointAnnotation(view, config=KEYPOINT_ANNOTATION_CONFIG)
+
+
+    # keypoint_annotation.setup() # standard
+
+    mesh_filepath = os.path.join(pdc_utils.get_data_dir(), "templates/mugs/mug.stl")
+    keypoint_annotation.setup_for_synthetic_mesh_annotation(mesh_filepath)
+
     globalsDict['keypoint_annotation'] = keypoint_annotation
     globalsDict['k'] = keypoint_annotation
+
+    # filename = "scene_2018-05-15-00-40-41_date_2019-02-14-02-16-38.yaml"
+    filename = "scene_2018-05-09-17-36-30_date_2019-02-14-01-20-15.yaml"
+
+    annotation_data_file = os.path.join(pdc_utils.get_data_dir(), "annotations/keypoints/mug_3_keypoint", filename)
+    annotation_data = pdc_utils.getDictFromYamlFilename(annotation_data_file)[0]
+    kv = KeypointAnnotationVisualizer(view)
+    kv.visualize_annotation(annotation_data)
+
 
     app.app.start(restoreWindow=True)
 

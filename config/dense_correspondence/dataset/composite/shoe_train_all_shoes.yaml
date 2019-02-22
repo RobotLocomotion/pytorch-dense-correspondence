@@ -11,5 +11,6 @@ single_object_scenes_config_files:
 - shoe_globalwin_light_brown.yaml
 - shoe_tesla_maroon.yaml
 - shoe_globalwin_blue_grey.yaml
+- shoe_tall_brown_boot.yaml
 
 multi_object_scenes_config_files: []
