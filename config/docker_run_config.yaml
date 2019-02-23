@@ -17,3 +17,7 @@ iiwa-2:
 wei:
   wei:
     path_to_data_directory: '/home/wei/data'
+
+peteflo-m2:
+  peteflo:
+    path_to_data_directory: '/home/peteflo/data/spartan'
