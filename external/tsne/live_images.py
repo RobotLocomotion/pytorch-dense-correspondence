@@ -72,7 +72,7 @@ model.load_state_dict(torch.load("/home/peteflo/code/dense_correspondence/traini
 model.eval()
 print "loaded tcn"
 
-num_logs_used = 1
+num_logs_used = 2
 embeddings = None
 colors = None
 images = None
@@ -143,7 +143,8 @@ fig = plt.figure()
 ax = fig.add_subplot(111)
 cmap=plt.cm.Spectral
 colors_mapped = [cmap(c) for c in colors ]
-line, = ax.plot(Y[:,0], Y[:,1], c="black", ls="", marker="o")
+#line, = ax.plot(Y[:,0], Y[:,1], c="black", ls="", marker="o")
+line = plt.scatter(Y[:, 0], Y[:, 1], c=colors, cmap=plt.cm.Spectral)
 
 # create the annotations box
 im = OffsetImage(images[0,:,:], zoom=0.5)
