@@ -2,16 +2,13 @@ import matplotlib.pyplot as plt
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 import numpy as np; np.random.seed(42)
 
-# Generate data x, y for scatter and an array of images.
-x = np.arange(20)
-y = np.random.rand(len(x))
-
 
 import random
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
 import dense_correspondence_manipulation.utils.utils as utils
+utils.set_cuda_visible_devices([1])
 utils.add_dense_correspondence_to_python_path()
 
 import dense_correspondence
@@ -26,6 +23,10 @@ dataset_config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 
                                        'dynamic.yaml')
 dataset_config = utils.getDictFromYamlFilename(dataset_config_filename)
 dataset = DynamicTimeContrastDataset(config=dataset_config)
+logs = dataset.scene_generator()
+logs_list = []
+for log in logs:
+    logs_list.append(log)
 
 # LOAD DESCRIPTOR NETWORK
 eval_config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 
@@ -71,48 +72,81 @@ model.load_state_dict(torch.load("/home/peteflo/code/dense_correspondence/traini
 model.eval()
 print "loaded tcn"
 
-# get camera_0 rgb image for each index of a certain log
-log_a = "2019-02-22-18-41-39" # REFERENCE TRAJECTORY
+num_logs_used = 1
+embeddings = None
+colors = None
+images = None
 
-# get nu
-scene_directory = dataset.get_full_path_for_scene(log_a)
-state_info_filename = os.path.join(scene_directory, "states.yaml")
-state_info_dict = utils.getDictFromYamlFilename(state_info_filename)
-image_idxs = state_info_dict.keys() # list of integers
+for i, log in enumerate(logs_list[0:num_logs_used]):
+    print i
 
-camera_num = 0
+    scene_directory = dataset.get_full_path_for_scene(log)
+    state_info_filename = os.path.join(scene_directory, "states.yaml")
+    state_info_dict = utils.getDictFromYamlFilename(state_info_filename)
+    image_idxs = state_info_dict.keys() # list of integers
 
-embeddings = np.zeros((len(image_idxs),D_embedding))
-colors = np.zeros((len(image_idxs)))
-print embeddings.shape
-print colors.shape
+    camera_num = 0
 
-arr = np.empty((len(x),480,640))
+    new_embeddings = np.zeros((len(image_idxs),D_embedding))
+    new_colors = np.zeros((len(image_idxs)))
+    new_images = np.empty((len(image_idxs),480,640))
+    new_embeddings.shape
+    new_colors.shape
 
-#for i in image_idxs:
-for i in range(len(x)):
-    rgb = dataset.get_rgb_image(dataset.get_image_filename(log_a, camera_num, i, ImageType.RGB))
-    rgb_tensor = dataset.rgb_image_to_tensor(rgb)
-    rgb_tensor = rgb_tensor.unsqueeze(0).cuda() #N, C, H, W
-    descriptor_image = dcn.forward(rgb_tensor).detach() #N, D, H, W
-    stacked = torch.cat([rgb_tensor[0], descriptor_image[0]]).unsqueeze(0)
-    embedding = model(stacked)[0].detach().cpu().numpy()
-    embeddings[i] = embedding
-    colors[i] = float(i) / float(len(image_idxs))
-    rgb_numpy = np.asarray(rgb)
-    print rgb_numpy.shape
-    arr[i,:,:] = rgb_numpy[:,:,0]
+    
+
+    #for i in image_idxs:
+    for j in range(len(image_idxs)):
+        rgb = dataset.get_rgb_image(dataset.get_image_filename(log, camera_num, j, ImageType.RGB))
+        rgb_tensor = dataset.rgb_image_to_tensor(rgb)
+        rgb_tensor = rgb_tensor.unsqueeze(0).cuda() #N, C, H, W
+        descriptor_image = dcn.forward(rgb_tensor).detach() #N, D, H, W
+        stacked = torch.cat([rgb_tensor[0], descriptor_image[0]]).unsqueeze(0)
+        embedding = model(stacked)[0].detach().cpu().numpy()
+        new_embeddings[j] = embedding
+        new_colors[j] = float(i) / float(num_logs_used)
+        rgb_numpy = np.asarray(rgb)
+        print rgb_numpy.shape
+        new_images[j,:,:] = rgb_numpy[:,:,0]
+
+    if i == 0:
+        embeddings = new_embeddings
+        colors = new_colors
+        images = new_images
+    else:
+        embeddings = np.vstack((embeddings, new_embeddings))
+        images = np.vstack((images, new_images))
+        colors = np.hstack((colors, new_colors))
 
 
-print arr.shape
+print images.shape
+
+
+### GET TSNE
+from time import time
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.ticker import NullFormatter
+from sklearn import manifold, datasets
+
+# Next line to silence pyflakes. This import is needed.
+Axes3D
+X, color = embeddings, colors
+n_neighbors = 10
+n_components = 2
+tsne = manifold.TSNE(n_components=n_components, init='pca', random_state=0)
+Y = tsne.fit_transform(X)
+
 
 # create figure and plot scatter
 fig = plt.figure()
 ax = fig.add_subplot(111)
-line, = ax.plot(x,y, ls="", marker="o")
+cmap=plt.cm.Spectral
+colors_mapped = [cmap(c) for c in colors ]
+line, = ax.plot(Y[:,0], Y[:,1], c="black", ls="", marker="o")
 
 # create the annotations box
-im = OffsetImage(arr[0,:,:], zoom=1)
+im = OffsetImage(images[0,:,:], zoom=0.5)
 xybox=(50., 50.)
 ab = AnnotationBbox(im, (0,0), xybox=xybox, xycoords='data',
         boxcoords="offset points",  pad=0.3,  arrowprops=dict(arrowstyle="->"))
@@ -123,8 +157,14 @@ ab.set_visible(False)
 def hover(event):
     # if the mouse is over the scatter points
     if line.contains(event)[0]:
+
+        print line.contains(event)[1]["ind"]
         # find out the index within the array from the event
-        ind, = line.contains(event)[1]["ind"]
+        try:
+            ind = line.contains(event)[1]["ind"][0]
+        except:
+            ind = line.contains(event)[1]["ind"]
+
         # get the figure size
         w,h = fig.get_size_inches()*fig.dpi
         ws = (event.x > w/2.)*-1 + (event.x <= w/2.) 
@@ -135,9 +175,9 @@ def hover(event):
         # make annotation box visible
         ab.set_visible(True)
         # place it at the position of the hovered scatter point
-        ab.xy =(x[ind], y[ind])
+        ab.xy =(Y[ind,0], Y[ind,1])
         # set the image corresponding to that point
-        im.set_data(arr[ind,:,:])
+        im.set_data(images[ind,:,:])
     else:
         #if the mouse is not over a scatter point
         ab.set_visible(False)
