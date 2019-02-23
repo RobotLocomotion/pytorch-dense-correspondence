@@ -531,6 +531,7 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
     v2_vec = vec2_vec[1]/vec2_vec[2]
 
     maybe_z2_vec = point_camera_2_frame_rdf_vec[2]
+    
 
     z2_vec = vec2_vec[2]
 
@@ -585,14 +586,15 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
     # Prune based on
     # Case 3: the pixels in image b are occluded, OR there is no depth return in image b so we aren't sure
 
+   
     img_b_depth_torch = torch.from_numpy(img_b_depth).type(dtype_float)
     img_b_depth_torch = torch.squeeze(img_b_depth_torch, 0)
     img_b_depth_torch = img_b_depth_torch.view(-1,1)
 
-    uv_b_vec_flattened = (v2_vec.type(dtype_long)*image_width+u2_vec.type(dtype_long))  # simply round to int -- good enough 
+    uv_b_vec_flattened = ((v2_vec+0.5).type(dtype_long)*image_width+(u2_vec+0.5).type(dtype_long))  # simply round to int -- good enough 
                                                                        # occlusion check for smooth surfaces
 
-    depth2_vec = torch.index_select(img_b_depth_torch, 0, uv_b_vec_flattened)*1.0/1000
+    depth2_vec = torch.index_select(img_b_depth_torch, 0, uv_b_vec_flattened)*1.0/DEPTH_IM_SCALE
     depth2_vec = depth2_vec.squeeze(1)
 
     # occlusion margin, in meters
@@ -602,11 +604,11 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
 
     depth2_vec = where(depth2_vec < zeros_vec, zeros_vec, depth2_vec) # to be careful, prune any negative depths
     depth2_vec = where(depth2_vec < z2_vec, zeros_vec, depth2_vec)    # prune occlusions
+
     non_occluded_indices = torch.nonzero(depth2_vec)
     if non_occluded_indices.dim() == 0:
         return (None, None)
     non_occluded_indices = non_occluded_indices.squeeze(1)
-    depth2_vec = torch.index_select(depth2_vec, 0, non_occluded_indices)
 
     # apply pruning
     u2_vec = torch.index_select(u2_vec, 0, non_occluded_indices)
