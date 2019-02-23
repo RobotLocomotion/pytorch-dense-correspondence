@@ -74,7 +74,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
             # NOTE: these are not the same as the numbers
             # that get plotted in debug mode.
             # This is just so the dataset will "run".
-            self._domain_randomize = False
+            self._domain_randomize = True
             self.num_masked_non_matches_per_match = 5
             self.num_background_non_matches_per_match = 5
             self.cross_scene_num_samples = 1000
@@ -162,6 +162,8 @@ class SpartanDataset(DenseCorrespondenceDataset):
         Note that the scenes have absolute paths here
         """
 
+        
+        print config['logs_root_path']
         self.logs_root_path = utils.convert_data_relative_path_to_absolute_path(config['logs_root_path'], assert_path_exists=True)
 
 
@@ -314,6 +316,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         :return:
         :rtype:
         """
+        return
 
         for scene_name in self.scene_generator():
             self.get_pose_data(scene_name)

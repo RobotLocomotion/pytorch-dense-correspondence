@@ -14,7 +14,7 @@ import torch
 import torch.nn as nn
 from torchvision import transforms
 import pytorch_segmentation_detection.models.resnet_dilated as resnet_dilated
-from dense_correspondence.dataset.spartan_dataset_masked import SpartanDataset
+from dense_correspondence.dataset.dynamic_spartan_dataset import DynamicSpartanDataset
 
 
 
@@ -341,7 +341,7 @@ class DenseCorrespondenceNetwork(nn.Module):
         network_params_folder = utils.convert_to_absolute_path(network_params_folder)
         dataset_config_file = os.path.join(network_params_folder, 'dataset.yaml')
         config = utils.getDictFromYamlFilename(dataset_config_file)
-        return SpartanDataset(config_expanded=config)
+        return DynamicSpartanDataset(config_expanded=config)
 
 
     @staticmethod

@@ -55,14 +55,17 @@ class DynamicSpartanDataset(SpartanDataset):
         :type config_expanded: dict()
         """
         SpartanDataset.__init__(self, debug=debug, mode=mode, config=config, config_expanded=config_expanded)
-        self._domain_randomize = False
+        # HACK
+        self.num_images_total = 1000 
+
+    def __len__(self):
+        return 1000
 
 
     def get_pose_data(self, scene_name, camera_num):
         scene_directory = self.get_full_path_for_scene(scene_name)
         camera_info_filename = os.path.join(scene_directory, "images_camera_"+str(camera_num), "camera_info.yaml")
         return utils.getDictFromYamlFilename(camera_info_filename)["extrinsics"]
-
 
 
     def get_pose_from_scene_camera_idx(self, scene_name, camera_num, idx):
@@ -74,6 +77,12 @@ class DynamicSpartanDataset(SpartanDataset):
         idx = int(idx)
         pose_data = self.get_pose_data(scene_name, camera_num)
         return utils.homogenous_transform_from_dict(pose_data)
+
+    def get_random_rgbd_mask_pose(self):
+        scene_name = self.get_random_scene_name()
+        idx = self.get_random_image_index(scene_name)
+        camera_num = random.choice([0,1])
+        return self.get_rgbd_mask_pose(scene_name, camera_num, idx)
 
     def get_rgbd_mask_pose(self, scene_name, camera_num, img_idx):
         """
@@ -139,8 +148,21 @@ class DynamicSpartanDataset(SpartanDataset):
         return 0, 1
 
     def get_random_image_index(self, scene_name):
-        return 120
+        scene_directory = self.get_full_path_for_scene(scene_name)
+        state_info_filename = os.path.join(scene_directory, "states.yaml")
+        state_info_dict = utils.getDictFromYamlFilename(state_info_filename)
+        image_idxs = state_info_dict.keys() # list of integers
+        return random.choice(image_idxs)
 
+    def get_default_dynamic_dataset_K_matrix(self):
+        K = np.zeros((3,3))
+        K[0,0] = 471.09511257614645 # focal x
+        K[1,1] = 471.09511257614645 # focal y
+        K[0,2] = 319.5 # principal point x
+        K[1,2] = 239.5 # principal point y
+        K[2,2] = 1.0
+        return K
+        
     def get_within_scene_data(self, scene_name, metadata, for_synthetic_multi_object=False):
         """
         The method through which the dataset is accessed for training.
@@ -215,11 +237,14 @@ class DynamicSpartanDataset(SpartanDataset):
         else:
             correspondence_mask = None
 
+        K = self.get_default_dynamic_dataset_K_matrix()
+
         # find correspondences
         uv_a, uv_b = correspondence_finder.batch_find_pixel_correspondences(image_a_depth_numpy, image_a_pose,
                                                                             image_b_depth_numpy, image_b_pose,
                                                                             img_a_mask=correspondence_mask,
-                                                                            num_attempts=self.num_matching_attempts)
+                                                                            num_attempts=self.num_matching_attempts,
+                                                                            K=K)
 
         if for_synthetic_multi_object:
             return image_a_rgb, image_b_rgb, image_a_depth, image_b_depth, image_a_mask, image_b_mask, uv_a, uv_b
@@ -231,20 +256,20 @@ class DynamicSpartanDataset(SpartanDataset):
             return self.return_empty_data(image_a_rgb_tensor, image_a_rgb_tensor)
 
 
-        # # data augmentation
-        # if self._domain_randomize:
-        #     image_a_rgb = correspondence_augmentation.random_domain_randomize_background(image_a_rgb, image_a_mask)
-        #     image_b_rgb = correspondence_augmentation.random_domain_randomize_background(image_b_rgb, image_b_mask)
+        # data augmentation
+        if self._domain_randomize:
+            image_a_rgb = correspondence_augmentation.random_domain_randomize_background(image_a_rgb, image_a_mask)
+            image_b_rgb = correspondence_augmentation.random_domain_randomize_background(image_b_rgb, image_b_mask)
 
-        # if not self.debug:
-        #     [image_a_rgb, image_a_mask], uv_a = correspondence_augmentation.random_image_and_indices_mutation([image_a_rgb, image_a_mask], uv_a)
-        #     [image_b_rgb, image_b_mask], uv_b = correspondence_augmentation.random_image_and_indices_mutation(
-        #         [image_b_rgb, image_b_mask], uv_b)
-        # else:  # also mutate depth just for plotting
-        #     [image_a_rgb, image_a_depth, image_a_mask], uv_a = correspondence_augmentation.random_image_and_indices_mutation(
-        #         [image_a_rgb, image_a_depth, image_a_mask], uv_a)
-        #     [image_b_rgb, image_b_depth, image_b_mask], uv_b = correspondence_augmentation.random_image_and_indices_mutation(
-        #         [image_b_rgb, image_b_depth, image_b_mask], uv_b)
+        if not self.debug:
+            [image_a_rgb, image_a_mask], uv_a = correspondence_augmentation.random_image_and_indices_mutation([image_a_rgb, image_a_mask], uv_a)
+            [image_b_rgb, image_b_mask], uv_b = correspondence_augmentation.random_image_and_indices_mutation(
+                [image_b_rgb, image_b_mask], uv_b)
+        else:  # also mutate depth just for plotting
+            [image_a_rgb, image_a_depth, image_a_mask], uv_a = correspondence_augmentation.random_image_and_indices_mutation(
+                [image_a_rgb, image_a_depth, image_a_mask], uv_a)
+            [image_b_rgb, image_b_depth, image_b_mask], uv_b = correspondence_augmentation.random_image_and_indices_mutation(
+                [image_b_rgb, image_b_depth, image_b_mask], uv_b)
 
         image_a_depth_numpy = np.asarray(image_a_depth)
         image_b_depth_numpy = np.asarray(image_b_depth)
