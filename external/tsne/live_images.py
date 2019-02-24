@@ -89,11 +89,9 @@ for i, log in enumerate(logs_list[0:num_logs_used]):
 
     new_embeddings = np.zeros((len(image_idxs),D_embedding))
     new_colors = np.zeros((len(image_idxs)))
-    new_images = np.empty((len(image_idxs),480,640))
+    new_images = np.empty((len(image_idxs),480,640,3))
     new_embeddings.shape
     new_colors.shape
-
-    
 
     #for i in image_idxs:
     for j in range(len(image_idxs)):
@@ -105,9 +103,9 @@ for i, log in enumerate(logs_list[0:num_logs_used]):
         embedding = model(stacked)[0].detach().cpu().numpy()
         new_embeddings[j] = embedding
         new_colors[j] = float(i) / float(num_logs_used)
-        rgb_numpy = np.asarray(rgb)
+        rgb_numpy = np.asarray(rgb)/255.0
         print rgb_numpy.shape
-        new_images[j,:,:] = rgb_numpy[:,:,0]
+        new_images[j,:,:,:] = rgb_numpy[:,:,:]
 
     if i == 0:
         embeddings = new_embeddings
@@ -147,7 +145,7 @@ colors_mapped = [cmap(c) for c in colors ]
 line = plt.scatter(Y[:, 0], Y[:, 1], c=colors, cmap=plt.cm.Spectral)
 
 # create the annotations box
-im = OffsetImage(images[0,:,:], zoom=0.5)
+im = OffsetImage(images[0,:,:,:], zoom=0.5)
 xybox=(50., 50.)
 ab = AnnotationBbox(im, (0,0), xybox=xybox, xycoords='data',
         boxcoords="offset points",  pad=0.3,  arrowprops=dict(arrowstyle="->"))
@@ -178,7 +176,7 @@ def hover(event):
         # place it at the position of the hovered scatter point
         ab.xy =(Y[ind,0], Y[ind,1])
         # set the image corresponding to that point
-        im.set_data(images[ind,:,:])
+        im.set_data(images[ind,:,:,:])
     else:
         #if the mouse is not over a scatter point
         ab.set_visible(False)
