@@ -178,6 +178,83 @@ object_2_name:
 The transforms outputted transform the model to the observation, so they are `T_observation_model`.
 
 
+## Poser Reg (w/ pointclouds)
+
+No descriptors.
+
+Request:
+```
+template: /path/to/model_.ply
+T_init:
+  quaternion:
+        w: 0.0
+        x: 0.0
+        y: 0.0
+      z: 1.0
+    translation:
+      x: 0.0
+      y: 0.0
+      z: 0.0
+gaussian_sigma: 0.03  #(optional) truncation distance for ICP step
+pointclouds:
+  pointcloud_1:
+    path_to_npy: /path/to/pointcloud.npy
+    camera_to_world:
+      quaternion:
+        w: 0.0
+        x: 0.0
+        y: 0.0
+        z: 1.0
+      translation:
+        x: 0.0
+        y: 0.0
+        z: 0.0
+
+```
+
+Response:
+```
+template: /path/to/model_.ply
+T_init:
+  quaternion:
+        w: 0.0
+        x: 0.0
+        y: 0.0
+      z: 1.0
+    translation:
+      x: 0.0
+      y: 0.0
+      z: 0.0
+gaussian_sigma: 0.03  #(optional) truncation distance for ICP step
+pointclouds:
+  pointcloud_1:
+    path_to_npy: /path/to/pointcloud.npy
+    camera_to_world:
+      quaternion:
+        w: 0.0
+        x: 0.0
+        y: 0.0
+        z: 1.0
+      translation:
+        x: 0.0
+        y: 0.0
+        z: 0.0
+        
+T_world_template: # (alignment of model to world)
+  quaternion:
+        w: 0.0
+        x: 0.0
+        y: 0.0
+      z: 1.0
+  translation:
+    x: 0.0
+    y: 0.0
+    z: 0.0
+
+```
+
+
+
 # Keypoint Detection
 
 
