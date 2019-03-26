@@ -55,7 +55,7 @@ If you find this code useful in your work, please consider citing:
 ### Training and Evaluation
 - [training a network](doc/training.md)
 - [evaluating a trained network](doc/dcn_evaluation.md)
-- *pre-trained models coming soon*
+- [pre-trained models](doc/model_zoo.md)
 
 ### Miscellaneous
 - [coordinate conventions](doc/coordinate_conventions.md)
