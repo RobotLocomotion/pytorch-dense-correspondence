@@ -4,7 +4,7 @@
  See the notebook `evaluation_plots_example.ipynb` for an example of how to use the `DenseCorrespondenceEvaluation` tool.
  The tool allows for loading in a network and dataset and running images through the DCN (dense correspondence network). The function 
  `evaluate_network_qualitative` produces plots of the dense descriptors and is a good starting point for exploring the 
- functionality of `DenseCorrespondenceEvaluation`.
+ functionality of `DenseCorrespondenceEvaluation`. In order to load your network you should edit [`evaluation.yaml`](https://github.com/RobotLocomotion/pytorch-dense-correspondence/blob/master/config/dense_correspondence/evaluation/evaluation.yaml) and add an entry for the network you wish to evaluate.
 
 
 ## Quantitative Evaluation
