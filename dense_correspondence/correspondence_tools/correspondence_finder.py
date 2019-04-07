@@ -407,7 +407,7 @@ def create_non_correspondences(uv_b_matches, img_b_shape, num_non_matches_per_ma
 # Optionally, uv_a specifies the pixels in img_a for which to find matches
 # If uv_a is not set, then random correspondences are attempted to be found
 def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b_pose, 
-                                        uv_a=None, num_attempts=20, device='CPU', img_a_mask=None, K=None):
+                                        uv_a=None, num_attempts=20, device='CPU', img_a_mask=None, K_a=None, K_b=None):
     """
     Computes pixel correspondences in batch
 
@@ -484,10 +484,12 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
         uv_a_vec_flattened = uv_a_vec[1]*image_width+uv_a_vec[0]
 
 
-    if K is None:
-        K = get_default_K_matrix()
+    if K_a is None and K_b is None:
+        K_a = get_default_K_matrix()
+        K_b = get_default_K_matrix()
 
-    K_inv = inv(K)
+    K_a_inv = inv(K_a)
+    K_b_inv = inv(K_b)
     body_to_rdf = get_body_to_rdf()
     rdf_to_body = inv(body_to_rdf)
 
@@ -518,14 +520,15 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
 
     full_vec = torch.stack((u_vec, v_vec, z_vec))
 
-    K_inv_torch = torch.from_numpy(K_inv).type(dtype_float)
-    point_camera_frame_rdf_vec = K_inv_torch.mm(full_vec)
+    K_a_inv_torch = torch.from_numpy(K_a_inv).type(dtype_float)
+    K_b_inv_torch = torch.from_numpy(K_b_inv).type(dtype_float)
+    point_camera_frame_rdf_vec = K_a_inv_torch.mm(full_vec)
 
     point_world_frame_rdf_vec = apply_transform_torch(point_camera_frame_rdf_vec, torch.from_numpy(img_a_pose).type(dtype_float))
     point_camera_2_frame_rdf_vec = apply_transform_torch(point_world_frame_rdf_vec, torch.from_numpy(invert_transform(img_b_pose)).type(dtype_float))
 
-    K_torch = torch.from_numpy(K).type(dtype_float)
-    vec2_vec = K_torch.mm(point_camera_2_frame_rdf_vec)
+    K_b_torch = torch.from_numpy(K_b).type(dtype_float)
+    vec2_vec = K_b_torch.mm(point_camera_2_frame_rdf_vec)
 
     u2_vec = vec2_vec[0]/vec2_vec[2]
     v2_vec = vec2_vec[1]/vec2_vec[2]
