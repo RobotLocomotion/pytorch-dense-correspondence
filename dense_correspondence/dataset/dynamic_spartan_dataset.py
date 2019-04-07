@@ -61,12 +61,19 @@ class DynamicSpartanDataset(SpartanDataset):
     def __len__(self):
         return 1000
 
-
-    def get_pose_data(self, scene_name, camera_num):
+    def get_camera_info_dict(self, scene_name, camera_num):
         scene_directory = self.get_full_path_for_scene(scene_name)
         camera_info_filename = os.path.join(scene_directory, "images_camera_"+str(camera_num), "camera_info.yaml")
-        return utils.getDictFromYamlFilename(camera_info_filename)["extrinsics"]
+        return utils.getDictFromYamlFilename(camera_info_filename)
 
+    def get_pose_data(self, scene_name, camera_num):
+        camera_info_dict = self.get_camera_info_dict(scene_name, camera_num)
+        return camera_info_dict["extrinsics"]
+
+    def get_K_matrix(self, scene_name, camera_num):
+        camera_info_dict = self.get_camera_info_dict(scene_name, camera_num)
+        K = camera_info_dict["camera_matrix"]["data"]
+        return np.asarray(K).reshape(3,3)
 
     def get_pose_from_scene_camera_idx(self, scene_name, camera_num, idx):
         """
@@ -145,7 +152,7 @@ class DynamicSpartanDataset(SpartanDataset):
 
     def get_random_camera_nums_for_image_index(self, idx):
         # HACK
-        return 0, 1
+        return np.random.permutation([0,1])
 
     def get_random_image_index(self, scene_name):
         scene_directory = self.get_full_path_for_scene(scene_name)
@@ -237,14 +244,17 @@ class DynamicSpartanDataset(SpartanDataset):
         else:
             correspondence_mask = None
 
-        K = self.get_default_dynamic_dataset_K_matrix()
+        #K = self.get_default_dynamic_dataset_K_matrix()
+        K_a = self.get_K_matrix(scene_name, camera_num_a)
+        K_b = self.get_K_matrix(scene_name, camera_num_b)
 
         # find correspondences
         uv_a, uv_b = correspondence_finder.batch_find_pixel_correspondences(image_a_depth_numpy, image_a_pose,
                                                                             image_b_depth_numpy, image_b_pose,
                                                                             img_a_mask=correspondence_mask,
                                                                             num_attempts=self.num_matching_attempts,
-                                                                            K=K)
+                                                                            K_a=K_a,
+                                                                            K_b=K_b)
 
         if for_synthetic_multi_object:
             return image_a_rgb, image_b_rgb, image_a_depth, image_b_depth, image_a_mask, image_b_mask, uv_a, uv_b
