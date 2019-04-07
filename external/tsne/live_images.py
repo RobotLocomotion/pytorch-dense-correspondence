@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 import numpy as np; np.random.seed(42)
+from numpy import linalg as LA
 
 
 import random
@@ -77,6 +78,9 @@ embeddings = None
 colors = None
 images = None
 
+# TEMPORARY
+#logs_list = ["2019-02-22-18-42-22", "2019-02-22-18-41-39"]
+
 for i, log in enumerate(logs_list[0:num_logs_used]):
     print i
 
@@ -101,7 +105,7 @@ for i, log in enumerate(logs_list[0:num_logs_used]):
         descriptor_image = dcn.forward(rgb_tensor).detach() #N, D, H, W
         stacked = torch.cat([rgb_tensor[0], descriptor_image[0]]).unsqueeze(0)
         embedding = model(stacked)[0].detach().cpu().numpy()
-        new_embeddings[j] = embedding
+        new_embeddings[j] = embedding/LA.norm(embedding)
         new_colors[j] = float(i) / float(num_logs_used)
         rgb_numpy = np.asarray(rgb)/255.0
         print rgb_numpy.shape
@@ -140,9 +144,9 @@ Y = tsne.fit_transform(X)
 fig = plt.figure()
 ax = fig.add_subplot(111)
 cmap=plt.cm.Spectral
-colors_mapped = [cmap(c) for c in colors ]
+#colors_mapped = [cmap(c) for c in colors]
 #line, = ax.plot(Y[:,0], Y[:,1], c="black", ls="", marker="o")
-line = plt.scatter(Y[:, 0], Y[:, 1], c=colors, cmap=plt.cm.Spectral)
+line = plt.scatter(Y[:, 0], Y[:, 1], alpha=0.5, c=colors, cmap=plt.cm.Spectral, s=200)
 
 # create the annotations box
 im = OffsetImage(images[0,:,:,:], zoom=0.5)
@@ -154,6 +158,7 @@ ax.add_artist(ab)
 ab.set_visible(False)
 
 def hover(event):
+    print 
     # if the mouse is over the scatter points
     if line.contains(event)[0]:
 

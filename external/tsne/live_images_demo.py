@@ -16,7 +16,7 @@ for i in range(len(x)):
 # create figure and plot scatter
 fig = plt.figure()
 ax = fig.add_subplot(111)
-line, = ax.plot(x,y, ls="", marker="o")
+line = ax.scatter(x,y,s=200)
 
 # create the annotations box
 im = OffsetImage(arr[0,:,:], zoom=5)
