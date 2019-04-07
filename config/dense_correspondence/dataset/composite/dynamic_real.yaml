@@ -1,0 +1,6 @@
+logs_root_path: first_real_logs
+
+single_object_scenes_config_files:
+- dynamic_real.yaml
+
+multi_object_scenes_config_files: []
