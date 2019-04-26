@@ -13,6 +13,6 @@ Inside of the folders for each of these pre-trained networks you will find:
 
 Models
 
-  1. [Caterpillar](https://data.csail.mit.edu/labelfusion/pdccompressed/trained_models/stable/caterpillar_standard_params_3.tar.gz) -- note that this network was trained with M_background = 2.0 and M_masked = 0.5, this means there is a larger contrastive loss with the background than there is with the rest of the object.  While we didn't find this to improve quantitative visualizations, it can improve qualitative visualizations of the descriptor space.
+  1. [Caterpillar](https://data.csail.mit.edu/labelfusion/pdccompressed/trained_models/stable/caterpillar_standard_params_3.tar.gz) -- note that this network was trained with M_background = 2.0 and M_masked = 0.5, this means there is a larger contrastive loss with the background than there is with the rest of the object.  While we didn't find this to improve quantitative metrics, it can improve qualitative visualizations of the descriptor space.
   2. [Shoes Class Consistent](https://data.csail.mit.edu/labelfusion/pdccompressed/trained_models/stable/shoes_consistent_M_background_0.500_3.tar.gz)
   3. [Hats Class Consistent](https://data.csail.mit.edu/labelfusion/pdccompressed/trained_models/stable/hats_consistent_M_background_0.500_3.tar.gz)
