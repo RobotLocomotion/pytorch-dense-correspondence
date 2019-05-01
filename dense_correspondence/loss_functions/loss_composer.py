@@ -22,7 +22,7 @@ def get_loss(pixelwise_contrastive_loss, match_type,
 
     """
     if (match_type == SpartanDatasetDataType.SINGLE_OBJECT_WITHIN_SCENE).all():
-        print "applying SINGLE_OBJECT_WITHIN_SCENE loss"
+        #print "applying SINGLE_OBJECT_WITHIN_SCENE loss"
         return get_within_scene_loss(pixelwise_contrastive_loss, image_a_pred, image_b_pred,
                                             matches_a,    matches_b,
                                             masked_non_matches_a, masked_non_matches_b,

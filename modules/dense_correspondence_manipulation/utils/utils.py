@@ -48,7 +48,7 @@ def getDenseCorrespondenceSourceDir():
     return os.getenv("DC_SOURCE_DIR")
 
 def get_data_dir():
-    return os.path.join(os.path.dirname(os.getenv("DC_DATA_DIR")),"imitation")
+    return os.path.join(os.path.dirname(os.getenv("DC_DATA_DIR")),"pdc")
 
 def getPdcPath():
     """
@@ -180,7 +180,7 @@ def convert_data_relative_path_to_absolute_path(path, assert_path_exists=False):
         if not os.path.exists(full_path):
             # try a backwards compatibility check for old style
             # "code/data_volume/pdc/<path>" rather than <path>
-            start_path = "code/data_volume/imitation"
+            start_path = "code/data_volume/pdc"
             rel_path = os.path.relpath(path, start_path)
             full_path = os.path.join(get_data_dir(), rel_path)
         

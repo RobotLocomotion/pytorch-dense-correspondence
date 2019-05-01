@@ -15,7 +15,9 @@ import torch.nn as nn
 from torchvision import transforms
 import pytorch_segmentation_detection.models.resnet_dilated as resnet_dilated
 from dense_correspondence.dataset.dynamic_spartan_dataset import DynamicSpartanDataset
+from dense_correspondence.dataset.spartan_dataset_masked import SpartanDataset
 
+from dense_correspondence.loss_functions.spatial_softmax_loss import bilinear_interpolate_torch
 
 
 class DenseCorrespondenceNetwork(nn.Module):
@@ -236,7 +238,7 @@ class DenseCorrespondenceNetwork(nn.Module):
 
         return res
 
-    def forward(self, img_tensor):
+    def forward(self, img_tensor, upsample=True):
         """
         Simple forward pass on the network.
 
@@ -251,14 +253,11 @@ class DenseCorrespondenceNetwork(nn.Module):
         :return: torch.Variable with shape [N, D, H, W],
         :rtype:
         """
-
-        res = self.fcn(img_tensor)
+        res = self.fcn(img_tensor, upsample=upsample)
         if self._normalize:
             #print "normalizing descriptor norm"
             norm = torch.norm(res, 2, 1) # [N,1,H,W]
             res = res/norm
-
-
 
         return res
 
@@ -341,7 +340,7 @@ class DenseCorrespondenceNetwork(nn.Module):
         network_params_folder = utils.convert_to_absolute_path(network_params_folder)
         dataset_config_file = os.path.join(network_params_folder, 'dataset.yaml')
         config = utils.getDictFromYamlFilename(dataset_config_file)
-        return DynamicSpartanDataset(config_expanded=config)
+        return SpartanDataset(config_expanded=config)
 
 
     @staticmethod
@@ -514,13 +513,64 @@ class DenseCorrespondenceNetwork(nn.Module):
         #     for j in xrange(0, width):
         #         norm_diffs[i,j] = np.linalg.norm(res_b[i,j] - descriptor_at_pixel)**2
 
-        norm_diffs = np.sqrt(np.sum(np.square(res_b - descriptor_at_pixel), axis=2))
 
-        best_match_flattened_idx = np.argmin(norm_diffs)
-        best_match_xy = np.unravel_index(best_match_flattened_idx, norm_diffs.shape)
-        best_match_diff = norm_diffs[best_match_xy]
+        USE_SPATIAL_SOFTMAX = False
+        print "PETE YOU NEED TO BETTER CONFIG THIS"
+        quit()
 
-        best_match_uv = (best_match_xy[1], best_match_xy[0])
+        if not USE_SPATIAL_SOFTMAX:
+            norm_diffs = np.sqrt(np.sum(np.square(res_b - descriptor_at_pixel), axis=2))
+
+            best_match_flattened_idx = np.argmin(norm_diffs)
+            best_match_xy = np.unravel_index(best_match_flattened_idx, norm_diffs.shape)
+            best_match_diff = norm_diffs[best_match_xy]
+
+            best_match_uv = (best_match_xy[1], best_match_xy[0])
+
+        else:
+            pos_x, pos_y = np.meshgrid(
+                np.linspace(-1., 1., width),
+                np.linspace(-1., 1., height)
+            )
+
+            pos_x = torch.from_numpy(pos_x).float().cuda()
+            pos_y = torch.from_numpy(pos_y).float().cuda()
+
+            res_b = torch.from_numpy(res_b).unsqueeze(2).cuda()     # H, W, 1, D
+            descriptor_at_pixel = torch.from_numpy(descriptor_at_pixel).unsqueeze(0).cuda() # 1, D
+
+            deltas = res_b - descriptor_at_pixel # H, W, 1, D
+            neg_squared_norm_diffs = -1.0*torch.sum(torch.pow(deltas,2), dim=3) # H, W, 1
+            neg_squared_norm_diffs = neg_squared_norm_diffs.permute(2,0,1).unsqueeze(0) # 1, 1, H, W
+
+            neg_squared_norm_diffs_flat = neg_squared_norm_diffs.view(1, 1, height*width) # 1, 1, H*W
+            softmax = torch.nn.Softmax(dim=2)
+            softmax_activations = softmax(neg_squared_norm_diffs_flat).view(1, 1, height, width) # 1, nm, H, W
+            one_expected_x = torch.sum(softmax_activations*pos_x, dim=(2,3)) # 1, 1
+            one_expected_y = torch.sum(softmax_activations*pos_y, dim=(2,3)) # 1, 1
+
+            def convert_norm_coords_to_orig_pixel_coords(norm_matches_x, norm_matches_y):
+                matches_x = ((norm_matches_x/2.0 + 0.5)*640.0)
+                matches_y = ((norm_matches_y/2.0 + 0.5)*480.0)
+                return matches_x, matches_y
+
+            one_expected_x, one_expected_y = convert_norm_coords_to_orig_pixel_coords(one_expected_x, one_expected_y)
+            
+            best_match_uv = (int(one_expected_x[0,0].cpu()), int(one_expected_y[0,0].cpu()))
+            best_match_descriptor = bilinear_interpolate_torch(res_b.squeeze(2), one_expected_x, one_expected_y, cuda=True)
+            best_match_diff = torch.norm(best_match_descriptor[0,:] - descriptor_at_pixel, p=2).cpu().numpy()
+
+            norm_diffs = torch.sqrt(-neg_squared_norm_diffs).cpu().numpy()[0,0,:,:]
+            res_b = res_b.cpu().numpy()
+
+        # print type(best_match_uv[0])
+        # print best_match_uv[0].shape
+
+        # print type(best_match_diff)
+        # print best_match_diff.shape
+
+        # print type(norm_diffs)
+        # print norm_diffs.shape
 
         return best_match_uv, best_match_diff, norm_diffs
 
@@ -537,7 +587,8 @@ class DenseCorrespondenceNetwork(nn.Module):
         best_match_idx is again in (u,v) = (right, down) coordinates
         :rtype:
         """
-        height, width, _ = res.shape
+        height = res.shape[0]
+        width = res.shape[1]
 
         norm_diffs = np.sqrt(np.sum(np.square(res - descriptor), axis=2))
 

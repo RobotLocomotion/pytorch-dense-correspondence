@@ -6,7 +6,8 @@ same_object: True
 different_objects: False
 multiple_object: False # sample from multi object scenes
 networks:
-- "caterpillar_3"
+- "proper_softmax_longer"
+kernel_variance: 1.0
 
 norm_diff_threshold_dict:
   hats_consistent_M_background_0.500_3:

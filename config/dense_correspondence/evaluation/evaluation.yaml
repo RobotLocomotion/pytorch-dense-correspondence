@@ -3,8 +3,8 @@ params:
   num_matches_per_image_pair: 100
 
 networks:
-  boxes_3:
-    path_to_network_params: trained_models/tutorials/boxes_3/002000.pth
+  first_real_3:
+    path_to_network_params: trained_models/tutorials/first_real_3/003501.pth
 
   boxes_closer_3:
     path_to_network_params: trained_models/tutorials/boxes_closer_3/003501.pth
@@ -14,6 +14,19 @@ networks:
 
   caterpillar_M_background_0.500_6:
     path_to_network_params: trained_models/stable/caterpillar_M_background_0.500_6/003501.pth
+
+  baseline_caterpillar:
+    path_to_network_params: trained_models/caterpillar_standard_params_3/003501.pth
+
+  continue_baseline_caterpillar:
+    path_to_network_params: trained_models/tutorials/continue_caterpillar_test_3/003900.pth
+
+  proper_softmax:
+    path_to_network_params: trained_models/softmax/proper2d_softmax_scaled_3/003501.pth
+
+  proper_softmax_longer:
+    path_to_network_params: trained_models/softmax/proper2d_softmax_scaled_longer_3/013502.pth
+
 
 dataset: [] # which dataset to use, not used for now
 

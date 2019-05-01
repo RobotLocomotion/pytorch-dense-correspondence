@@ -39,6 +39,7 @@ from dense_correspondence.dataset.spartan_dataset_masked import SpartanDataset, 
 from dense_correspondence.network.dense_correspondence_network import DenseCorrespondenceNetwork
 
 from dense_correspondence.loss_functions.pixelwise_contrastive_loss import PixelwiseContrastiveLoss
+from dense_correspondence.loss_functions.spatial_softmax_loss import SpatialSoftmaxLoss
 import dense_correspondence.loss_functions.loss_composer as loss_composer
 from dense_correspondence.evaluation.evaluation import DenseCorrespondenceEvaluation
 
@@ -211,7 +212,7 @@ class DenseCorrespondenceTraining(object):
 
         return iteration
 
-    def run_from_pretrained(self, model_folder, iteration=None, learning_rate=None):
+    def run_from_pretrained(self, model_folder, iteration=None, learning_rate=None, use_spatial_softmax_only=False):
         """
         Wrapper for load_pretrained(), then run()
         """
@@ -223,9 +224,9 @@ class DenseCorrespondenceTraining(object):
             self._config["training"]["learning_rate_starting_from_pretrained"] = learning_rate
             self.set_learning_rate(self._optimizer, learning_rate)
 
-        self.run(loss_current_iteration=iteration, use_pretrained=True)
+        self.run(loss_current_iteration=iteration, use_pretrained=True, use_spatial_softmax_only=use_spatial_softmax_only)
 
-    def run(self, loss_current_iteration=0, use_pretrained=False):
+    def run(self, loss_current_iteration=0, use_pretrained=False, use_spatial_softmax_only=False):
         """
         Runs the training
         :return:
@@ -258,8 +259,12 @@ class DenseCorrespondenceTraining(object):
         optimizer = self._optimizer
         batch_size = self._data_loader.batch_size
 
-        pixelwise_contrastive_loss = PixelwiseContrastiveLoss(image_shape=dcn.image_shape, config=self._config['loss_function'])
-        pixelwise_contrastive_loss.debug = True
+        if use_spatial_softmax_only:
+            spatial_softmax_loss_fn = SpatialSoftmaxLoss(80,60)
+        else:
+            spatial_softmax_loss_fn = SpatialSoftmaxLoss(80,60)
+            pixelwise_contrastive_loss = PixelwiseContrastiveLoss(image_shape=dcn.image_shape, config=self._config['loss_function'])
+            pixelwise_contrastive_loss.debug = True
 
         loss = match_loss = non_match_loss = 0
 
@@ -311,8 +316,13 @@ class DenseCorrespondenceTraining(object):
                 img_a = Variable(img_a.cuda(), requires_grad=False)
                 img_b = Variable(img_b.cuda(), requires_grad=False)
 
-                matches_a = Variable(matches_a.cuda().squeeze(0), requires_grad=False)
-                matches_b = Variable(matches_b.cuda().squeeze(0), requires_grad=False)
+                if not use_spatial_softmax_only:
+                    matches_a = Variable(matches_a.cuda().squeeze(0), requires_grad=False)
+                    matches_b = Variable(matches_b.cuda().squeeze(0), requires_grad=False)
+                else:
+                    matches_a = Variable(matches_a.cuda(), requires_grad=False)
+                    matches_b = Variable(matches_b.cuda(), requires_grad=False)
+
                 masked_non_matches_a = Variable(masked_non_matches_a.cuda().squeeze(0), requires_grad=False)
                 masked_non_matches_b = Variable(masked_non_matches_b.cuda().squeeze(0), requires_grad=False)
 
@@ -326,20 +336,36 @@ class DenseCorrespondenceTraining(object):
                 self.adjust_learning_rate(optimizer, loss_current_iteration)
 
                 # run both images through the network
-                image_a_pred = dcn.forward(img_a)
-                image_a_pred = dcn.process_network_output(image_a_pred, batch_size)
+                
+                if not use_spatial_softmax_only:
+                    image_a_pred_small = dcn.forward(img_a, upsample=False)
+                    image_a_pred = nn.functional.upsample_bilinear(input=image_a_pred_small, size=img_a.size()[2:])
+                    image_a_pred = dcn.process_network_output(image_a_pred, batch_size)                    
+                else:
+                    image_a_pred = dcn.forward(img_a, upsample=False)
 
-                image_b_pred = dcn.forward(img_b)
-                image_b_pred = dcn.process_network_output(image_b_pred, batch_size)
+                
+                if not use_spatial_softmax_only:
+                    image_b_pred_small = dcn.forward(img_b, upsample=False)
+                    image_b_pred = nn.functional.upsample_bilinear(input=image_b_pred_small, size=img_b.size()[2:])
+                    image_b_pred = dcn.process_network_output(image_b_pred, batch_size)
+                else:
+                    image_b_pred = dcn.forward(img_b, upsample=False)
 
                 # get loss
-                loss, match_loss, masked_non_match_loss, \
-                background_non_match_loss, blind_non_match_loss = loss_composer.get_loss(pixelwise_contrastive_loss, match_type,
-                                                                                image_a_pred, image_b_pred,
-                                                                                matches_a,     matches_b,
-                                                                                masked_non_matches_a, masked_non_matches_b,
-                                                                                background_non_matches_a, background_non_matches_b,
-                                                                                blind_non_matches_a, blind_non_matches_b)
+                if use_spatial_softmax_only:
+                    loss = spatial_softmax_loss_fn.get_loss(image_a_pred, image_b_pred, matches_a, matches_b, img_a)
+                    spatial_softmax_loss = loss
+                    match_loss = masked_non_match_loss = background_non_match_loss = blind_non_match_loss = Variable(torch.Tensor([10.0]), requires_grad=False)
+                else:
+                    spatial_softmax_loss = spatial_softmax_loss_fn.get_loss(image_a_pred_small, image_b_pred_small, matches_a.unsqueeze(0), matches_b.unsqueeze(0), img_a)
+                    loss, match_loss, masked_non_match_loss, \
+                    background_non_match_loss, blind_non_match_loss = loss_composer.get_loss(pixelwise_contrastive_loss, match_type,
+                                                                                    image_a_pred, image_b_pred,
+                                                                                    matches_a,     matches_b,
+                                                                                    masked_non_matches_a, masked_non_matches_b,
+                                                                                    background_non_matches_a, background_non_matches_b,
+                                                                                    blind_non_matches_a, blind_non_matches_b)
                 
 
                 loss.backward()
@@ -350,7 +376,8 @@ class DenseCorrespondenceTraining(object):
 
                 elapsed = time.time() - start_iter
 
-                print "single iteration took %.3f seconds" %(elapsed)
+                if i % 40 == 0:
+                    print "single iteration took %.3f seconds" %(elapsed)
 
 
                 def update_plots(loss, match_loss, masked_non_match_loss, background_non_match_loss, blind_non_match_loss):
@@ -392,8 +419,9 @@ class DenseCorrespondenceTraining(object):
 
 
                     # loss is never zero
+                    self._tensorboard_logger.log_value('spatial_softmax_loss', spatial_softmax_loss.item(), loss_current_iteration)
+
                     if data_type == SpartanDatasetDataType.SINGLE_OBJECT_WITHIN_SCENE:
-                        print "logging train loss"
                         self._tensorboard_logger.log_value("train loss SINGLE_OBJECT_WITHIN_SCENE", loss.item(), loss_current_iteration)
 
                     elif data_type == SpartanDatasetDataType.DIFFERENT_OBJECT:

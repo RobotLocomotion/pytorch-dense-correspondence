@@ -1,5 +1,9 @@
 #!/usr/bin/python
 
+## NOTE TO PETE:
+# - to switch this between dynamic and static,
+# - just ctrl+f for dynamic
+
 
 import os
 import dense_correspondence_manipulation.utils.utils as utils
@@ -20,7 +24,10 @@ from torchvision import transforms
 
 from dense_correspondence_manipulation.utils.constants import *
 from dense_correspondence_manipulation.utils.utils import CameraIntrinsics
+
+from dense_correspondence.dataset.spartan_dataset_masked import SpartanDataset
 from dense_correspondence.dataset.dynamic_spartan_dataset import DynamicSpartanDataset
+
 import dense_correspondence.correspondence_tools.correspondence_plotter as correspondence_plotter
 import dense_correspondence.correspondence_tools.correspondence_finder as correspondence_finder
 from dense_correspondence.network.dense_correspondence_network import DenseCorrespondenceNetwork
@@ -137,7 +144,7 @@ class DenseCorrespondenceEvaluation(object):
         network_folder = utils.convert_data_relative_path_to_absolute_path(network_folder, assert_path_exists=True)
         dataset_config = utils.getDictFromYamlFilename(os.path.join(network_folder, "dataset.yaml"))
 
-        dataset = DynamicSpartanDataset(config=dataset_config)
+        dataset = SpartanDataset(config=dataset_config)
         return dataset
 
 
@@ -154,7 +161,7 @@ class DenseCorrespondenceEvaluation(object):
 
         config = utils.getDictFromYamlFilename(config_file)
 
-        dataset = DynamicSpartanDataset(mode="test", config=config)
+        dataset = SpartanDataset(mode="test", config=config)
 
         return dataset
 
@@ -768,7 +775,8 @@ class DenseCorrespondenceEvaluation(object):
 
     @staticmethod
     def single_across_object_image_pair_quantitative_analysis(dcn, dataset, scene_name_a, scene_name_b,
-                                                img_a_idx, img_b_idx, object_id_a, object_id_b, num_uv_a_samples=100,
+                                                img_a_idx, img_b_idx, object_id_a, object_id_b, 
+                                                num_uv_a_samples=100,
                                                 debug=False):
         """
         Quantitative analysis of a dcn on a pair of images from the same scene.
@@ -1205,9 +1213,13 @@ class DenseCorrespondenceEvaluation(object):
         :return: None
         """
 
-        rgb_a, _, mask_a, _ = dataset.get_rgbd_mask_pose(scene_name, 0, img_a_idx)
+        # DYNAMIC 
+        # rgb_a, _, mask_a, _ = dataset.get_rgbd_mask_pose(scene_name, 0, img_a_idx)
+        # rgb_b, _, mask_b, _ = dataset.get_rgbd_mask_pose(scene_name, 1, img_a_idx)
 
-        rgb_b, _, mask_b, _ = dataset.get_rgbd_mask_pose(scene_name, 1, img_a_idx)
+        # STATIC
+        rgb_a, _, mask_a, _ = dataset.get_rgbd_mask_pose(scene_name, img_a_idx)
+        rgb_b, _, mask_b, _ = dataset.get_rgbd_mask_pose(scene_name, img_b_idx)
 
         DenseCorrespondenceEvaluation.single_image_pair_qualitative_analysis(dcn, dataset, rgb_a, rgb_b, mask_a, mask_b, num_matches)
 
@@ -1389,8 +1401,7 @@ class DenseCorrespondenceEvaluation(object):
             # convert to (u,v) format
             pixel_a = [sampled_idx_list[1][i], sampled_idx_list[0][i]]
             best_match_uv, best_match_diff, norm_diffs =\
-                DenseCorrespondenceNetwork.find_best_match(pixel_a, res_a,
-                                                                                                     res_b)
+                DenseCorrespondenceNetwork.find_best_match(pixel_a, res_a, res_b)
 
             # be careful, OpenCV format is  (u,v) = (right, down)
             kp1.append(cv2.KeyPoint(pixel_a[0], pixel_a[1], diam))
@@ -1945,14 +1956,18 @@ class DenseCorrespondenceEvaluation(object):
         img_pairs = []
         for _ in range(5):
             scene_name = dataset.get_random_scene_name()
-            idx = dataset.get_random_image_index(scene_name)
-            #img_a_idx = dataset.get_random_image_index(scene_name)
-            #pose_a = dataset.get_pose_from_scene_name_and_idx(scene_name, img_a_idx)
-            # img_b_idx = dataset.get_img_idx_with_different_pose(scene_name, pose_a, num_attempts=100)
-            # if img_b_idx is None:
-            #     continue
-            # img_pairs.append([img_a_idx, img_b_idx])
-            img_pairs.append([idx, idx])
+            
+            img_a_idx = dataset.get_random_image_index(scene_name)
+
+            # FOR STATIC
+            pose_a = dataset.get_pose_from_scene_name_and_idx(scene_name, img_a_idx)
+            img_b_idx = dataset.get_img_idx_with_different_pose(scene_name, pose_a, num_attempts=100)
+            if img_b_idx is None:
+                continue
+            img_pairs.append([img_a_idx, img_b_idx])
+            
+            # FOR DYNAMIC
+            #img_pairs.append([img_a_idx, img_a_idx])
 
             scene_names.append(scene_name)
 
@@ -2888,9 +2903,6 @@ class DenseCorrespondenceEvaluationPlotter(object):
             df = dataframe
             if save and (output_dir is None):
                 raise ValueError("You must pass in an output directory")
-
-
-
 
 
         if 'is_valid_masked' not in df:

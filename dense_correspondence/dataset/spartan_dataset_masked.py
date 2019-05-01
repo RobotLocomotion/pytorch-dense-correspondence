@@ -120,7 +120,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
         # Case 0: Same scene, same object
         if data_load_type == SpartanDatasetDataType.SINGLE_OBJECT_WITHIN_SCENE:
-            print "Same scene, same object"
+            #print "Same scene, same object"
             return self.get_single_object_within_scene_data()
 
         # Case 1: Same object, different scene

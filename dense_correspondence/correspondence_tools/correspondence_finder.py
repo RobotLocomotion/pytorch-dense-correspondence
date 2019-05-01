@@ -594,7 +594,12 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
     img_b_depth_torch = torch.squeeze(img_b_depth_torch, 0)
     img_b_depth_torch = img_b_depth_torch.view(-1,1)
 
-    uv_b_vec_flattened = ((v2_vec+0.5).type(dtype_long)*image_width+(u2_vec+0.5).type(dtype_long))  # simply round to int -- good enough 
+    
+    # needed for pdc data
+    uv_b_vec_flattened = (v2_vec.type(dtype_long)*image_width+u2_vec.type(dtype_long)) 
+
+    # for some reason works better on sim data?
+    #uv_b_vec_flattened = ((v2_vec+0.5).type(dtype_long)*image_width+(u2_vec+0.5).type(dtype_long))  # simply round to int -- good enough 
                                                                        # occlusion check for smooth surfaces
 
     depth2_vec = torch.index_select(img_b_depth_torch, 0, uv_b_vec_flattened)*1.0/DEPTH_IM_SCALE
