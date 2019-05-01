@@ -92,30 +92,37 @@ class SpatialSoftmaxLoss(object):
         a_descriptors = sample_descriptors(image_a_pred, matches_x_a, matches_y_a)
         b_descriptors = sample_descriptors(image_b_pred, matches_x_b, matches_y_b)
 
-
-        def compute_expected_x_y(image_pred, descriptors):
-
-                                              # image_pred starts N, D, H, W
+        def compute_softmax_activations(image_pred, descriptors):
+                                               # image_pred starts N, D, H, W
             image_pred = image_pred.permute(0,2,3,1)            # N, H, W, D
             image_pred = image_pred.unsqueeze(3)                # N, H, W, 1,  D
             image_pred = image_pred.expand(N,H,W,num_matches,D) # N, H, W, nm, D 
 
             # descriptors starts out N, nm, D
+            
+            softmax_activations = torch.zeros(N, num_matches, H, W).cuda()
+
+            for i in range(N):
+                one_image = image_pred[i,:]           # H, W, nm, D
+                deltas = one_image - descriptors[i] # H, W, nm, D
+                neg_squared_norm_diffs = -1.0*torch.sum(torch.pow(deltas,2), dim=3) # H, W, nm
+                neg_squared_norm_diffs = neg_squared_norm_diffs.permute(2,0,1).unsqueeze(0) # 1, nm, H, W
+
+                neg_squared_norm_diffs_flat = neg_squared_norm_diffs.view(1, num_matches, H*W) # 1, nm, H*W
+                softmax = torch.nn.Softmax(dim=2)
+                softmax_activations[i] = softmax(neg_squared_norm_diffs_flat).view(N, num_matches, H, W).squeeze(0) # 1, nm, H, W
+
+            return softmax_activations
+
+
+        def compute_expected_x_y(softmax_activations):
 
             expected_x = torch.zeros(N, num_matches).cuda()
             expected_y = torch.zeros(N, num_matches).cuda()
 
             for i in range(N):
-                one_image = image_pred[i,:]           # H, W, nm, D
-                deltas = one_image - descriptors[i,:] # H, W, nm, D
-                neg_squared_norm_diffs = -1.0*torch.sum(torch.pow(deltas,2), dim=3) # H, W, nm
-                neg_squared_norm_diffs = neg_squared_norm_diffs.permute(2,0,1).unsqueeze(0) # N, nm, H, W
-
-                neg_squared_norm_diffs_flat = neg_squared_norm_diffs.view(N, num_matches, H*W) # N, nm, H*W
-                softmax = torch.nn.Softmax(dim=2)
-                softmax_activations = softmax(neg_squared_norm_diffs_flat).view(N, num_matches, H, W) # 1, nm, H, W
-                one_expected_x = torch.sum(softmax_activations*self.pos_x, dim=(2,3)) # 1, nm
-                one_expected_y = torch.sum(softmax_activations*self.pos_y, dim=(2,3)) # 1, nm
+                one_expected_x = torch.sum(softmax_activations[i].unsqueeze(0)*self.pos_x, dim=(2,3)) # 1, nm
+                one_expected_y = torch.sum(softmax_activations[i].unsqueeze(0)*self.pos_y, dim=(2,3)) # 1, nm
                 expected_x[i,:] = one_expected_x
                 expected_y[i,:] = one_expected_y
 
@@ -125,19 +132,11 @@ class SpatialSoftmaxLoss(object):
             # deltas = image_pred - descriptors.unsqueeze(1).unsqueeze(1).expand(N,H,W,num_matches,D)
             # squared_norm_diffs = torch.sum(torch.pow(deltas,2), dim=4)
 
-            # ## spatial softmax
-            # squared_norm_diffs = squared_norm_diffs.permute(0,3,1,2)
-            # spatial_softmax = torch.nn.Softmax2d()
-            # softmax_activations = spatial_softmax(-squared_norm_diffs)
-            # # softmax_attentions shape is N, num_matches, H, W
+        softmax_activations_a = compute_softmax_activations(image_a_pred, b_descriptors)
+        softmax_activations_b = compute_softmax_activations(image_b_pred, a_descriptors)
 
-            # expected_x = torch.sum(softmax_activations*self.pos_x, dim=(2,3))
-            # expected_y = torch.sum(softmax_activations*self.pos_y, dim=(2,3))
-            # return expected_x, expected_y
-
-
-        expected_x_a, expected_y_a = compute_expected_x_y(image_a_pred, b_descriptors)
-        expected_x_b, expected_y_b = compute_expected_x_y(image_b_pred, a_descriptors)
+        expected_x_a, expected_y_a = compute_expected_x_y(softmax_activations_a)
+        expected_x_b, expected_y_b = compute_expected_x_y(softmax_activations_b)
 
         def convert_pixel_coords_to_norm_coords(matches_x, matches_y):
             norm_matches_x = (matches_x/80.0*2.0-1.0)
@@ -172,12 +171,13 @@ class SpatialSoftmaxLoss(object):
 
             plt.show()
             numpy_img_pred = image_a_pred.squeeze(0).permute(1,2,0).detach().cpu().numpy()
-            plt.imshow(numpy_img_pred)
-            plt.show()
+            if numpy_img_pred.shape[2] == 3:
+                plt.imshow(numpy_img_pred)
+                plt.show()
         self.debug_counter+=1
 
         loss = l_1 + l_2 + l_3 + l_4
-        lambda_spatial = 10.0
+        lambda_spatial = 1.0
         return loss/num_matches * lambda_spatial
 
     def setup_pixel_maps(self):
