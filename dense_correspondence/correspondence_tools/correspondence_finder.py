@@ -613,9 +613,12 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
     depth2_vec = where(depth2_vec < zeros_vec, zeros_vec, depth2_vec) # to be careful, prune any negative depths
     depth2_vec = where(depth2_vec < z2_vec, zeros_vec, depth2_vec)    # prune occlusions
 
+    
     non_occluded_indices = torch.nonzero(depth2_vec)
-    if non_occluded_indices.dim() == 0:
+
+    if non_occluded_indices.dim() == 0 or len(non_occluded_indices) == 0:
         return (None, None)
+    
     non_occluded_indices = non_occluded_indices.squeeze(1)
 
     # apply pruning
@@ -623,6 +626,10 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
     v2_vec = torch.index_select(v2_vec, 0, non_occluded_indices)
     u_a_pruned = torch.index_select(u_a_pruned, 0, non_occluded_indices) # also prune from first list
     v_a_pruned = torch.index_select(v_a_pruned, 0, non_occluded_indices) # also prune from first list
+    
+
+    if u2_vec.dim() == 0 or u_a_pruned.dim() == 0:
+        return (None, None)
 
     uv_b_vec = (u2_vec, v2_vec)
     uv_a_vec = (u_a_pruned, v_a_pruned)
