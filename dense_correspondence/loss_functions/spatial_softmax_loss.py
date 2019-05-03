@@ -1,6 +1,8 @@
 import torch
 import numpy as np
 from torch.autograd import Variable
+import math
+from numpy import linalg
 
 
 
@@ -132,11 +134,47 @@ class SpatialSoftmaxLoss(object):
             # deltas = image_pred - descriptors.unsqueeze(1).unsqueeze(1).expand(N,H,W,num_matches,D)
             # squared_norm_diffs = torch.sum(torch.pow(deltas,2), dim=4)
 
-        softmax_activations_a = compute_softmax_activations(image_a_pred, b_descriptors)
-        softmax_activations_b = compute_softmax_activations(image_b_pred, a_descriptors)
 
-        expected_x_a, expected_y_a = compute_expected_x_y(softmax_activations_a)
-        expected_x_b, expected_y_b = compute_expected_x_y(softmax_activations_b)
+        def vectorized_norm_pdf_multivariate_torch(x,mu):
+            """
+            everything is torch.FloatTensors
+            for N samples, dimension dim
+            x  shape: N, dim
+            mu shape: N, dim
+            
+            returns shape: N
+            """
+            # this is for sigma = eye(4)
+            size = len(x[0])
+            
+            det = 1.0
+
+            norm_const = 1.0 / ( math.pow((2*math.pi),float(size)/2) * math.pow(det,1.0/2) )
+            x_minus_mu = (x - mu)
+            exp_factor = -0.5 * torch.sum(x_minus_mu*x_minus_mu,dim=1)
+            return norm_const*torch.exp(exp_factor)
+
+        def compute_l2_gaussian_divergence_loss(softmax_activations, norm_matches_x, norm_matches_y, pos_samples):
+            loss_sum = 0
+
+            loss = torch.nn.MSELoss()
+
+            for i in range(N):
+                one_softmax_activations = softmax_activations[i] # nm,H,W
+                
+                repeated_matches_x = norm_matches_x[0].repeat(H*W)
+                repeated_matches_y = norm_matches_y[0].repeat(H*W)
+
+                mu_samples = torch.stack((repeated_matches_x, repeated_matches_y)).permute(1,0) # Nm*H*W, 2
+
+                pdf_samples = vectorized_norm_pdf_multivariate_torch(pos_samples, mu_samples)
+                pdf_samples_shaped = pdf_samples.view(num_matches, H, W)
+                loss_sum += loss(pdf_samples_shaped, one_softmax_activations)
+
+            magic_weight = 0.001
+            return loss_sum*magic_weight
+
+
 
         def convert_pixel_coords_to_norm_coords(matches_x, matches_y):
             norm_matches_x = (matches_x/80.0*2.0-1.0)
@@ -147,15 +185,29 @@ class SpatialSoftmaxLoss(object):
             matches_x = ((norm_matches_x/2.0 + 0.5)*640.0).detach().cpu().numpy()
             matches_y = ((norm_matches_y/2.0 + 0.5)*480.0).detach().cpu().numpy()
             return matches_x, matches_y
-
+        
 
         norm_matches_x_a, norm_matches_y_a = convert_pixel_coords_to_norm_coords(matches_x_a, matches_y_a)
         norm_matches_x_b, norm_matches_y_b = convert_pixel_coords_to_norm_coords(matches_x_b, matches_y_b)
 
-        l_1 = torch.norm(norm_matches_x_a - expected_x_a, p=2)
-        l_2 = torch.norm(norm_matches_x_b - expected_x_b, p=2)
-        l_3 = torch.norm(norm_matches_y_a - expected_y_a, p=2)
-        l_4 = torch.norm(norm_matches_y_b - expected_y_b, p=2)
+        softmax_activations_a = compute_softmax_activations(image_a_pred, b_descriptors)
+        softmax_activations_b = compute_softmax_activations(image_b_pred, a_descriptors)
+
+        pos_x_repeated = (self.pos_x.unsqueeze(2).expand(60,80,num_matches).contiguous().view(-1)/2.0+0.5)*640.0
+        pos_y_repeated = (self.pos_y.unsqueeze(2).expand(60,80,num_matches).contiguous().view(-1)/2.0+0.5)*480.0
+        pos_samples = torch.stack((pos_x_repeated.view(-1),pos_y_repeated.view(-1))).permute(1,0) # Nm*H*W, 2
+
+        divergence_loss_a = compute_l2_gaussian_divergence_loss(softmax_activations_a, matches_x_a, matches_y_a, pos_samples)
+        divergence_loss_b = compute_l2_gaussian_divergence_loss(softmax_activations_b, matches_x_b, matches_y_b, pos_samples)
+
+        expected_x_a, expected_y_a = compute_expected_x_y(softmax_activations_a)
+        expected_x_b, expected_y_b = compute_expected_x_y(softmax_activations_b)
+
+
+        l_1 = torch.norm(norm_matches_x_a - expected_x_a, p=1)
+        l_2 = torch.norm(norm_matches_x_b - expected_x_b, p=1)
+        l_3 = torch.norm(norm_matches_y_a - expected_y_a, p=1)
+        l_4 = torch.norm(norm_matches_y_b - expected_y_b, p=1)
 
         ## DEBUG
         
@@ -176,9 +228,9 @@ class SpatialSoftmaxLoss(object):
                 plt.show()
         self.debug_counter+=1
 
-        loss = l_1 + l_2 + l_3 + l_4
-        lambda_spatial = 1.0
-        return loss/num_matches * lambda_spatial
+        loss = l_1 + l_2 + l_3 + l_4 + divergence_loss_a + divergence_loss_b
+        
+        return loss
 
     def setup_pixel_maps(self):
         pos_x, pos_y = np.meshgrid(
@@ -186,5 +238,5 @@ class SpatialSoftmaxLoss(object):
             np.linspace(-1., 1., self.H)
         )
 
-        self.pos_x = torch.from_numpy(pos_x).float().cuda()
-        self.pos_y = torch.from_numpy(pos_y).float().cuda()
+        self.pos_x = torch.from_numpy(pos_x).float().cuda() # H, W
+        self.pos_y = torch.from_numpy(pos_y).float().cuda() # H, w

@@ -47,23 +47,23 @@ class DCNEvaluationPandaTemplate(PandaDataFrameWrapper):
                'scene_name_b',
                'object_id_a',
                'object_id_b',
-                'img_a_idx',
-                'img_b_idx',
-                'is_valid',
-                'is_valid_masked',
-                'norm_diff_descriptor_ground_truth',
-                'norm_diff_descriptor',
-                'norm_diff_descriptor_masked',
-                'norm_diff_ground_truth_3d',
-                'norm_diff_pred_3d',
-                'norm_diff_pred_3d_masked',
-                'pixel_match_error_l2',
-                'pixel_match_error_l2_masked',
-                'pixel_match_error_l1',
-                'fraction_pixels_closer_than_ground_truth',
-                'fraction_pixels_closer_than_ground_truth_masked',
-                'average_l2_distance_for_false_positives',
-                'average_l2_distance_for_false_positives_masked',
+               'img_a_idx',
+               'img_b_idx',
+               'is_valid',
+               'is_valid_masked',
+               'norm_diff_descriptor_ground_truth',
+               'norm_diff_descriptor',
+               'norm_diff_descriptor_masked',
+               'norm_diff_ground_truth_3d',
+               'norm_diff_pred_3d',
+               'norm_diff_pred_3d_masked',
+               'pixel_match_error_l2',
+               'pixel_match_error_l2_masked',
+               'pixel_match_error_l1',
+               'fraction_pixels_closer_than_ground_truth',
+               'fraction_pixels_closer_than_ground_truth_masked',
+               'average_l2_distance_for_false_positives',
+               'average_l2_distance_for_false_positives_masked',
                'keypoint_name' # (optional) name of the keypoint
                ]
 
@@ -720,7 +720,7 @@ class DenseCorrespondenceEvaluation(object):
                 diff_mask_a = np.asarray(diff_mask_a)
                 (uv_a_vec, diff_uv_a_vec) = correspondence_finder.batch_find_pixel_correspondences(depth_a, pose_a, diff_depth_a, diff_pose_a,
                                                                uv_a=uv_a)
-                if uv_a_vec is None:
+                if (uv_a_vec is None) or (len(uv_a_vec)==0):
                     logging.info("no matches found, continuing")
                     continue
 
@@ -902,7 +902,7 @@ class DenseCorrespondenceEvaluation(object):
         (uv_a_vec, uv_b_vec) = correspondence_finder.batch_find_pixel_correspondences(depth_a, pose_a, depth_b, pose_b,
                                                                device='CPU', img_a_mask=mask_a)
 
-        if uv_a_vec is None:
+        if (uv_a_vec is None) or (len(uv_a_vec)==0):
             print "no matches found, returning"
             return None
 
@@ -2701,7 +2701,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
             ax.set_xlabel('Pixel match error (fraction of image), L2 (pixel distance)')
         ax.set_ylabel('Fraction of images')
 
-        # ax.set_xlim([0,200])
+        ax.set_xlim([0,0.2])
         return plot
 
     @staticmethod
@@ -2909,7 +2909,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
             use_masked_plots = False
         else:
             use_masked_plots = True
-
+        
 
         if previous_fig_axes==None:
             N = 5

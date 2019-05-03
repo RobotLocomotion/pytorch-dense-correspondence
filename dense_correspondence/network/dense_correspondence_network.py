@@ -514,9 +514,14 @@ class DenseCorrespondenceNetwork(nn.Module):
         #         norm_diffs[i,j] = np.linalg.norm(res_b[i,j] - descriptor_at_pixel)**2
 
 
-        USE_SPATIAL_SOFTMAX = False
-        print "PETE YOU NEED TO BETTER CONFIG THIS"
-        quit()
+        USE_SPATIAL_SOFTMAX = True
+        
+        # print "PETE YOU NEED TO BETTER CONFIG THIS"
+        # print ""
+        # print USE_SPATIAL_SOFTMAX, "USE_SPATIAL_SOFTMAX"
+        # print ""
+        # print "!!!!!"
+
 
         if not USE_SPATIAL_SOFTMAX:
             norm_diffs = np.sqrt(np.sum(np.square(res_b - descriptor_at_pixel), axis=2))
