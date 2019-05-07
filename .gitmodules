@@ -2,10 +2,6 @@
 	path = external/pytorch-segmentation-detection
 	url = https://github.com/warmspringwinds/pytorch-segmentation-detection.git
 
-[submodule "src/poser"]
-	path = src/poser
-	url = git@github.com:RobotLocomotion/poser.git
-
 [submodule "external/unet-pytorch"]
 	path = external/unet-pytorch
 	url = https://github.com/RobotLocomotion/unet-pytorch.git
@@ -13,6 +9,4 @@
 [submodule "maskrcnn-benchmark"]
 	path = external/maskrcnn-benchmark
 	url = git@github.com:facebookresearch/maskrcnn-benchmark.git
-[submodule "src/mankey"]
-	path = src/mankey
-	url = git@github.com:weigao95/mankey.git
+
