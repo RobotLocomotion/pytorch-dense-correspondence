@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 import random
 import scipy.stats as ss
+import itertools
 
 import torch
 from torch.autograd import Variable
@@ -24,57 +25,40 @@ import dense_correspondence.correspondence_tools.correspondence_plotter as corre
 import dense_correspondence.correspondence_tools.correspondence_finder as correspondence_finder
 from dense_correspondence.network.dense_correspondence_network import DenseCorrespondenceNetwork
 from dense_correspondence.loss_functions.pixelwise_contrastive_loss import PixelwiseContrastiveLoss
+import dense_correspondence_manipulation.utils.visualization as vis_utils
 
 import dense_correspondence.evaluation.plotting as dc_plotting
 
 from dense_correspondence.correspondence_tools.correspondence_finder import random_sample_from_masked_image
 
-class PandaDataFrameWrapper(object):
-    """
-    A simple wrapper for a PandaSeries that protects from read/write errors
-    """
+from dense_correspondence.evaluation.utils import PandaDataFrameWrapper
 
-    def __init__(self, columns):
-        data = [np.nan] * len(columns)
-        self._columns = columns
-        self._df = pd.DataFrame(data=[data], columns=columns)
-
-    def set_value(self, key, value):
-        if key not in self._columns:
-            raise KeyError("%s is not in the index" %(key))
-
-        self._df[key] = value
-
-    def get_value(self, key):
-        return self._df[key]
-
-    @property
-    def dataframe(self):
-        return self._df
-
-    @dataframe.setter
-    def dataframe(self, value):
-        self._series = value
-
+# why don't we have scene_name
 class DCNEvaluationPandaTemplate(PandaDataFrameWrapper):
     columns = ['scene_name',
-             'img_a_idx',
-             'img_b_idx',
-            'is_valid',
-            'is_valid_masked',
-            'norm_diff_descriptor_ground_truth',
-            'norm_diff_descriptor',
-            'norm_diff_descriptor_masked',
-            'norm_diff_ground_truth_3d',
-            'norm_diff_pred_3d',
-            'norm_diff_pred_3d_masked',
-            'pixel_match_error_l2',
-            'pixel_match_error_l2_masked',
-            'pixel_match_error_l1',
-            'fraction_pixels_closer_than_ground_truth',
-            'fraction_pixels_closer_than_ground_truth_masked',
-            'average_l2_distance_for_false_positives',
-            'average_l2_distance_for_false_positives_masked']
+               'scene_name_a',
+               'scene_name_b',
+               'object_id_a',
+               'object_id_b',
+                'img_a_idx',
+                'img_b_idx',
+                'is_valid',
+                'is_valid_masked',
+                'norm_diff_descriptor_ground_truth',
+                'norm_diff_descriptor',
+                'norm_diff_descriptor_masked',
+                'norm_diff_ground_truth_3d',
+                'norm_diff_pred_3d',
+                'norm_diff_pred_3d_masked',
+                'pixel_match_error_l2',
+                'pixel_match_error_l2_masked',
+                'pixel_match_error_l1',
+                'fraction_pixels_closer_than_ground_truth',
+                'fraction_pixels_closer_than_ground_truth_masked',
+                'average_l2_distance_for_false_positives',
+                'average_l2_distance_for_false_positives_masked',
+               'keypoint_name' # (optional) name of the keypoint
+               ]
 
     def __init__(self):
         PandaDataFrameWrapper.__init__(self, DCNEvaluationPandaTemplate.columns)
@@ -114,6 +98,10 @@ class DenseCorrespondenceEvaluation(object):
         self._dataset = None
 
 
+    @property
+    def config(self):
+        return self._configs
+
     def load_network_from_config(self, name):
         """
         Loads a network from config file. Puts it in eval mode by default
@@ -127,7 +115,7 @@ class DenseCorrespondenceEvaluation(object):
 
 
         path_to_network_params = self._config["networks"][name]["path_to_network_params"]
-        path_to_network_params = utils.convert_to_absolute_path(path_to_network_params)
+        path_to_network_params = utils.convert_data_relative_path_to_absolute_path(path_to_network_params, assert_path_exists=True)
         model_folder = os.path.dirname(path_to_network_params)
 
         dcn = DenseCorrespondenceNetwork.from_model_folder(model_folder, model_param_file=path_to_network_params)
@@ -146,7 +134,7 @@ class DenseCorrespondenceEvaluation(object):
             raise ValueError("Network %s is not in config file" %(network_name))
 
         network_folder = os.path.dirname(self._config["networks"][network_name]["path_to_network_params"])
-        network_folder = utils.convert_to_absolute_path(network_folder)
+        network_folder = utils.convert_data_relative_path_to_absolute_path(network_folder, assert_path_exists=True)
         dataset_config = utils.getDictFromYamlFilename(os.path.join(network_folder, "dataset.yaml"))
 
         dataset = SpartanDataset(config=dataset_config)
@@ -181,7 +169,7 @@ class DenseCorrespondenceEvaluation(object):
         self._dataset = value
 
     def get_output_dir(self):
-        return utils.convert_to_absolute_path(self._config['output_dir'])
+        return utils.convert_data_relative_path_to_absolute_path(self._config['output_dir'])
 
     @staticmethod
     def get_image_pair_with_poses_diff_above_threshold(dataset, scene_name, threshold=0.05,
@@ -271,12 +259,12 @@ class DenseCorrespondenceEvaluation(object):
         utils.reset_random_seed()
 
         cross_scene_data = DenseCorrespondenceEvaluation.parse_cross_scene_data(dataset)
-        
+
         pd_dataframe_list = []
         for annotated_pair in cross_scene_data:
 
             scene_name_a = annotated_pair["image_a"]["scene_name"]
-            scene_name_b = annotated_pair["image_b"]["scene_name"] 
+            scene_name_b = annotated_pair["image_b"]["scene_name"]
 
             image_a_idx = annotated_pair["image_a"]["image_idx"]
             image_b_idx = annotated_pair["image_b"]["image_idx"]
@@ -313,7 +301,7 @@ class DenseCorrespondenceEvaluation(object):
         """
 
         utils.reset_random_seed()
-        
+
         pd_dataframe_list = []
         for i in xrange(num_image_pairs):
 
@@ -323,14 +311,14 @@ class DenseCorrespondenceEvaluation(object):
 
             image_a_idx = dataset.get_random_image_index(scene_name_a)
             image_b_idx = dataset.get_random_image_index(scene_name_b)
-    
+
             dataframe_list_temp =\
                 DenseCorrespondenceEvaluation.single_across_object_image_pair_quantitative_analysis(dcn,
                 dataset, scene_name_a, scene_name_b, image_a_idx, image_b_idx, object_id_a, object_id_b)
 
             # if the list is empty, don't bother +=ing it, just continue
             if len(dataframe_list_temp) == 0:
-                continue 
+                continue
 
             assert dataframe_list_temp is not None
 
@@ -341,6 +329,140 @@ class DenseCorrespondenceEvaluation(object):
 
         return df
 
+
+    def evaluate_single_network_cross_instance(self, network_name, full_path_cross_instance_labels, save=False):
+        """
+        Simple wrapper that uses class config and then calls static method
+        """
+        dcn = self.load_network_from_config(network_name)
+        dcn.eval()
+        dataset = dcn.load_training_dataset()
+        return DenseCorrespondenceEvaluation.evaluate_network_cross_instance(dcn, dataset, full_path_cross_instance_labels, save=False)
+
+    @staticmethod
+    def evaluate_network_cross_instance(dcn=None, dataset=None, full_path_cross_instance_labels=None, save=False):
+        """
+        This will grab the .yaml specified via its full path (full_path_cross_instance_labels)
+        and use globally class-consistent keypoints that have been human-labeled across instances.
+        """
+
+        utils.reset_random_seed()
+
+        cross_instance_keypoint_labels = utils.getDictFromYamlFilename(full_path_cross_instance_labels)
+
+        print cross_instance_keypoint_labels
+
+        # keypoints = dict()
+        # for label in cross_instance_keypoint_labels:
+        #     for keypoint_label in label['image']['pixels']:
+        #         if keypoint_label['keypoint'] not in keypoints:
+        #             print "Found new keypoint:", keypoint_label['keypoint']
+
+
+        pd_dataframe_list = []
+
+        # generate all pairs of images
+        import itertools
+        for subset in itertools.combinations(cross_instance_keypoint_labels, 2):
+            print(subset)
+
+            scene_name_a = subset[0]["image"]["scene_name"]
+            scene_name_b = subset[1]["image"]["scene_name"]
+
+            image_a_idx = subset[0]["image"]["image_idx"]
+            image_b_idx = subset[1]["image"]["image_idx"]
+
+            img_a_pixels = subset[0]["image"]["pixels"]
+            img_b_pixels = subset[1]["image"]["pixels"]
+
+            dataframe_list_temp =\
+                DenseCorrespondenceEvaluation.single_cross_scene_image_pair_quantitative_analysis(dcn,
+                dataset, scene_name_a, image_a_idx, scene_name_b, image_b_idx,
+                img_a_pixels, img_b_pixels)
+
+            assert dataframe_list_temp is not None
+
+            pd_dataframe_list += dataframe_list_temp
+
+
+        df = pd.concat(pd_dataframe_list)
+        # save pandas.DataFrame to csv
+        if save:
+            output_dir = os.path.join(self.get_output_dir(), network_name, "cross-instance")
+            data_file = os.path.join(output_dir, "data.csv")
+            if not os.path.isdir(output_dir):
+                os.makedirs(output_dir)
+
+            df.to_csv(data_file)
+        return df
+
+    @staticmethod
+    def evaluate_network_cross_scene_keypoints(dcn, dataset, full_path_cross_instance_labels):
+        """
+        Evaluates the network on keypoint annotations across scenes
+        :param dcn:
+        :type dcn:
+        :param dataset:
+        :type dataset:
+        :param full_path_cross_instance_labels:
+        :type full_path_cross_instance_labels:
+        :return:
+        :rtype: pandas.DataFrame
+        """
+
+        utils.reset_random_seed()
+
+        cross_instance_keypoint_labels = utils.getDictFromYamlFilename(full_path_cross_instance_labels)
+
+        print "num cross instance labels", len(cross_instance_keypoint_labels)
+
+        # Two-layer dict with:
+        # - key:   the scene_name
+        # - key:   the image_idx
+        # - value: the descriptor image 
+        descriptor_images = dict()
+
+        # generate all descriptor images
+        for keypoint_label in cross_instance_keypoint_labels:
+            scene_name = keypoint_label["scene_name"]
+            image_idx = keypoint_label["image_idx"]
+            if scene_name not in descriptor_images:
+                descriptor_images[scene_name] = dict()
+            if image_idx in descriptor_images[scene_name]:
+                continue
+            rgb, _, _, _ = dataset.get_rgbd_mask_pose(scene_name, image_idx)
+            rgb_tensor = dataset.rgb_image_to_tensor(rgb)
+            res = dcn.forward_single_image_tensor(rgb_tensor).data.cpu().numpy()
+            
+            descriptor_images[scene_name][image_idx] = res
+
+
+        pd_dataframe_list = []
+
+        # generate all pairs of images
+        counter = 0
+        for subset in itertools.combinations(cross_instance_keypoint_labels, 2):
+            counter += 1
+            keypoint_data_a = subset[0]
+            keypoint_data_b = subset[1]
+            
+            res_a = descriptor_images[keypoint_data_a["scene_name"]][keypoint_data_a["image_idx"]]
+            res_b = descriptor_images[keypoint_data_b["scene_name"]][keypoint_data_b["image_idx"]]
+
+            dataframe_list_temp = \
+                DenseCorrespondenceEvaluation.single_image_pair_cross_scene_keypoints_quantitative_analysis(dcn, dataset, keypoint_data_a, keypoint_data_b, res_a, res_b)
+
+            if dataframe_list_temp is None:
+                print "no matches found, skipping"
+                continue
+
+            pd_dataframe_list += dataframe_list_temp
+
+
+        print "num_pairs considered", counter
+        df = pd.concat(pd_dataframe_list)
+
+        return df
 
     @staticmethod
     def evaluate_network(dcn, dataset, num_image_pairs=25, num_matches_per_image_pair=100):
@@ -423,7 +545,7 @@ class DenseCorrespondenceEvaluation(object):
         fig, axes = plt.subplots(nrows=nrows, ncols=ncols)
         fig.set_figheight(5)
         fig.set_figwidth(15)
-        
+
         if descriptor_image_stats is None:
             res_a_norm, res_b_norm = dc_plotting.normalize_descriptor_pair(res_a, res_b)
         else:
@@ -457,7 +579,7 @@ class DenseCorrespondenceEvaluation(object):
             mask_a_repeat = np.repeat(mask_a[:,:,np.newaxis], D, axis=2)
             mask_b_repeat = np.repeat(mask_b[:,:,np.newaxis], D, axis=2)
             res_a_mask = mask_a_repeat * res_a
-            res_b_mask = mask_b_repeat * res_b 
+            res_b_mask = mask_b_repeat * res_b
 
             if descriptor_image_stats is None:
                 res_a_norm_mask, res_b_norm_mask = dc_plotting.normalize_masked_descriptor_pair(res_a, res_b, mask_a, mask_b)
@@ -484,11 +606,11 @@ class DenseCorrespondenceEvaluation(object):
         """
         Quantitative analsys of a dcn on a pair of images from different scenes (requires human labeling).
 
-        There is a bit of code copy from single_same_scene_image_pair_quantitative_analysis, but 
+        There is a bit of code copy from single_same_scene_image_pair_quantitative_analysis, but
         it's a bit of a different structure, since matches are passed in and we need to try to generate more
         views of these sparse human labeled pixel matches.
 
-        :param dcn: 
+        :param dcn:
         :type dcn: DenseCorrespondenceNetwork
         :param dataset:
         :type dataset: SpartanDataset
@@ -534,7 +656,7 @@ class DenseCorrespondenceEvaluation(object):
         print "scene_name_a", scene_name_a
         print "scene_name_b", scene_name_b
         print "originally had", len(img_a_pixels), "matches"
-        
+
         image_height, image_width = dcn.image_shape
         DCE = DenseCorrespondenceEvaluation
 
@@ -564,7 +686,7 @@ class DenseCorrespondenceEvaluation(object):
             dataframe_list.append(pd_template.dataframe)
 
         # Loop a second time over the labeled pixel matches
-        # But this time try, 
+        # But this time try,
         #  for each I labeled pixel match pairs,
         #       for each J different views for image a, and
         #       for each K different views for image b
@@ -572,7 +694,7 @@ class DenseCorrespondenceEvaluation(object):
         # Could also do the cubic version...
         J = 10
         K = 10
-        
+
         # Loop over labeled pixel matches
         for i in range(len(img_a_pixels)):
             uv_a = (img_a_pixels[i]["u"], img_a_pixels[i]["v"])
@@ -602,7 +724,7 @@ class DenseCorrespondenceEvaluation(object):
                 diff_uv_a = DCE.clip_pixel_to_image_size_and_round(diff_uv_a, image_width, image_height)
 
                 pd_template = DenseCorrespondenceEvaluation.compute_descriptor_match_statistics(diff_depth_a,
-                                                        depth_b, diff_mask_a, mask_b, diff_uv_a, uv_b, diff_pose_a, pose_b, 
+                                                        depth_b, diff_mask_a, mask_b, diff_uv_a, uv_b, diff_pose_a, pose_b,
                                                         diff_res_a, res_b, camera_intrinsics_matrix,
                                                         rgb_a=diff_rgb_a, rgb_b=rgb_b, debug=False)
                 pd_template.set_value('scene_name', scene_name_a+"+"+scene_name_b)
@@ -633,7 +755,7 @@ class DenseCorrespondenceEvaluation(object):
                 diff_uv_b = DCE.clip_pixel_to_image_size_and_round(diff_uv_b, image_width, image_height)
 
                 pd_template = DenseCorrespondenceEvaluation.compute_descriptor_match_statistics(depth_a,
-                                                        diff_depth_b, mask_a, diff_mask_b, uv_a, diff_uv_b, pose_a, diff_pose_b, 
+                                                        diff_depth_b, mask_a, diff_mask_b, uv_a, diff_uv_b, pose_a, diff_pose_b,
                                                         res_a, diff_res_b, camera_intrinsics_matrix,
                                                         rgb_a=rgb_a, rgb_b=diff_rgb_b, debug=False)
                 pd_template.set_value('scene_name', scene_name_a+"+"+scene_name_b)
@@ -651,7 +773,7 @@ class DenseCorrespondenceEvaluation(object):
         """
         Quantitative analysis of a dcn on a pair of images from the same scene.
 
-        :param dcn: 
+        :param dcn:
         :type dcn: DenseCorrespondenceNetwork
         :param dataset:
         :type dataset: SpartanDataset
@@ -667,7 +789,7 @@ class DenseCorrespondenceEvaluation(object):
         :rtype:
         """
 
-        
+
         rgb_a, depth_a, mask_a, _ = dataset.get_rgbd_mask_pose(scene_name_a, img_a_idx)
         rgb_b, depth_b, mask_b, _ = dataset.get_rgbd_mask_pose(scene_name_b, img_b_idx)
 
@@ -700,7 +822,7 @@ class DenseCorrespondenceEvaluation(object):
             return dataframe_list
 
         for i in range(num_uv_a_samples):
-     
+
             uv_a = [sampled_idx_list[1][i], sampled_idx_list[0][i]]
 
             pd_template = DCE.compute_descriptor_match_statistics_no_ground_truth(uv_a, res_a,
@@ -731,7 +853,7 @@ class DenseCorrespondenceEvaluation(object):
         """
         Quantitative analysis of a dcn on a pair of images from the same scene.
 
-        :param dcn: 
+        :param dcn:
         :type dcn: DenseCorrespondenceNetwork
         :param dataset:
         :type dataset: SpartanDataset
@@ -743,7 +865,7 @@ class DenseCorrespondenceEvaluation(object):
         :type img_b_idx: int
         :param camera_intrinsics_matrix: Optionally set camera intrinsics, otherwise will get it from the dataset
         :type camera_intrinsics_matrix: 3 x 3 numpy array
-        :return: Dict with relevant data
+        :return: List of pandas DataFrame objects
         :rtype:
         """
 
@@ -838,7 +960,7 @@ class DenseCorrespondenceEvaluation(object):
 
 
     @staticmethod
-    def compute_descriptor_match_statistics_no_ground_truth(uv_a, res_a, res_b, rgb_a=None, rgb_b=None, 
+    def compute_descriptor_match_statistics_no_ground_truth(uv_a, res_a, res_b, rgb_a=None, rgb_b=None,
                                                             depth_a=None, depth_b=None, debug=False):
         """
         Computes statistics of descriptor pixelwise match when there is zero ground truth data.
@@ -856,7 +978,7 @@ class DenseCorrespondenceEvaluation(object):
         uv_b, best_match_diff, norm_diffs =\
             DenseCorrespondenceNetwork.find_best_match(uv_a, res_a,
                                                        res_b, debug=debug)
-        
+
         if debug:
             correspondence_plotter.plot_correspondences_direct(rgb_a, depth_a, rgb_b, depth_b,
                                                                uv_a, uv_b, show=True)
@@ -900,8 +1022,8 @@ class DenseCorrespondenceEvaluation(object):
         :type params:
         :param debug: whether or not to print visualization
         :type debug:
-        :return:
-        :rtype:
+        :return: Dense
+        :rtype: DCNEvaluationPandaTemplate
         """
 
         DCE = DenseCorrespondenceEvaluation
@@ -933,19 +1055,19 @@ class DenseCorrespondenceEvaluation(object):
         des_b_ground_truth = res_b[uv_b[1], uv_b[0], :]
         norm_diff_descriptor_ground_truth = np.linalg.norm(des_a - des_b_ground_truth)
 
-        # from Schmidt et al 2017: 
+        # from Schmidt et al 2017:
         """
         We then determine the number of pixels in the target image that are closer in
         descriptor space to the source point than the manually-labelled corresponding point.
         """
         # compute this
         (v_indices_better_than_ground_truth, u_indices_better_than_ground_truth) = np.where(norm_diffs < norm_diff_descriptor_ground_truth)
-        num_pixels_closer_than_ground_truth = len(u_indices_better_than_ground_truth) 
+        num_pixels_closer_than_ground_truth = len(u_indices_better_than_ground_truth)
         num_pixels_in_image = res_a.shape[0] * res_a.shape[1]
         fraction_pixels_closer_than_ground_truth = num_pixels_closer_than_ground_truth*1.0/num_pixels_in_image
 
         (v_indices_better_than_ground_truth_masked, u_indices_better_than_ground_truth_masked) = np.where(masked_norm_diffs < norm_diff_descriptor_ground_truth)
-        num_pixels_closer_than_ground_truth_masked = len(u_indices_better_than_ground_truth_masked) 
+        num_pixels_closer_than_ground_truth_masked = len(u_indices_better_than_ground_truth_masked)
         num_pixels_in_masked_image = len(np.nonzero(mask_b)[0])
         fraction_pixels_closer_than_ground_truth_masked = num_pixels_closer_than_ground_truth_masked*1.0/num_pixels_in_masked_image
 
@@ -1118,6 +1240,96 @@ class DenseCorrespondenceEvaluation(object):
         return rgb_a, rgb_b
 
     @staticmethod
+    def single_image_pair_keypoint_qualitative_analysis(dcn, dataset, keypoint_data_a,
+                                                        keypoint_data_b,
+                                                        heatmap_kernel_variance=0.25,
+                                                        blend_weight_original_image=0.3,
+                                                        plot_title="Keypoints"):
+        """
+        Wrapper for qualitative analysis of a pair of images using keypoint annotations
+        :param dcn:
+        :type dcn:
+        :param dataset:
+        :type dataset:
+        :param keypoint_data_a: pandas Series
+        :type keypoint_data_a:
+        :param keypoint_data_b:
+        :type keypoint_data_b:
+        :return:
+        :rtype:
+        """
+        DCE = DenseCorrespondenceEvaluation
+
+        image_height, image_width = dcn.image_shape
+
+        scene_name_a = keypoint_data_a['scene_name']
+        img_a_idx = keypoint_data_a['image_idx']
+        uv_a = (keypoint_data_a['u'], keypoint_data_a['v'])
+        uv_a = DCE.clip_pixel_to_image_size_and_round(uv_a, image_width, image_height)
+
+        scene_name_b = keypoint_data_b['scene_name']
+        img_b_idx = keypoint_data_b['image_idx']
+        uv_b = (keypoint_data_b['u'], keypoint_data_b['v'])
+        uv_b = DCE.clip_pixel_to_image_size_and_round(uv_b, image_width, image_height)
+
+
+        rgb_a, _, mask_a, _ = dataset.get_rgbd_mask_pose(scene_name_a, img_a_idx)
+
+        rgb_b, _, mask_b, _ = dataset.get_rgbd_mask_pose(scene_name_b, img_b_idx)
+
+        mask_a = np.asarray(mask_a)
+        mask_b = np.asarray(mask_b)
+
+        # compute dense descriptors
+        rgb_a_tensor = dataset.rgb_image_to_tensor(rgb_a)
+        rgb_b_tensor = dataset.rgb_image_to_tensor(rgb_b)
+
+        # these are Variables holding torch.FloatTensors, first grab the data, then convert to numpy
+        res_a = dcn.forward_single_image_tensor(rgb_a_tensor).data.cpu().numpy()
+        res_b = dcn.forward_single_image_tensor(rgb_b_tensor).data.cpu().numpy()
+
+        best_match_uv, best_match_diff, norm_diffs = \
+        DenseCorrespondenceNetwork.find_best_match(uv_a, res_a, res_b, debug=False)
+
+
+
+        # visualize image and then heatmap
+        diam = 0.03
+        dist = 0.01
+        kp1 = []
+        kp2 = []
+        kp1.append(cv2.KeyPoint(uv_a[0], uv_a[1], diam))
+        kp2.append(cv2.KeyPoint(best_match_uv[0], best_match_uv[1], diam))
+
+
+        matches = [] # list of cv2.DMatch
+        matches.append(cv2.DMatch(0,0,dist))
+
+        gray_a_numpy = cv2.cvtColor(np.asarray(rgb_a), cv2.COLOR_BGR2GRAY)
+        gray_b_numpy = cv2.cvtColor(np.asarray(rgb_b), cv2.COLOR_BGR2GRAY)
+        img3 = cv2.drawMatches(gray_a_numpy, kp1, gray_b_numpy, kp2, matches, flags=2, outImg=gray_b_numpy, matchColor=(255,0,0))
+
+        fig, axes = plt.subplots(nrows=2, ncols=1)
+        fig.set_figheight(10)
+        fig.set_figwidth(15)
+        axes[0].imshow(img3)
+        axes[0].set_title(plot_title)
+
+        # visualize the heatmap
+        heatmap_color = vis_utils.compute_gaussian_kernel_heatmap_from_norm_diffs(norm_diffs, heatmap_kernel_variance)
+
+        # convert heatmap to RGB (it's in BGR now)
+        heatmap_color_rgb = cv2.cvtColor(heatmap_color, cv2.COLOR_BGR2RGB)
+
+
+        alpha = blend_weight_original_image
+        beta = 1-alpha
+        blended = cv2.addWeighted(np.asarray(rgb_b), alpha, heatmap_color_rgb, beta, 0)
+
+        axes[1].imshow(blended)
+        return rgb_a, rgb_b
+
+    @staticmethod
     def single_image_pair_qualitative_analysis(dcn, dataset, rgb_a, rgb_b, mask_a, mask_b,
                                                num_matches):
         """
@@ -1129,7 +1341,7 @@ class DenseCorrespondenceEvaluation(object):
         :param rgb_a, rgb_b: two rgb images for which to do matching
         :param mask_a, mask_b: masks of these two images
         :param num_matches: number of matches to generate
-        
+
         :type dcn: DenseCorrespondenceNetwork
         :type dataset: DenseCorrespondenceDataset
         :type rgb_a, rgb_b: PIL.Images
@@ -1170,7 +1382,7 @@ class DenseCorrespondenceEvaluation(object):
             descriptor_image_stats = dcn.descriptor_image_stats
         except:
             print "Could not find descriptor image stats..."
-            print "Only normalizing pairs of images!" 
+            print "Only normalizing pairs of images!"
             descriptor_image_stats = None
 
         for i in xrange(0, num_matches):
@@ -1202,6 +1414,128 @@ class DenseCorrespondenceEvaluation(object):
                                                                     plot_masked=True)
 
         plt.show()
+
+    @staticmethod
+    def single_image_pair_cross_scene_keypoints_quantitative_analysis(dcn, dataset, keypoint_data_a,
+                                                                      keypoint_data_b, res_a=None, res_b=None):
+        """
+        Quantitative analysis of cross instance keypoint annotations. This is used in the
+        class consistent setting
+
+        :param dcn:
+        :type dcn:
+        :param dataset:
+        :type dataset:
+        :param keypoint_data_a:
+        :type keypoint_data_a:
+        :param keypoint_data_b:
+        :type keypoint_data_b:
+        :return: List of pandas DataFrame objects
+        :rtype:
+        """
+
+        DCE = DenseCorrespondenceEvaluation
+
+        scene_name_a = keypoint_data_a['scene_name']
+        object_id_a = keypoint_data_a['object_id']
+        img_a_idx = keypoint_data_a['image_idx']
+
+        scene_name_b = keypoint_data_b['scene_name']
+        object_id_b = keypoint_data_b['object_id']
+        img_b_idx = keypoint_data_b['image_idx']
+
+        rgb_a, depth_a, mask_a, pose_a = dataset.get_rgbd_mask_pose(scene_name_a, img_a_idx)
+
+        rgb_b, depth_b, mask_b, pose_b = dataset.get_rgbd_mask_pose(scene_name_b, img_b_idx)
+
+        depth_a = np.asarray(depth_a)
+        depth_b = np.asarray(depth_b)
+        mask_a = np.asarray(mask_a)
+        mask_b = np.asarray(mask_b)
+
+        if res_a is None and res_b is None:
+            # compute dense descriptors
+            rgb_a_tensor = dataset.rgb_image_to_tensor(rgb_a)
+            rgb_b_tensor = dataset.rgb_image_to_tensor(rgb_b)
+
+            # these are Variables holding torch.FloatTensors, first grab the data, then convert to numpy
+            res_a = dcn.forward_single_image_tensor(rgb_a_tensor).data.cpu().numpy()
+            res_b = dcn.forward_single_image_tensor(rgb_b_tensor).data.cpu().numpy()
+
+
+        # vectors to allow re-ordering
+        rgb = [rgb_a, rgb_b]
+        depth = [depth_a, depth_b]
+        mask = [mask_a, mask_b]
+        scene_name = [scene_name_a, scene_name_b]
+        img_idx = [img_a_idx, img_b_idx]
+        pose = [pose_a, pose_b]
+        res = [res_a, res_b]
+        object_id = [object_id_a, object_id_b]
+
+        camera_intrinsics_a = dataset.get_camera_intrinsics(scene_name_a)
+        camera_intrinsics_b = dataset.get_camera_intrinsics(scene_name_b)
+        if not np.allclose(camera_intrinsics_a.K, camera_intrinsics_b.K):
+            print "Currently cannot handle two different camera K matrices in different scenes!"
+            print "But you could add this..."
+        camera_intrinsics_matrix = camera_intrinsics_a.K
+
+        image_height, image_width = dcn.image_shape
+        DCE = DenseCorrespondenceEvaluation
+        dataframe_list = []
+
+        ordering = ["standard", "reverse"]
+
+        for kp_name, data_a in keypoint_data_a['keypoints'].iteritems():
+            if kp_name not in keypoint_data_b['keypoints']:
+                raise ValueError("keypoint %s appears in one list of annotated data but"
+                                 "not the other" %(kp_name))
+
+            data_b = keypoint_data_b['keypoints'][kp_name]
+
+            data = [data_a, data_b]
+
+            for order in ordering:
+                if order == "standard":
+                    idx_1 = 0
+                    idx_2 = 1
+                elif order == "reverse":
+                    idx_1 = 1
+                    idx_2 = 0
+                else:
+                    raise ValueError("you should never get here")
+
+
+                uv_1 = DCE.clip_pixel_to_image_size_and_round((data[idx_1]['u'], data[idx_2]['v']), image_width, image_height)
+                uv_2 = DCE.clip_pixel_to_image_size_and_round((data[idx_2]['u'], data[idx_2]['v']), image_width,
+                                                              image_height)
+
+                pd_template = DenseCorrespondenceEvaluation.compute_descriptor_match_statistics(depth[idx_1],
+                                                                                                depth[idx_2],
+                                                                                                mask[idx_1],
+                                                                                                mask[idx_2],
+                                                                                                uv_1,
+                                                                                                uv_2,
+                                                                                                pose[idx_1],
+                                                                                                pose[idx_2],
+                                                                                                res[idx_1],
+                                                                                                res[idx_2],
+                                                                                                camera_intrinsics_matrix,
+                                                                                                rgb_a=rgb[idx_1], rgb_b=rgb[idx_2],
+                                                                                                debug=False)
+
+                pd_template.set_value('img_a_idx', img_idx[idx_1])
+                pd_template.set_value('img_b_idx', img_idx[idx_2])
+                pd_template.set_value('scene_name_a', scene_name[idx_1])
+                pd_template.set_value('scene_name_b', scene_name[idx_2])
+                pd_template.set_value('object_id_a', object_id[idx_1])
+                pd_template.set_value('object_id_b', object_id[idx_2])
+                pd_template.set_value('keypoint_name', kp_name)
+
+
+                dataframe_list.append(pd_template.dataframe)
+
+        return dataframe_list
 
     @staticmethod
     def compute_sift_keypoints(img, mask=None):
@@ -1501,6 +1835,8 @@ class DenseCorrespondenceEvaluation(object):
         evaluation_labeled_data_paths = []
 
         # add the multi object list
+        # Note: (manuelli) why is this treated differently than the single object
+        # case?
         evaluation_labeled_data_paths += dataset.config["multi_object"]["evaluation_labeled_data_path"]
         
         # add all of the single object lists
@@ -1516,9 +1852,8 @@ class DenseCorrespondenceEvaluation(object):
 
         cross_scene_data = []
 
-        home = os.path.dirname(utils.getDenseCorrespondenceSourceDir())
-        for i in evaluation_labeled_data_paths:
-            cross_scene_data_full_path = os.path.join(home, i)
+        for path in evaluation_labeled_data_paths:
+            cross_scene_data_full_path = utils.convert_data_relative_path_to_absolute_path(path, assert_path_exists=True)
             this_cross_scene_data = utils.getDictFromYamlFilename(cross_scene_data_full_path)
             cross_scene_data += this_cross_scene_data
 
@@ -1712,6 +2047,7 @@ class DenseCorrespondenceEvaluation(object):
                                                                                  scene_name,
                                                                                  img_pair[0],
                                                                                  img_pair[1])
+
 
     @staticmethod
     def compute_loss_on_dataset(dcn, data_loader, loss_config, num_iterations=500,):
@@ -1938,7 +2274,7 @@ class DenseCorrespondenceEvaluation(object):
         if save_to_file:
             if filename is None:
                 path_to_params_folder = dcn.config['path_to_network_params_folder']
-                path_to_params_folder = utils.convert_to_absolute_path(path_to_params_folder)
+                path_to_params_folder = utils.convert_data_relative_path_to_absolute_path(path_to_params_folder)
                 filename = os.path.join(path_to_params_folder, 'descriptor_statistics.yaml')
 
             utils.saveToYaml(stats, filename)
@@ -1954,7 +2290,8 @@ class DenseCorrespondenceEvaluation(object):
                                   save_folder_name="analysis",
                                   compute_descriptor_statistics=True, 
                                   cross_scene=True,
-                                  dataset=None):
+                                  dataset=None,
+                                  iteration=None):
         """
         Runs all the quantitative evaluations on the model folder
         Creates a folder model_folder/analysis that stores the information.
@@ -1976,7 +2313,7 @@ class DenseCorrespondenceEvaluation(object):
 
         DCE = DenseCorrespondenceEvaluation
 
-        model_folder = utils.convert_to_absolute_path(model_folder)
+        model_folder = utils.convert_data_relative_path_to_absolute_path(model_folder, assert_path_exists=True)
 
         # save it to a csv file
         output_dir = os.path.join(model_folder, save_folder_name)
@@ -1990,7 +2327,7 @@ class DenseCorrespondenceEvaluation(object):
                 os.makedirs(dir)
 
 
-        dcn = DenseCorrespondenceNetwork.from_model_folder(model_folder)
+        dcn = DenseCorrespondenceNetwork.from_model_folder(model_folder, iteration=iteration)
         dcn.eval()
 
         if dataset is None:
@@ -2031,7 +2368,8 @@ class DenseCorrespondenceEvaluation(object):
         fig_axes = DCEP.run_on_single_dataframe(train_csv, label="train", save=False)
         fig_axes = DCEP.run_on_single_dataframe(test_csv, label="test", save=False, previous_fig_axes=fig_axes)
         if cross_scene:
-            fig_axes = DCEP.run_on_single_dataframe(cross_scene_csv, label="cross_scene", save=False, previous_fig_axes=fig_axes)
+            fig_axes = DCEP.run_on_single_dataframe(cross_scene_csv, label="cross_scene", save=False,
+                                                    previous_fig_axes=fig_axes)
 
         fig, _ = fig_axes        
         save_fig_file = os.path.join(output_dir, "quant_plots.png")
@@ -2050,6 +2388,58 @@ class DenseCorrespondenceEvaluation(object):
 
 
         logging.info("Finished running evaluation on network")
+
+    @staticmethod
+    def run_cross_instance_keypoint_evaluation_on_network(model_folder, path_to_cross_instance_labels,
+                                  save_folder_name="analysis/cross_scene_keypoints",
+                                  dataset=None, save=True):
+        """
+        Runs cross instance keypoint evaluation on the given network.
+        Creates a folder model_folder/<save_folder_name> that stores the information.
+
+        :param model_folder: folder where trained network is
+        :type model_folder:
+        :param path_to_cross_instance_labels: path to location of cross instance data. Can be full path
+        or path relative to the data directory
+        :type path_to_cross_instance_labels: str
+        :param save_folder_name: place where data is being saved
+        :type save_folder_name: str
+        :param dataset: SpartanDataset
+        :type dataset:
+        :return:
+        :rtype:
+        """
+        utils.reset_random_seed()
+
+        DCE = DenseCorrespondenceEvaluation
+
+        model_folder = utils.convert_data_relative_path_to_absolute_path(model_folder, assert_path_exists=True)
+
+
+
+        dcn = DenseCorrespondenceNetwork.from_model_folder(model_folder)
+        dcn.eval()
+
+        if dataset is None:
+            dataset = dcn.load_training_dataset()
+
+        path_to_cross_instance_labels = utils.convert_data_relative_path_to_absolute_path(path_to_cross_instance_labels, assert_path_exists=True)
+        df = DCE.evaluate_network_cross_scene_keypoints(dcn, dataset, path_to_cross_instance_labels)
+
+
+        if save:
+            # save it to a csv file
+            output_dir = os.path.join(model_folder, save_folder_name)
+            # create the necessary directories
+            for dir in [output_dir]:
+                if not os.path.isdir(dir):
+                    os.makedirs(dir)
+
+            save_filename = os.path.join(output_dir, 'data.csv')
+            df.to_csv(save_filename)
+
+        logging.info("Finished running cross scene keypoint evaluation")
+        return df
 
 
     @staticmethod
@@ -2453,7 +2843,7 @@ class DenseCorrespondenceEvaluationPlotter(object):
         return area_above_curve
 
     @staticmethod
-    def run_on_single_dataframe(path_to_df_csv, label=None, output_dir=None, save=True, previous_fig_axes=None):
+    def run_on_single_dataframe(path_to_df_csv, label=None, output_dir=None, save=True, previous_fig_axes=None, dataframe=None):
         """
         This method is intended to be called from an ipython notebook for plotting.
 
@@ -2472,6 +2862,8 @@ class DenseCorrespondenceEvaluationPlotter(object):
             plt.title("both things")
             plt.show()
 
+        :param dataframe: The pandas dataframe, object
+        :type dataframe:
         :param path_to_df_csv: full path to csv file
         :type path_to_df_csv: string
         :param label: name that will show up labeling this line in the legend
@@ -2483,12 +2875,20 @@ class DenseCorrespondenceEvaluationPlotter(object):
         """
         DCEP = DenseCorrespondenceEvaluationPlotter
 
-        path_to_csv = utils.convert_to_absolute_path(path_to_df_csv)
+        if dataframe is None:
+            path_to_csv = utils.convert_data_relative_path_to_absolute_path(path_to_df_csv,
+                assert_path_exists=True)
+            df = pd.read_csv(path_to_csv, index_col=0, parse_dates=True)
+            if output_dir is None:
+                output_dir = os.path.dirname(path_to_csv)
+        else:
+            df = dataframe
+            if save and (output_dir is None):
+                raise ValueError("You must pass in an output directory")
 
-        if output_dir is None:
-            output_dir = os.path.dirname(path_to_csv)
 
-        df = pd.read_csv(path_to_csv, index_col=0, parse_dates=True)
+
+
 
         if 'is_valid_masked' not in df:
             use_masked_plots = False
@@ -2550,8 +2950,9 @@ class DenseCorrespondenceEvaluationPlotter(object):
         if use_masked_plots:
             plot = DCEP.make_average_l2_false_positives_plot(axes[4,1], df, label=label, masked=True)
 
-        yaml_file = os.path.join(output_dir, 'stats.yaml')
-        utils.saveToYaml(d, yaml_file)
+        if save:
+            yaml_file = os.path.join(output_dir, 'stats.yaml')
+            utils.saveToYaml(d, yaml_file)
         return [fig, axes]
 
     @staticmethod
@@ -2565,7 +2966,8 @@ class DenseCorrespondenceEvaluationPlotter(object):
         """
         DCEP = DenseCorrespondenceEvaluationPlotter
 
-        path_to_csv = utils.convert_to_absolute_path(path_to_df_csv)
+        path_to_csv = utils.convert_data_relative_path_to_absolute_path(path_to_df_csv,
+            assert_path_exists=True)
 
         if output_dir is None:
             output_dir = os.path.dirname(path_to_csv)

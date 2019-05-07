@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 # Basic I/O utils
 import yaml
 from yaml import CLoader
@@ -10,6 +12,11 @@ import getpass
 import fnmatch
 import random
 import torch
+import datetime
+from PIL import Image
+
+
+
 
 import dense_correspondence_manipulation.utils.transformations as transformations
 
@@ -17,20 +24,37 @@ def getDictFromYamlFilename(filename):
     """
     Read data from a YAML files
     """
-    return yaml.load(file(filename), Loader=CLoader)
+    return yaml.load(open(filename), Loader=CLoader)
 
-def saveToYaml(data, filename):
+def saveToYaml(data, filename, flush=False):
     """
-    Save a data to a YAML file
+
+    :param data:
+    :type data:
+    :param filename:
+    :type filename:
+    :param flush: Forces a flush to disk if true
+    :type flush: bool
+    :return:
+    :rtype:
     """
     with open(filename, 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
+        if flush:
+            outfile.flush()
+
 
 def getDenseCorrespondenceSourceDir():
     return os.getenv("DC_SOURCE_DIR")
 
+def get_data_dir():
+    return os.getenv("DC_DATA_DIR")
+
 def getPdcPath():
-    return os.path.join(getDenseCorrespondenceSourceDir(), "data_volume", "pdc")
+    """
+    For backwards compatibility
+    """
+    return get_data_dir()
 
 def dictFromPosQuat(pos, quat):
     """
@@ -80,14 +104,14 @@ def set_cuda_visible_devices(gpu_list):
     """
 
     if len(gpu_list) == 0:
-        print "using all CUDA gpus"
+        print("using all CUDA gpus")
         return
 
     cuda_visible_devices = ""
     for gpu in gpu_list:
         cuda_visible_devices += str(gpu) + ","
 
-    print "setting CUDA_VISIBLE_DEVICES = ", cuda_visible_devices
+    print("setting CUDA_VISIBLE_DEVICES = ", cuda_visible_devices)
     os.environ["CUDA_VISIBLE_DEVICES"] = cuda_visible_devices
 
 def set_default_cuda_visible_devices():
@@ -109,10 +133,13 @@ def get_defaults_config():
 def add_dense_correspondence_to_python_path():
     dc_source_dir = getDenseCorrespondenceSourceDir()
     sys.path.append(dc_source_dir)
-    sys.path.append(os.path.join(dc_source_dir, 'pytorch-segmentation-detection'))
+
+    # TODO Pete: potentially only add the pytorch-segmentation-detection stuff 
+    # if using this backbone architecture
+    sys.path.append(os.path.join(dc_source_dir, 'external/pytorch-segmentation-detection'))
 
     # for some reason it is critical that this be at the beginning . . .
-    sys.path.insert(0, os.path.join(dc_source_dir, 'pytorch-segmentation-detection', 'vision'))
+    sys.path.insert(0, os.path.join(dc_source_dir, 'external/pytorch-segmentation-detection', 'vision'))
 
 
 def convert_to_absolute_path(path):
@@ -130,6 +157,39 @@ def convert_to_absolute_path(path):
 
     home_dir = os.path.expanduser("~")
     return os.path.join(home_dir, path)
+
+def convert_data_relative_path_to_absolute_path(path, assert_path_exists=False):
+    """
+    Expands a path that is relative to the DC_DATA_DIR
+    returned by `get_data_dir()`.
+
+    If the path is already an absolute path then just return the path
+    :param path:
+    :type path:
+    :param assert_path_exists: if you know this path should exist, then try to resolve it using a backwards compatibility check
+    :return:
+    :rtype:
+    """
+
+    if os.path.isabs(path):
+        return path
+
+    full_path = os.path.join(get_data_dir(), path)
+
+    if assert_path_exists:
+        if not os.path.exists(full_path):
+            # try a backwards compatibility check for old style
+            # "code/data_volume/pdc/<path>" rather than <path>
+            start_path = "code/data_volume/pdc"
+            rel_path = os.path.relpath(path, start_path)
+            full_path = os.path.join(get_data_dir(), rel_path)
+        
+        if not os.path.exists(full_path):
+            raise ValueError("full_path %s not found, you asserted that path exists" %(full_path))
+
+
+    return full_path
+
 
 def get_current_time_unique_name():
     """
@@ -243,7 +303,6 @@ def get_model_param_file_from_directory(model_folder, iteration=None):
         model_param_file = prefix + ".pth"
         optim_param_file = prefix + ".pth.opt"
 
-    print "model_param_file", model_param_file
     model_param_file = os.path.join(model_folder, model_param_file)
     optim_param_file = os.path.join(model_folder, optim_param_file)
 
@@ -275,6 +334,63 @@ def reset_random_seed():
     random.seed(SEED)
     np.random.seed(SEED)
     torch.manual_seed(SEED)
+
+
+def load_rgb_image(rgb_filename):
+    """
+    Returns PIL.Image.Image
+    :param rgb_filename:
+    :type rgb_filename:
+    :return:
+    :rtype: PIL.Image.Image
+    """
+    return Image.open(rgb_filename).convert('RGB')
+
+def pil_image_to_cv2(pil_image):
+    """
+    Converts a PIL image to a cv2 image
+    Need to convert between BGR and RGB
+    :param pil_image:
+    :type pil_image:
+    :return: np.array [H,W,3]
+    :rtype:
+    """
+    return np.array(pil_image)[:, :, ::-1].copy() # open and convert between BGR and RGB
+
+def get_current_YYYY_MM_DD_hh_mm_ss():
+    """
+    Returns a string identifying the current:
+    - year, month, day, hour, minute, second
+
+    Using this format:
+
+    YYYY-MM-DD-hh-mm-ss
+
+    For example:
+
+    2018-04-07-19-02-50
+
+    Note: this function will always return strings of the same length.
+
+    :return: current time formatted as a string
+    :rtype: string
+
+    """
+
+    now = datetime.datetime.now()
+    string =  "%0.4d-%0.2d-%0.2d-%0.2d-%0.2d-%0.2d" % (now.year, now.month, now.day, now.hour, now.minute, now.second)
+    return string
+
+
+def get_unique_string():
+    """
+    Returns a unique string based on current date and a random number
+    :return:
+    :rtype:
+    """
+
+    string = get_current_YYYY_MM_DD_hh_mm_ss() + "_" + str(random.randint(0,1000))
+    return string
 
 class CameraIntrinsics(object):
     """

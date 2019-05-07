@@ -1,4 +1,4 @@
-logs_root_path: code/data_volume/pdc/logs_proto
+logs_root_path: logs_proto
 object_id_list: ["star_bot", "caterpillar", "baymax"]
 train:
 - "2018-05-04-20-12-25" # singulated (mostly)
@@ -22,4 +22,4 @@ test:
 - "2018-05-04-20-22-22"
 - "2018-05-04-20-35-49"
 evaluation_labeled_data_path: 
-- "code/data_volume/pdc/evaluation_labeled_data/caterpillar_starbot_baymax_multi_cross_scene_labels.yaml"
+- "evaluation_labeled_data/caterpillar_starbot_baymax_multi_cross_scene_labels.yaml"

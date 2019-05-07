@@ -18,7 +18,10 @@ apt install --no-install-recommends \
   dialog \
   python-pip \
   python-dev \
-  ffmpeg
+  ffmpeg \
+  nvidia-settings \
+  cmake-curses-gui \
+  libyaml-dev
 
 pip install --upgrade pip==9.0.3
 pip install -U setuptools
@@ -29,4 +32,6 @@ pip install \
   opencv-python \
   plyfile \
   pandas \
-  tensorflow
+  tensorflow \
+  future \
+  typing

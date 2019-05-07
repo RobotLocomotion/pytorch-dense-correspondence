@@ -15,8 +15,12 @@ from dense_correspondence.evaluation.evaluation import *
 from dense_correspondence.evaluation.plotting import normalize_descriptor
 from dense_correspondence.network.dense_correspondence_network import DenseCorrespondenceNetwork
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "../simple-pixel-correspondence-labeler"))
-from annotate_correspondences import label_colors, draw_reticle, pil_image_to_cv2, drawing_scale_config, numpy_to_cv2, label_colors
+
+import dense_correspondence_manipulation.utils.visualization as vis_utils
+
+
+from dense_correspondence_manipulation.simple_pixel_correspondence_labeler.annotate_correspondences import label_colors, draw_reticle, pil_image_to_cv2, drawing_scale_config, numpy_to_cv2
+
 
 
 
@@ -24,11 +28,12 @@ COLOR_RED = np.array([0, 0, 255])
 COLOR_GREEN = np.array([0,255,0])
 
 utils.set_default_cuda_visible_devices()
-eval_config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence', 'evaluation', 'evaluation.yaml')
+eval_config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence', 'evaluation', 'lucas_evaluation.yaml')
 EVAL_CONFIG = utils.getDictFromYamlFilename(eval_config_filename)
 
 
 
+LOAD_SPECIFIC_DATASET = False
 
 class HeatmapVisualization(object):
     """
@@ -42,6 +47,11 @@ class HeatmapVisualization(object):
     `use_pytorch_dense_correspondence`
 
     Then `python live_heatmap_visualization.py`.
+
+    Keypresses:
+        n: new set of images
+        s: swap images
+        p: pause/un-pause
     """
 
     def __init__(self, config):
@@ -49,7 +59,9 @@ class HeatmapVisualization(object):
         self._dce = DenseCorrespondenceEvaluation(EVAL_CONFIG)
         self._load_networks()
         self._reticle_color = COLOR_GREEN
-        # self.load_specific_dataset() # uncomment if you want to load a specific dataset
+        self._paused = False
+        if LOAD_SPECIFIC_DATASET:
+            self.load_specific_dataset() # uncomment if you want to load a specific dataset
 
     def _load_networks(self):
         # we will use the dataset for the first network in the series
@@ -76,15 +88,21 @@ class HeatmapVisualization(object):
         dataset_config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence',
                                             'dataset', 'composite', 'hats_3_demo_composite.yaml')
 
-        dataset_config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config',
-                                               'dense_correspondence',
-                                               'dataset', 'composite', '4_shoes_all.yaml')
+        # dataset_config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config',
+        #                                        'dense_correspondence',
+        #                                        'dataset', 'composite', '4_shoes_all.yaml')
 
         dataset_config = utils.getDictFromYamlFilename(dataset_config_filename)
         self._dataset = SpartanDataset(config=dataset_config)
 
     def get_random_image_pair(self):
+        """
+        Gets a pair of random images for different scenes of the same object
+        """
         object_id = self._dataset.get_random_object_id()
+        # scene_name_a = "2018-04-10-16-02-59"
+        # scene_name_b = scene_name_a
+
         scene_name_a = self._dataset.get_random_single_object_scene_name(object_id)
         scene_name_b = self._dataset.get_different_scene_for_object(object_id, scene_name_a)
 
@@ -95,7 +113,6 @@ class HeatmapVisualization(object):
             image_a_idx = 0
             image_b_idx = 0
 
-        # image_b_idx = self._dataset.get_random_image_index(scene_name_b)
         return scene_name_a, scene_name_b, image_a_idx, image_b_idx
 
     def get_random_image_pair_across_object(self):
@@ -166,8 +183,21 @@ class HeatmapVisualization(object):
             raise ValueError("At least one of the image types must be set tot True")
 
 
+        # caterpillar
+        # scene_name_1 = "2018-04-16-14-42-26"
+        # scene_name_2 = "2018-04-16-14-25-19"
+
+        # hats
+        # scene_name_1 = "2018-05-15-22-01-44"
+        # scene_name_2 = "2018-05-15-22-04-17"
+
         self.img1_pil = self._dataset.get_rgb_image_from_scene_name_and_idx(scene_name_1, image_1_idx)
         self.img2_pil = self._dataset.get_rgb_image_from_scene_name_and_idx(scene_name_2, image_2_idx)
+
+        self._scene_name_1 = scene_name_1
+        self._scene_name_2 = scene_name_2
+        self._image_1_idx = image_1_idx
+        self._image_2_idx = image_2_idx
 
         self._compute_descriptors()
 
@@ -202,6 +232,8 @@ class HeatmapVisualization(object):
 
     def scale_norm_diffs_to_make_heatmap(self, norm_diffs, threshold):
         """
+        TODO (@manuelli) scale with Gaussian kernel instead of linear
+
         Scales the norm diffs to make a heatmap. This will be scaled between 0 and 1.
         0 corresponds to a match, 1 to non-match
 
@@ -219,7 +251,6 @@ class HeatmapVisualization(object):
         heatmap = heatmap.astype(self.img1_gray.dtype)
         return heatmap
 
-
     def find_best_match(self, event,u,v,flags,param):
 
         """
@@ -228,6 +259,9 @@ class HeatmapVisualization(object):
         :return:
         :rtype:
         """
+
+        if self._paused:
+            return
 
         img_1_with_reticle = np.copy(self.img1)
         draw_reticle(img_1_with_reticle, u, v, self._reticle_color)
@@ -253,25 +287,43 @@ class HeatmapVisualization(object):
                 DenseCorrespondenceNetwork.find_best_match((u, v), res_a, res_b)
             print "\n\n"
             print "network_name:", network_name
+            print "scene_name_1", self._scene_name_1
+            print "image_1_idx", self._image_1_idx
+            print "scene_name_2", self._scene_name_2
+            print "image_2_idx", self._image_2_idx
+
+            d = dict()
+            d['scene_name'] = self._scene_name_1
+            d['image_idx'] = self._image_1_idx
+            d['descriptor'] = res_a[v, u, :].tolist()
+            d['u'] = u
+            d['v'] = v
+
+            print "\n-------keypoint info\n", d
+            print "\n--------\n"
+
             self._res_uv[network_name] = dict()
             self._res_uv[network_name]['source'] = res_a[v, u, :].tolist()
             self._res_uv[network_name]['target'] = res_b[v, u, :].tolist()
 
-            # print "res_a[v, u, :]:", res_a[v, u, :]
-            # print "res_b[v, u, :]:", res_b[v, u, :]
+            print "res_a[v, u, :]:", res_a[v, u, :]
+            print "res_b[v, u, :]:", res_b[best_match_uv[1], best_match_uv[0], :]
 
             print "%s best match diff: %.3f" %(network_name, best_match_diff)
+            print "res_a", self._res_uv[network_name]['source']
+            print "res_b", self._res_uv[network_name]['target']
 
             threshold = self._config["norm_diff_threshold"]
             if network_name in self._config["norm_diff_threshold_dict"]:
                 threshold = self._config["norm_diff_threshold_dict"][network_name]
 
-            heatmap = self.scale_norm_diffs_to_make_heatmap(norm_diffs, threshold)
+            heatmap_color = vis_utils.compute_gaussian_kernel_heatmap_from_norm_diffs(norm_diffs, self._config['kernel_variance'])
 
             reticle_color = self._network_reticle_color[network_name]
-            draw_reticle(heatmap, best_match_uv[0], best_match_uv[1], reticle_color)
+
+            draw_reticle(heatmap_color, best_match_uv[0], best_match_uv[1], reticle_color)
             draw_reticle(img_2_with_reticle, best_match_uv[0], best_match_uv[1], reticle_color)
-            blended = cv2.addWeighted(self.img2_gray, alpha, heatmap, beta, 0)
+            blended = cv2.addWeighted(self.img2, alpha, heatmap_color, beta, 0)
             cv2.imshow(network_name, blended)
 
         cv2.imshow("target", img_2_with_reticle)
@@ -290,15 +342,21 @@ class HeatmapVisualization(object):
             if k == 27:
                 break
             elif k == ord('n'):
-                print "HEY"
                 self._get_new_images()
             elif k == ord('s'):
-                print "HEY"
                 img1_pil = self.img1_pil
                 img2_pil = self.img2_pil
                 self.img1_pil = img2_pil
                 self.img2_pil = img1_pil
                 self._compute_descriptors()
+            elif k == ord('p'):
+                if self._paused:
+                    print "un pausing"
+                    self._paused = False
+                else:
+                    print "pausing"
+                    self._paused = True
+
 
 if __name__ == "__main__":
     dc_source_dir = utils.getDenseCorrespondenceSourceDir()

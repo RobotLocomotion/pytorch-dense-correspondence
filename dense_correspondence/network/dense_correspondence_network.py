@@ -2,6 +2,7 @@
 
 import sys, os
 import numpy as np
+import warnings
 import logging
 import dense_correspondence_manipulation.utils.utils as utils
 utils.add_dense_correspondence_to_python_path()
@@ -12,7 +13,6 @@ from PIL import Image
 import torch
 import torch.nn as nn
 from torchvision import transforms
-from torch.autograd import Variable
 import pytorch_segmentation_detection.models.resnet_dilated as resnet_dilated
 from dense_correspondence.dataset.spartan_dataset_masked import SpartanDataset
 
@@ -23,7 +23,20 @@ class DenseCorrespondenceNetwork(nn.Module):
     IMAGE_TO_TENSOR = valid_transform = transforms.Compose([transforms.ToTensor(), ])
 
     def __init__(self, fcn, descriptor_dimension, image_width=640,
-                 image_height=480):
+                 image_height=480, normalize=False):
+        """
+
+        :param fcn:
+        :type fcn:
+        :param descriptor_dimension:
+        :type descriptor_dimension:
+        :param image_width:
+        :type image_width:
+        :param image_height:
+        :type image_height:
+        :param normalize: If True normalizes the feature vectors to lie on unit ball
+        :type normalize:
+        """
 
         super(DenseCorrespondenceNetwork, self).__init__()
 
@@ -41,6 +54,9 @@ class DenseCorrespondenceNetwork(nn.Module):
         self.config = dict()
 
         self._descriptor_image_stats = None
+        self._normalize = normalize
+        self._constructed_from_model_folder = False
+
 
     @property
     def fcn(self):
@@ -118,6 +134,7 @@ class DenseCorrespondenceNetwork(nn.Module):
 
         return self.config['path_to_network_params_folder']
 
+
     @property
     def descriptor_image_stats(self):
         """
@@ -136,6 +153,46 @@ class DenseCorrespondenceNetwork(nn.Module):
 
         return self._descriptor_image_stats
 
+    @property
+    def constructed_from_model_folder(self):
+        """
+        Returns True if this model was constructed from
+        :return:
+        :rtype:
+        """
+        return self._constructed_from_model_folder
+
+    @constructed_from_model_folder.setter
+    def constructed_from_model_folder(self, value):
+        self._constructed_from_model_folder = value
+
+    @property
+    def unique_identifier(self):
+        """
+        Return the unique identifier for this network, if it has one.
+        If no identifier.yaml found (or we don't even have a model params folder)
+        then return None
+        :return:
+        :rtype:
+        """
+
+        try:
+            path_to_network_params_folder = self.path_to_network_params_folder
+        except ValueError:
+            return None
+
+        identifier_file = os.path.join(path_to_network_params_folder, 'identifier.yaml')
+        if not os.path.exists(identifier_file):
+            return None
+
+        if not self.constructed_from_model_folder:
+            return None
+
+
+
+        d = utils.getDictFromYamlFilename(identifier_file)
+        unique_identifier = d['id'] + "+" + self.config['model_param_filename_tail']
+        return unique_identifier
 
     def _update_normalize_tensor_transform(self):
         """
@@ -146,23 +203,6 @@ class DenseCorrespondenceNetwork(nn.Module):
         """
         self._normalize_tensor_transform = transforms.Normalize(self.image_mean, self.image_std_dev)
 
-    # DEPRECATED: Now that we subclass from nn.Module we shouldn't need this
-    # def parameters(self):
-    #     """
-    #     :return: Parameters of the fcn to be adjusted during training
-    #     :rtype: ?
-    #     """
-    #     return self.fcn.parameters()
-
-
-    # DEPRECATED: Now that we subclass from nn.Module we shouldn't need this
-    # def state_dict(self):
-    #     """
-    #     Gets the state_dict for the network
-    #     :return:
-    #     :rtype:
-    #     """
-    #     return self.fcn.state_dict()
 
     def forward_on_img(self, img, cuda=True):
         """
@@ -185,8 +225,10 @@ class DenseCorrespondenceNetwork(nn.Module):
         :param img: (C x H X W) in range [0.0, 1.0]
         :return:
         """
+        warnings.warn("use forward method instead", DeprecationWarning)
+
         img = img.unsqueeze(0)
-        img = Variable(img.cuda())
+        img = torch.tensor(img, device=torch.device("cuda"))
         res = self.fcn(img)
         res = res.squeeze(0)
         res = res.permute(1, 2, 0)
@@ -203,22 +245,30 @@ class DenseCorrespondenceNetwork(nn.Module):
         D = descriptor dimension
         N = batch size
 
-        :param img_tensor: input tensor img.shape = [N, 3, H , W] where
+        :param img_tensor: input tensor img.shape = [N, D, H , W] where
                     N is the batch size
         :type img_tensor: torch.Variable or torch.Tensor
         :return: torch.Variable with shape [N, D, H, W],
         :rtype:
         """
 
-        return self.fcn(img_tensor)
+        res = self.fcn(img_tensor)
+        if self._normalize:
+            #print "normalizing descriptor norm"
+            norm = torch.norm(res, 2, 1) # [N,1,H,W]
+            res = res/norm
+
+
+
+        return res
 
     def forward_single_image_tensor(self, img_tensor):
         """
         Simple forward pass on the network.
 
-        Normalize the image if we are in TEST mode
-        If we are in TRAIN mode then assume the dataset object has already normalized
-        the image
+        Assumes the image has already been normalized (i.e. subtract mean, divide by std dev)
+
+        Color channel should be RGB
 
         :param img_tensor: torch.FloatTensor with shape [3,H,W]
         :type img_tensor:
@@ -232,9 +282,10 @@ class DenseCorrespondenceNetwork(nn.Module):
         # transform to shape [1,3,H,W]
         img_tensor = img_tensor.unsqueeze(0)
 
-        # The fcn throws and error if we don't use a variable here . . .
-        # Maybe it's because it is in train mode?
-        img_tensor = Variable(img_tensor.cuda(), requires_grad=False)
+        # make sure it's on the GPU
+        img_tensor = torch.tensor(img_tensor, device=torch.device("cuda"))
+
+
         res = self.forward(img_tensor) # shape [1,D,H,W]
         # print "res.shape 1", res.shape
 
@@ -292,16 +343,56 @@ class DenseCorrespondenceNetwork(nn.Module):
         config = utils.getDictFromYamlFilename(dataset_config_file)
         return SpartanDataset(config_expanded=config)
 
+
     @staticmethod
-    def from_config(config, load_stored_params=True):
+    def get_unet(config):
         """
-        Load a network from a config file
+        Returns a Unet nn.module that satisifies the fcn properties stated in get_fcn() docstring
+        """
+        dc_source_dir = utils.getDenseCorrespondenceSourceDir()
+        sys.path.append(os.path.join(dc_source_dir, 'external/unet-pytorch'))
+        from unet_model import UNet
+        model = UNet(num_classes=config["descriptor_dimension"]).cuda()
+        return model
+
+
+    @staticmethod
+    def get_fcn(config):
+        """
+        Returns a pytorch nn.module that satisfies these properties:
+
+        1. autodiffs
+        2. has forward() overloaded
+        3. can accept a ~Nx3xHxW (should double check)
+        4. outputs    a ~NxDxHxW (should double check)
+
+        :param config: Dict with dcn configuration parameters
+
+        """
+        
+        if config["backbone"]["model_class"] == "Resnet":
+            resnet_model = config["backbone"]["resnet_name"]
+            fcn = getattr(resnet_dilated, resnet_model)(num_classes=config['descriptor_dimension'])
+        
+        elif config["backbone"]["model_class"] == "Unet":
+            fcn = DenseCorrespondenceNetwork.get_unet(config)
+
+        else:
+            raise ValueError("Can't build backbone network.  I don't know this backbone model class!")
+        
+        return fcn
+
+    @staticmethod
+    def from_config(config, load_stored_params=True, model_param_file=None):
+        """
+        Load a network from a configuration
+
+
+        :param config: Dict specifying details of the network architecture
 
         :param load_stored_params: whether or not to load stored params, if so there should be
             a "path_to_network" entry in the config
         :type load_stored_params: bool
-
-        :param config: Dict specifying details of the network architecture
 
         e.g.
             path_to_network: /home/manuelli/code/dense_correspondence/recipes/trained_models/10_drill_long_3d
@@ -314,18 +405,32 @@ class DenseCorrespondenceNetwork(nn.Module):
         :rtype:
         """
 
-        fcn = resnet_dilated.Resnet34_8s(num_classes=config['descriptor_dimension'])
+        if "backbone" not in config:  
+            # default to CoRL 2018 backbone!
+            config["backbone"] = dict()
+            config["backbone"]["model_class"] = "Resnet"
+            config["backbone"]["resnet_name"] = "Resnet34_8s"
 
-        if load_stored_params:
-            path_to_network_params = utils.convert_to_absolute_path(config['path_to_network_params'])
-            config['path_to_network_params_folder'] = os.path.dirname(config['path_to_network_params'])
-            fcn.load_state_dict(torch.load(path_to_network_params))
+        fcn = DenseCorrespondenceNetwork.get_fcn(config)
 
-
+        if 'normalize' in config:
+            normalize = config['normalize']
+        else:
+            normalize = False
 
         dcn = DenseCorrespondenceNetwork(fcn, config['descriptor_dimension'],
                                           image_width=config['image_width'],
-                                          image_height=config['image_height'])
+                                          image_height=config['image_height'],
+                                         normalize=normalize)
+
+        if load_stored_params:
+            assert model_param_file is not None
+            config['model_param_file'] = model_param_file # should be an absolute path
+            try:
+                dcn.load_state_dict(torch.load(model_param_file))
+            except:
+                logging.info("loading params with the new style failed, falling back to dcn.fcn.load_state_dict")
+                dcn.fcn.load_state_dict(torch.load(model_param_file))
 
         dcn.cuda()
         dcn.train()
@@ -348,10 +453,12 @@ class DenseCorrespondenceNetwork(nn.Module):
         :rtype:
         """
 
+        from_model_folder = False
         model_folder = utils.convert_to_absolute_path(model_folder)
 
         if model_param_file is None:
             model_param_file, _, _ = utils.get_model_param_file_from_directory(model_folder, iteration=iteration)
+            from_model_folder = True
 
         model_param_file = utils.convert_to_absolute_path(model_param_file)
 
@@ -359,31 +466,22 @@ class DenseCorrespondenceNetwork(nn.Module):
         training_config = utils.getDictFromYamlFilename(training_config_filename)
         config = training_config["dense_correspondence_network"]
         config["path_to_network_params_folder"] = model_folder
+        config["model_param_filename_tail"] = os.path.split(model_param_file)[1]
 
 
-        fcn = resnet_dilated.Resnet34_8s(num_classes=config['descriptor_dimension'])
-
-        dcn = DenseCorrespondenceNetwork(fcn, config['descriptor_dimension'],
-                                         image_width=config['image_width'],
-                                         image_height=config['image_height'])
 
 
-        # load the stored params
-        if load_stored_params:
-            # old syntax
-            try:
-                dcn.load_state_dict(torch.load(model_param_file))
-            except:
-                logging.info("loading params with the new style failed, falling back to dcn.fcn.load_state_dict")
-                dcn.fcn.load_state_dict(torch.load(model_param_file))
+        dcn = DenseCorrespondenceNetwork.from_config(config,
+                                                     load_stored_params=load_stored_params,
+                                                     model_param_file=model_param_file)
 
-            # this is the new format
-            #
 
-        dcn.cuda()
-        dcn.train()
-        dcn.config = config
+        # whether or not network was constructed from model folder
+        dcn.constructed_from_model_folder = from_model_folder
 
+
+
+        dcn.model_folder = model_folder
         return dcn
 
     @staticmethod
@@ -425,6 +523,32 @@ class DenseCorrespondenceNetwork(nn.Module):
         best_match_uv = (best_match_xy[1], best_match_xy[0])
 
         return best_match_uv, best_match_diff, norm_diffs
+
+    @staticmethod
+    def find_best_match_for_descriptor(descriptor, res):
+        """
+        Compute the correspondences between the given descriptor and the descriptor image
+        res
+        :param descriptor:
+        :type descriptor:
+        :param res: array of dense descriptors res = [H,W,D]
+        :type res: numpy array with shape [H,W,D]
+        :return: (best_match_uv, best_match_diff, norm_diffs)
+        best_match_idx is again in (u,v) = (right, down) coordinates
+        :rtype:
+        """
+        height, width, _ = res.shape
+
+        norm_diffs = np.sqrt(np.sum(np.square(res - descriptor), axis=2))
+
+        best_match_flattened_idx = np.argmin(norm_diffs)
+        best_match_xy = np.unravel_index(best_match_flattened_idx, norm_diffs.shape)
+        best_match_diff = norm_diffs[best_match_xy]
+
+        best_match_uv = (best_match_xy[1], best_match_xy[0])
+
+        return best_match_uv, best_match_diff, norm_diffs
+
 
     def evaluate_descriptor_at_keypoints(self, res, keypoint_list):
         """

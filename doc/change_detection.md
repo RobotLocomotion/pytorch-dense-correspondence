@@ -15,11 +15,7 @@ run_change_detection_pipeline.py --data_dir <path_to_elastic_fusion_reconstructi
 
 Another way to do the same is to navigate to the appropriate data folder and use the `--current_dir` flag.
 ```
-run_change_detection_pipeline.py --current_dir
-```
-
-```
-cd <path_to_elastic_fusion_reconstruction_folder>
+cd pdc/logs_proto
 run_change_detection_pipeline.py --current_dir
 ```
 
