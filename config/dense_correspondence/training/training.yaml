@@ -46,7 +46,7 @@ dense_correspondence_network:
     resnet_name: "Resnet34_8s"  # options: {Resnet34_8s, Resnet101_8s, etc.}
     # If Unet
     # currently no options supported
-
+  compute_best_match_with: "min_l2"
 
 loss_function:
   M_masked: 0.5 # margin for masked non-match descriptor distance
