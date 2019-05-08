@@ -19,6 +19,8 @@ from dense_correspondence.dataset.spartan_dataset_masked import SpartanDataset
 
 from dense_correspondence.loss_functions.spatial_softmax_loss import bilinear_interpolate_torch
 
+# global var
+COMPUTE_BEST_MATCH_WITH = "need to set me"
 
 class DenseCorrespondenceNetwork(nn.Module):
 
@@ -506,24 +508,8 @@ class DenseCorrespondenceNetwork(nn.Module):
             print "width: ", width
             print "res_b.shape: ", res_b.shape
 
-
-        # non-vectorized version
-        # norm_diffs = np.zeros([height, width])
-        # for i in xrange(0, height):
-        #     for j in xrange(0, width):
-        #         norm_diffs[i,j] = np.linalg.norm(res_b[i,j] - descriptor_at_pixel)**2
-
-
-        USE_SPATIAL_SOFTMAX = True
         
-        # print "PETE YOU NEED TO BETTER CONFIG THIS"
-        # print ""
-        # print USE_SPATIAL_SOFTMAX, "USE_SPATIAL_SOFTMAX"
-        # print ""
-        # print "!!!!!"
-
-
-        if not USE_SPATIAL_SOFTMAX:
+        if COMPUTE_BEST_MATCH_WITH == "min_l2":
             norm_diffs = np.sqrt(np.sum(np.square(res_b - descriptor_at_pixel), axis=2))
 
             best_match_flattened_idx = np.argmin(norm_diffs)
@@ -532,7 +518,7 @@ class DenseCorrespondenceNetwork(nn.Module):
 
             best_match_uv = (best_match_xy[1], best_match_xy[0])
 
-        else:
+        elif COMPUTE_BEST_MATCH_WITH == "spatial_expectation":
             pos_x, pos_y = np.meshgrid(
                 np.linspace(-1., 1., width),
                 np.linspace(-1., 1., height)
@@ -567,15 +553,14 @@ class DenseCorrespondenceNetwork(nn.Module):
 
             norm_diffs = torch.sqrt(-neg_squared_norm_diffs).cpu().numpy()[0,0,:,:]
             res_b = res_b.cpu().numpy()
-
-        # print type(best_match_uv[0])
-        # print best_match_uv[0].shape
-
-        # print type(best_match_diff)
-        # print best_match_diff.shape
-
-        # print type(norm_diffs)
-        # print norm_diffs.shape
+        else:
+            print "Need to set the COMPUTE_BEST_MATCH_WITH global var"
+            print "Can do from any file via:"
+            print "  import dense_correspondence.network.dense_correspondence_network"
+            print "  dense_correspondence.network.dense_correspondence_network.COMPUTE_BEST_MATCH_WITH = 'spatial_expectation'"
+            print "  or"
+            print "  dense_correspondence.network.dense_correspondence_network.COMPUTE_BEST_MATCH_WITH = 'min_l2'"
+            sys.exit(0)
 
         return best_match_uv, best_match_diff, norm_diffs
 
