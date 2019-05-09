@@ -27,7 +27,8 @@ from dense_correspondence_manipulation.simple_pixel_correspondence_labeler.annot
 COLOR_RED = np.array([0, 0, 255])
 COLOR_GREEN = np.array([0,255,0])
 
-utils.set_default_cuda_visible_devices()
+#utils.set_default_cuda_visible_devices()
+utils.set_cuda_visible_devices([1])
 eval_config_filename = os.path.join(utils.getDenseCorrespondenceSourceDir(), 'config', 'dense_correspondence', 'evaluation', 'evaluation.yaml')
 EVAL_CONFIG = utils.getDictFromYamlFilename(eval_config_filename)
 
@@ -74,6 +75,8 @@ class HeatmapVisualization(object):
             dcn = self._dce.load_network_from_config(network_name)
             dcn.eval()
             self._dcn_dict[network_name] = dcn
+            import dense_correspondence.network.dense_correspondence_network
+            dense_correspondence.network.dense_correspondence_network.COMPUTE_BEST_MATCH_WITH = dcn.config["compute_best_match_with"]
             # self._network_reticle_color[network_name] = label_colors[idx]
 
             if len(self._config["networks"]) == 1:
@@ -171,7 +174,7 @@ class HeatmapVisualization(object):
         if random.random() < 0.5:
             self._dataset.set_train_mode()
         else:
-            self._dataset.set_test_mode()
+            self._dataset.set_train_mode()
 
         if self._config["same_object"]:
             scene_name_1, scene_name_2, image_1_idx, image_2_idx = self.get_random_image_pair()

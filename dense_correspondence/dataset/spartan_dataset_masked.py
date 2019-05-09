@@ -201,6 +201,10 @@ class SpartanDataset(DenseCorrespondenceDataset):
         self._config["logs_root_path"] = config['logs_root_path']
         self._config["single_object"] = self._single_object_scene_dict
         self._config["multi_object"] = self._multi_object_scene_dict
+        try:
+            self._config["provide_gt_depths"] = config["provide_gt_depths"]
+        except:
+            pass
 
         self._setup_data_load_types()
 
@@ -830,6 +834,13 @@ class SpartanDataset(DenseCorrespondenceDataset):
                 plt.title("Mask of img a object pixels for which there was NO match")
                 plt.show()
 
+
+
+        if self._config["provide_gt_depths"]:
+            depth_to_tensor = transforms.Compose([transforms.ToTensor()])
+            depth_a_torch = depth_to_tensor(image_a_depth).float() / 1000.0 - 1.0
+            depth_b_torch = depth_to_tensor(image_b_depth).float() / 1000.0 - 1.0
+            return metadata["type"], image_a_rgb, image_b_rgb, matches_a, matches_b, masked_non_matches_a, masked_non_matches_b, background_non_matches_a, background_non_matches_b, blind_non_matches_a, blind_non_matches_b, metadata, depth_a_torch, depth_b_torch
 
 
         return metadata["type"], image_a_rgb, image_b_rgb, matches_a, matches_b, masked_non_matches_a, masked_non_matches_b, background_non_matches_a, background_non_matches_b, blind_non_matches_a, blind_non_matches_b, metadata

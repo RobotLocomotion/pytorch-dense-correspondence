@@ -1,12 +1,20 @@
 norm_diff_threshold: 0.25
 heatmap_vis_upper_bound: 0.75
 blend_weight_original_image: 0.3
-randomize_images: False
-same_object: True
-different_objects: False
+randomize_images: True
+same_object: False
+different_objects: True
 multiple_object: False # sample from multi object scenes
 networks:
-- "proper_softmax_longer"
+# Direct comparison with CORL paper on csb data
+#- "2019-04-30/softmax_csb_l1__divMSE_gpu0_3"
+#- "tutorials/csb_corl_3"
+# Class consistency comparison on shoes, comparison with CORL paper
+- "2019-05-07/shoes_l1_divMSE__3"
+- "2019-05-07/shoes_corl_3"
+# 3D loss comparison (first try)
+#- "2019-05-08/fresh_caterpillar_upright_l1_divMSE_zspatial_3"
+#- "2019-05-08/caterpillar_upright_l1_divMSE_nozspatial_3"
 kernel_variance: 1.0
 
 norm_diff_threshold_dict:

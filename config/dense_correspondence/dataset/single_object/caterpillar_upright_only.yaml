@@ -1,0 +1,17 @@
+logs_root_path: logs_proto
+object_id: "caterpillar"
+train:
+- "2018-04-10-16-02-59"
+- "2018-04-10-16-04-10"
+- "2018-04-10-16-06-26"
+- "2018-04-10-16-13-37"
+- "2018-04-16-14-25-19"
+- "2018-04-16-14-40-25"
+- "2018-04-16-14-42-26"
+- "2018-04-16-14-44-53"
+- "2018-04-16-15-23-41"
+test:
+- "2018-04-16-14-46-36"
+
+evaluation_labeled_data_path: 
+- "evaluation_labeled_data/caterpillar_cross_scene_labels.yaml"

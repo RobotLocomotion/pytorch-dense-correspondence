@@ -304,7 +304,8 @@ class DenseCorrespondenceTraining(object):
                 masked_non_matches_a, masked_non_matches_b, \
                 background_non_matches_a, background_non_matches_b, \
                 blind_non_matches_a, blind_non_matches_b, \
-                metadata = data
+                metadata, \
+                depth_a, depth_b = data
 
                 if (match_type == -1).all():
                     print "\n empty data, continuing \n"
@@ -354,12 +355,11 @@ class DenseCorrespondenceTraining(object):
 
                 # get loss
                 if use_spatial_softmax_only:
-                    loss = spatial_softmax_loss_fn.get_loss(image_a_pred, image_b_pred, matches_a, matches_b, img_a)
+                    loss = spatial_softmax_loss_fn.get_loss(image_a_pred, image_b_pred, matches_a, matches_b, img_a, depth_a.cuda(), depth_b.cuda())
                     spatial_softmax_loss = loss
                     match_loss = masked_non_match_loss = background_non_match_loss = blind_non_match_loss = Variable(torch.Tensor([10.0]), requires_grad=False)
                 else:
                     spatial_softmax_loss = Variable(torch.FloatTensor([0]))
-                    #spatial_softmax_loss = spatial_softmax_loss_fn.get_loss(image_a_pred_small, image_b_pred_small, matches_a.unsqueeze(0), matches_b.unsqueeze(0), img_a)
                     loss, match_loss, masked_non_match_loss, \
                     background_non_match_loss, blind_non_match_loss = loss_composer.get_loss(pixelwise_contrastive_loss, match_type,
                                                                                     image_a_pred, image_b_pred,

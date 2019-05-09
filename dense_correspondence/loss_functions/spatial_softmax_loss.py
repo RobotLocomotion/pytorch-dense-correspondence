@@ -52,7 +52,7 @@ class SpatialSoftmaxLoss(object):
         self.setup_pixel_maps()
         self.debug_counter = 0
 
-    def get_loss(self, image_a_pred, image_b_pred, matches_a, matches_b, img_a):
+    def get_loss(self, image_a_pred, image_b_pred, matches_a, matches_b, img_a, depth_a, depth_b):
         """
         image_a_pred: N, D, H, W
         image_b_pred: N, D, H, W
@@ -134,6 +134,38 @@ class SpatialSoftmaxLoss(object):
             # deltas = image_pred - descriptors.unsqueeze(1).unsqueeze(1).expand(N,H,W,num_matches,D)
             # squared_norm_diffs = torch.sum(torch.pow(deltas,2), dim=4)
 
+        def compute_expected_z(softmax_activations, depth):
+            """
+            softmax_activations: N, nm, H, W
+            depth: N, C=1, H, W
+            """
+
+            expected_z = torch.zeros(N, num_matches).cuda()
+            downsampled_depth = torch.nn.functional.interpolate(depth, scale_factor=1.0/8, mode='bilinear', align_corners=True)
+            # N, C=1, H/8, W/8
+
+            for i in range(N):
+                one_expected_z = torch.sum((softmax_activations[i]*downsampled_depth[i,0]).unsqueeze(0), dim=(2,3)) #1, nm
+                expected_z[i,:] = one_expected_z
+            
+            return expected_z
+
+        def get_match_depth(matches, depth):
+            """
+            matches: N, num_matches
+            depth: N, C=1, H, W
+            """
+            depth_flattened = depth.view(N, 1, depth.shape[2]*depth.shape[3])          # N, C=1, W*H
+            depth_flattened = depth_flattened.permute(0, 2, 1) # N, W*H, C=1
+
+            depths = torch.zeros(N, num_matches).cuda()
+            
+            for i in range(N):
+                one_depths = torch.index_select(depth_flattened[i].unsqueeze(0), 1, matches[i]).squeeze(2)
+                depths[i] = one_depths
+
+            return depths
+
 
         def vectorized_norm_pdf_multivariate_torch(x,mu):
             """
@@ -203,11 +235,19 @@ class SpatialSoftmaxLoss(object):
         expected_x_a, expected_y_a = compute_expected_x_y(softmax_activations_a)
         expected_x_b, expected_y_b = compute_expected_x_y(softmax_activations_b)
 
+        expected_z_a = compute_expected_z(softmax_activations_a, depth_a)
+        expected_z_b = compute_expected_z(softmax_activations_b, depth_b)
+
+        z_stars_a = get_match_depth(matches_a, depth_a)
+        z_stars_b = get_match_depth(matches_b, depth_b)
 
         l_1 = torch.norm(norm_matches_x_a - expected_x_a, p=1)
         l_2 = torch.norm(norm_matches_x_b - expected_x_b, p=1)
         l_3 = torch.norm(norm_matches_y_a - expected_y_a, p=1)
         l_4 = torch.norm(norm_matches_y_b - expected_y_b, p=1)
+
+        l_5 = torch.norm(z_stars_a - expected_z_a, p=1)
+        l_6 = torch.norm(z_stars_b - expected_z_b, p=1)
 
         ## DEBUG
         
@@ -228,7 +268,7 @@ class SpatialSoftmaxLoss(object):
                 plt.show()
         self.debug_counter+=1
 
-        loss = l_1 + l_2 + l_3 + l_4 + divergence_loss_a + divergence_loss_b
+        loss = l_1 + l_2 + l_3 + l_4 + divergence_loss_a + divergence_loss_b + l_5 + l_6
         
         return loss
 
