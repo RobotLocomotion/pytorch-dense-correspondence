@@ -14,6 +14,7 @@ import dense_correspondence
 from dense_correspondence.evaluation.evaluation import *
 from dense_correspondence.evaluation.plotting import normalize_descriptor
 from dense_correspondence.network.dense_correspondence_network import DenseCorrespondenceNetwork
+import dense_correspondence.network.dense_correspondence_network
 
 
 import dense_correspondence_manipulation.utils.visualization as vis_utils
@@ -63,6 +64,9 @@ class HeatmapVisualization(object):
         self._paused = False
         if LOAD_SPECIFIC_DATASET:
             self.load_specific_dataset() # uncomment if you want to load a specific dataset
+        if self._config["publish_to_ros"]:
+            from ros_heatmap_visualizer import RosHeatmapVis
+            self.ros_heatmap_vis = RosHeatmapVis()
 
     def _load_networks(self):
         # we will use the dataset for the first network in the series
@@ -75,8 +79,7 @@ class HeatmapVisualization(object):
             dcn = self._dce.load_network_from_config(network_name)
             dcn.eval()
             self._dcn_dict[network_name] = dcn
-            import dense_correspondence.network.dense_correspondence_network
-            dense_correspondence.network.dense_correspondence_network.COMPUTE_BEST_MATCH_WITH = dcn.config["compute_best_match_with"]
+            
             # self._network_reticle_color[network_name] = label_colors[idx]
 
             if len(self._config["networks"]) == 1:
@@ -117,6 +120,29 @@ class HeatmapVisualization(object):
             image_b_idx = 0
 
         return scene_name_a, scene_name_b, image_a_idx, image_b_idx
+
+    def get_random_image_ref_with_multiview_target(self, N_target_views=2):
+        """
+        Gets a pair of random images for different scenes of the same object
+        """
+        object_id = self._dataset.get_random_object_id()
+
+        scene_name_a = self._dataset.get_random_single_object_scene_name(object_id)
+
+        scene_name_b = self._dataset.get_different_scene_for_object(object_id, scene_name_a)
+
+        if self._config["randomize_images"]:
+            image_a_idx = self._dataset.get_random_image_index(scene_name_a)
+        else:
+            image_a_idx = 0
+            
+        # always randomize for target scene
+        image_b_idxs = []
+        for i in range(N_target_views):
+            image_b_idxs.append(self._dataset.get_random_image_index(scene_name_b))
+
+        return scene_name_a, scene_name_b, image_a_idx, image_b_idxs
+
 
     def get_random_image_pair_across_object(self):
         """
@@ -177,14 +203,19 @@ class HeatmapVisualization(object):
             self._dataset.set_train_mode()
 
         if self._config["same_object"]:
-            scene_name_1, scene_name_2, image_1_idx, image_2_idx = self.get_random_image_pair()
+            scene_name_1, scene_name_2, image_1_idx, image_2_idx  = self.get_random_image_pair()
         elif self._config["different_objects"]:
-            scene_name_1, scene_name_2, image_1_idx, image_2_idx = self.get_random_image_pair_across_object()
+            scene_name_1, scene_name_2, image_1_idx, image_2_idx  = self.get_random_image_pair_across_object()
         elif self._config["multiple_object"]:
-            scene_name_1, scene_name_2, image_1_idx, image_2_idx = self.get_random_image_pair_multi_object_scenes()
+            scene_name_1, scene_name_2, image_1_idx, image_2_idx  = self.get_random_image_pair_multi_object_scenes()
+        elif self._config["multi_view"]:
+            scene_name_1, scene_name_2, image_1_idx, image_2_idxs = self.get_random_image_ref_with_multiview_target()
+
         else:
             raise ValueError("At least one of the image types must be set tot True")
 
+        if not self._config["multi_view"]:
+            image_2_idxs = [image_2_idx]
 
         # caterpillar
         # scene_name_1 = "2018-04-16-14-42-26"
@@ -195,12 +226,21 @@ class HeatmapVisualization(object):
         # scene_name_2 = "2018-05-15-22-04-17"
 
         self.img1_pil = self._dataset.get_rgb_image_from_scene_name_and_idx(scene_name_1, image_1_idx)
-        self.img2_pil = self._dataset.get_rgb_image_from_scene_name_and_idx(scene_name_2, image_2_idx)
+        self.img2_pils = []
+        self.img2_depth_pils = []
+        self.img2_poses = []
+        self.img2_Ks = []
+        for image_2_idx in image_2_idxs:
+            self.img2_pils.append(self._dataset.get_rgb_image_from_scene_name_and_idx(scene_name_2, image_2_idx))
+            if self._config["publish_to_ros"]:
+                self.img2_depth_pils.append(self._dataset.get_depth_image_from_scene_name_and_idx(scene_name_2, image_2_idx))
+                self.img2_poses.append(self._dataset.get_pose_from_scene_name_and_idx(scene_name_2, image_2_idx))
+                self.img2_Ks.append(self._dataset.get_camera_intrinsics(scene_name_2).get_camera_matrix())
 
         self._scene_name_1 = scene_name_1
         self._scene_name_2 = scene_name_2
         self._image_1_idx = image_1_idx
-        self._image_2_idx = image_2_idx
+        self._image_2_idxs = image_2_idxs
 
         self._compute_descriptors()
 
@@ -215,21 +255,28 @@ class HeatmapVisualization(object):
         :rtype:
         """
         self.img1 = pil_image_to_cv2(self.img1_pil)
-        self.img2 = pil_image_to_cv2(self.img2_pil)
         self.rgb_1_tensor = self._dataset.rgb_image_to_tensor(self.img1_pil)
-        self.rgb_2_tensor = self._dataset.rgb_image_to_tensor(self.img2_pil)
         self.img1_gray = cv2.cvtColor(self.img1, cv2.COLOR_RGB2GRAY) / 255.0
-        self.img2_gray = cv2.cvtColor(self.img2, cv2.COLOR_RGB2GRAY) / 255.0
+
+        self.img2s = []
+        self.img2s_gray = []
+        self.rgb_2_tensors = []
+        for img2_pil in self.img2_pils:
+            self.img2s.append(pil_image_to_cv2(img2_pil))
+            self.rgb_2_tensors.append(self._dataset.rgb_image_to_tensor(img2_pil))
+            self.img2s_gray = cv2.cvtColor(self.img2s[-1], cv2.COLOR_RGB2GRAY) / 255.0
 
         cv2.imshow('source', self.img1)
-        cv2.imshow('target', self.img2)
+        for i, v in enumerate(self.img2s):
+            cv2.imshow('target'+str(i), v)
 
         self._res_a = dict()
         self._res_b = dict()
         for network_name, dcn in self._dcn_dict.iteritems():
             self._res_a[network_name] = dcn.forward_single_image_tensor(self.rgb_1_tensor).data.cpu().numpy()
-            self._res_b[network_name] = dcn.forward_single_image_tensor(self.rgb_2_tensor).data.cpu().numpy()
-
+            self._res_b[network_name] = []
+            for rgb_2_tensor in self.rgb_2_tensors:
+                self._res_b[network_name].append(dcn.forward_single_image_tensor(rgb_2_tensor).data.cpu().numpy())
 
         self.find_best_match(None, 0, 0, None, None)
 
@@ -254,6 +301,9 @@ class HeatmapVisualization(object):
         heatmap = heatmap.astype(self.img1_gray.dtype)
         return heatmap
 
+    def send_img_to_ros(self, topic_name, rgb, depth, K):
+        self.ros_heatmap_vis.update_rgb(topic_name, rgb, depth, K)
+
     def find_best_match(self, event,u,v,flags,param):
 
         """
@@ -262,7 +312,6 @@ class HeatmapVisualization(object):
         :return:
         :rtype:
         """
-
         if self._paused:
             return
 
@@ -273,10 +322,12 @@ class HeatmapVisualization(object):
         alpha = self._config["blend_weight_original_image"]
         beta = 1 - alpha
 
-        img_2_with_reticle = np.copy(self.img2)
+        img_2s_with_reticle = []
+        for img2 in self.img2s:
+            img_2s_with_reticle.append(np.copy(img2))
 
 
-        print "\n\n"
+        #print "\n\n"
 
         self._res_uv = dict()
 
@@ -285,57 +336,66 @@ class HeatmapVisualization(object):
 
         for network_name in self._dcn_dict:
             res_a = self._res_a[network_name]
-            res_b = self._res_b[network_name]
-            best_match_uv, best_match_diff, norm_diffs = \
-                DenseCorrespondenceNetwork.find_best_match((u, v), res_a, res_b)
-            print "\n\n"
-            print "network_name:", network_name
-            print "scene_name_1", self._scene_name_1
-            print "image_1_idx", self._image_1_idx
-            print "scene_name_2", self._scene_name_2
-            print "image_2_idx", self._image_2_idx
+            dense_correspondence.network.dense_correspondence_network.COMPUTE_BEST_MATCH_WITH = self._dcn_dict[network_name].config["compute_best_match_with"]
 
-            d = dict()
-            d['scene_name'] = self._scene_name_1
-            d['image_idx'] = self._image_1_idx
-            d['descriptor'] = res_a[v, u, :].tolist()
-            d['u'] = u
-            d['v'] = v
+            for image_num, res_b in enumerate(self._res_b[network_name]):
+                
+                best_match_uv, best_match_diff, norm_diffs = \
+                    DenseCorrespondenceNetwork.find_best_match((u, v), res_a, res_b)
+                #print "\n\n"
+                # print "network_name:", network_name
+                # print "scene_name_1", self._scene_name_1
+                # print "image_1_idx", self._image_1_idx
+                # print "scene_name_2", self._scene_name_2
+                # print "image_2_idxs", self._image_2_idxs
 
-            print "\n-------keypoint info\n", d
-            print "\n--------\n"
+                # d = dict()
+                # d['scene_name'] = self._scene_name_1
+                # d['image_idx'] = self._image_1_idx
+                # d['descriptor'] = res_a[v, u, :].tolist()
+                # d['u'] = u
+                # d['v'] = v
 
-            self._res_uv[network_name] = dict()
-            self._res_uv[network_name]['source'] = res_a[v, u, :].tolist()
-            self._res_uv[network_name]['target'] = res_b[v, u, :].tolist()
+                # print "\n-------keypoint info\n", d
+                # print "\n--------\n"
 
-            print "res_a[v, u, :]:", res_a[v, u, :]
-            print "res_b[v, u, :]:", res_b[best_match_uv[1], best_match_uv[0], :]
+                self._res_uv[network_name] = dict()
+                self._res_uv[network_name]['source'] = res_a[v, u, :].tolist()
+                self._res_uv[network_name]['target'+str(image_num)] = res_b[v, u, :].tolist()
 
-            print "%s best match diff: %.3f" %(network_name, best_match_diff)
-            print "res_a", self._res_uv[network_name]['source']
-            print "res_b", self._res_uv[network_name]['target']
+                # print "res_a[v, u, :]:", res_a[v, u, :]
+                # print "res_b[v, u, :]:", res_b[best_match_uv[1], best_match_uv[0], :]
 
-            threshold = self._config["norm_diff_threshold"]
-            if network_name in self._config["norm_diff_threshold_dict"]:
-                threshold = self._config["norm_diff_threshold_dict"][network_name]
+                # print "%s best match diff: %.3f" %(network_name, best_match_diff)
+                # print "res_a", self._res_uv[network_name]['source']
+                # print "res_b", self._res_uv[network_name]['target']
 
-            heatmap_color = vis_utils.compute_gaussian_kernel_heatmap_from_norm_diffs(norm_diffs, self._config['kernel_variance'])
+                threshold = self._config["norm_diff_threshold"]
+                if network_name in self._config["norm_diff_threshold_dict"]:
+                    threshold = self._config["norm_diff_threshold_dict"][network_name]
 
-            reticle_color = self._network_reticle_color[network_name]
+                heatmap_color = vis_utils.compute_gaussian_kernel_heatmap_from_norm_diffs(norm_diffs, self._config['kernel_variance'])
 
-            draw_reticle(heatmap_color, best_match_uv[0], best_match_uv[1], reticle_color)
-            draw_reticle(img_2_with_reticle, best_match_uv[0], best_match_uv[1], reticle_color)
-            blended = cv2.addWeighted(self.img2, alpha, heatmap_color, beta, 0)
-            cv2.imshow(network_name, blended)
+                reticle_color = self._network_reticle_color[network_name]
 
-        cv2.imshow("target", img_2_with_reticle)
+                draw_reticle(heatmap_color, best_match_uv[0], best_match_uv[1], reticle_color)
+                draw_reticle(img_2s_with_reticle[image_num], best_match_uv[0], best_match_uv[1], reticle_color)
+                blended = cv2.addWeighted(self.img2s[image_num], alpha, heatmap_color, beta, 0)
+                window_name = network_name+"-target"+str(image_num)
+                cv2.imshow(window_name, blended)
+                
+                if self._config["publish_to_ros"]:
+                    self.send_img_to_ros(window_name, blended, np.asarray(self.img2_depth_pils[image_num]), self.img2_Ks[image_num])
+
+        for i, v in enumerate(img_2s_with_reticle):
+            cv2.imshow("target"+str(i), v)
+
         if event == cv2.EVENT_LBUTTONDOWN:
             utils.saveToYaml(self._res_uv, 'clicked_point.yaml')
 
     def run(self):
         self._get_new_images()
-        cv2.namedWindow('target')
+        #cv2.namedWindow('target')
         cv2.setMouseCallback('source', self.find_best_match)
 
         self._get_new_images()
@@ -347,10 +407,13 @@ class HeatmapVisualization(object):
             elif k == ord('n'):
                 self._get_new_images()
             elif k == ord('s'):
+                if len(self.img2_pils) > 1:
+                    print "Only support switch when not doing multi-view"
+                    sys.exit(0)
                 img1_pil = self.img1_pil
-                img2_pil = self.img2_pil
-                self.img1_pil = img2_pil
-                self.img2_pil = img1_pil
+                img2_pils = self.img2_pils
+                self.img1_pil = img2_pils[0]
+                self.img2_pils = [img1_pil]
                 self._compute_descriptors()
             elif k == ord('p'):
                 if self._paused:
