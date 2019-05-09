@@ -1113,20 +1113,30 @@ class DenseCorrespondenceEvaluation(object):
         diff_pred_3d = uv_b_pos - uv_b_pred_pos
         diff_pred_3d_masked = uv_b_pos - uv_b_pred_pos_masked
 
+        """
+        We need to decide how to treat the "3D" error for a pixel
+        that we don't have depth for.
+        """
+        # Option 1, if np.nan, then this doesn't get reflected in the metric
+        #NO_DEPTH_3D_ERROR = np.nan
+        
+        # Option 2, if some large value, then this will show up on the far right of the plot
+        NO_DEPTH_3D_ERROR = 1.0 # unit is in meters
+
         if DCE.is_depth_valid(uv_b_depth):
             norm_diff_ground_truth_3d = np.linalg.norm(diff_ground_truth_3d)
         else:
-            norm_diff_ground_truth_3d = np.nan
+            norm_diff_ground_truth_3d = NO_DEPTH_3D_ERROR
 
         if DCE.is_depth_valid(uv_b_depth) and DCE.is_depth_valid(uv_b_pred_depth):
             norm_diff_pred_3d = np.linalg.norm(diff_pred_3d)
         else:
-            norm_diff_pred_3d = np.nan
+            norm_diff_pred_3d = NO_DEPTH_3D_ERROR
 
         if DCE.is_depth_valid(uv_b_depth) and DCE.is_depth_valid(uv_b_pred_depth_masked):
             norm_diff_pred_3d_masked = np.linalg.norm(diff_pred_3d_masked)
         else:
-            norm_diff_pred_3d_masked = np.nan
+            norm_diff_pred_3d_masked = NO_DEPTH_3D_ERROR
 
         if debug:
 
@@ -1146,16 +1156,9 @@ class DenseCorrespondenceEvaluation(object):
         pd_template.set_value('is_valid_masked', is_valid_masked)
 
         pd_template.set_value('norm_diff_ground_truth_3d', norm_diff_ground_truth_3d)
-
-        if is_valid:
-            pd_template.set_value('norm_diff_pred_3d', norm_diff_pred_3d)
-        else:
-            pd_template.set_value('norm_diff_pred_3d', np.nan)
-
-        if is_valid_masked:
-            pd_template.set_value('norm_diff_pred_3d_masked', norm_diff_pred_3d_masked)
-        else:
-            pd_template.set_value('norm_diff_pred_3d_masked', np.nan)
+        pd_template.set_value('norm_diff_pred_3d', norm_diff_pred_3d)
+        pd_template.set_value('norm_diff_pred_3d_masked', norm_diff_pred_3d_masked)
+        
 
         pd_template.set_value('norm_diff_descriptor_ground_truth', norm_diff_descriptor_ground_truth)
 
