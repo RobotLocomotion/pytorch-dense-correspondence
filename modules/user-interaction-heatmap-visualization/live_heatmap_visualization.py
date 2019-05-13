@@ -234,7 +234,9 @@ class HeatmapVisualization(object):
             self.img2_pils.append(self._dataset.get_rgb_image_from_scene_name_and_idx(scene_name_2, image_2_idx))
             if self._config["publish_to_ros"]:
                 self.img2_depth_pils.append(self._dataset.get_depth_image_from_scene_name_and_idx(scene_name_2, image_2_idx))
-                self.img2_poses.append(self._dataset.get_pose_from_scene_name_and_idx(scene_name_2, image_2_idx))
+                scene_pose_data = self._dataset.get_pose_data(scene_name_2)
+                pose_data = scene_pose_data[image_2_idx]['camera_to_world']
+                self.img2_poses.append(pose_data)
                 self.img2_Ks.append(self._dataset.get_camera_intrinsics(scene_name_2).get_camera_matrix())
 
         self._scene_name_1 = scene_name_1
@@ -301,8 +303,8 @@ class HeatmapVisualization(object):
         heatmap = heatmap.astype(self.img1_gray.dtype)
         return heatmap
 
-    def send_img_to_ros(self, topic_name, rgb, depth, K):
-        self.ros_heatmap_vis.update_rgb(topic_name, rgb, depth, K)
+    def send_img_to_ros(self, topic_name, rgb, depth, pose, K):
+        self.ros_heatmap_vis.update_rgb(topic_name, rgb, depth, pose, K)
 
     def find_best_match(self, event,u,v,flags,param):
 
@@ -385,7 +387,7 @@ class HeatmapVisualization(object):
                 cv2.imshow(window_name, blended)
                 
                 if self._config["publish_to_ros"]:
-                    self.send_img_to_ros(window_name, blended, np.asarray(self.img2_depth_pils[image_num]), self.img2_Ks[image_num])
+                    self.send_img_to_ros(window_name, blended, np.asarray(self.img2_depth_pils[image_num]), self.img2_poses[image_num], self.img2_Ks[image_num])
 
         for i, v in enumerate(img_2s_with_reticle):
             cv2.imshow("target"+str(i), v)
