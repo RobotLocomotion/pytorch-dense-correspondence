@@ -74,7 +74,7 @@ class LogVisualization(object):
 
     
     def _sample_new_reference_descriptor_pixels(self):
-        num_samples = 5
+        num_samples = self._config["num_reference_descriptors"]
         self.img1_mask = torch.from_numpy(np.asarray(self._dataset.get_mask_image_from_scene_name_and_idx_and_cam(self.scene_name_1, self.image_1_idx, 0)))
 
         self.ref_pixels_uv = random_sample_from_masked_image_torch(self.img1_mask, num_samples) # tuple of (u's, v's)
@@ -239,6 +239,7 @@ class LogVisualization(object):
 
             for image_num, res_b in enumerate(self._res_b[network_name]):
 
+
                 i = 0
                 for u, v in zip(us,vs):
                 
@@ -256,13 +257,58 @@ class LogVisualization(object):
                     draw_reticle(img_2s_with_reticle[image_num], best_match_uv[0], best_match_uv[1], reticle_color)
 
                     blended = cv2.addWeighted(self.img2s[image_num], alpha, heatmap_color, beta, 0)
+                    
                     window_name = network_name+"-target"+str(image_num)+"-d"+str(i)
-                    cv2.imshow(window_name, blended)
-                
+
+
+                    
+                    if self._config["display_all_separate_windows"]:
+                        
+                        # cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+                        # cv2.resizeWindow(window_name, 200, 200)
+                        cv2.imshow(window_name, blended)
+                    else:
+                        if i == 0:
+                            blendeds = [blended]
+                        else:
+                            blendeds.append(blended)
+
+                    
                     if self._config["publish_to_ros"]:
                         self.send_img_to_ros(window_name, blended, self.img2_depth_np[image_num], self.img2_poses[image_num], self.img2_Ks[image_num])
 
                     i += 1
+
+                if not self._config["display_all_separate_windows"]:
+                    
+                    width = int(np.floor(np.sqrt(len(blendeds))))
+                    height = len(blendeds)/width
+                    print "width", width
+                    print "height", height
+                    
+                    index = 0
+
+                    for i in range(height):
+                        for j in range(width):
+                            
+                            new = blendeds[index]
+                            index += 1
+                            
+                            if j == 0:
+                                hstack = new
+                            else:
+                                hstack = np.hstack((hstack, new))
+
+                            print hstack.shape
+
+                        if i == 0:
+                            vstack = hstack
+                        else:
+                            vstack = np.vstack((vstack, hstack))
+
+                    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+                    cv2.resizeWindow(window_name, 640, 480)
+                    cv2.imshow(window_name, vstack)
 
         for i, v in enumerate(img_2s_with_reticle):
             cv2.imshow("target"+str(i), v)

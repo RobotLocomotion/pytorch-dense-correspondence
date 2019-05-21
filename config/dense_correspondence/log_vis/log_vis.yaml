@@ -1,7 +1,10 @@
 # --------- CHOOSE ONE
 use_heatmap: True
 use_descriptor_tracks: False
+num_reference_descriptors: 3
 # ---------
+
+display_all_separate_windows: True
 
 
 norm_diff_threshold: 0.25
