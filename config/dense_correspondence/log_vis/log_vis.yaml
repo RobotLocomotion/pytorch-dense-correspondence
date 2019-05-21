@@ -1,11 +1,12 @@
 # --------- CHOOSE ONE
-use_heatmap: True
-use_descriptor_tracks: False
-num_reference_descriptors: 3
-# ---------
+use_heatmap: False
+use_descriptor_tracks: True
+# ----------
 
-display_all_separate_windows: True
-
+# If use_descriptor_tracks...
+num_reference_descriptors: 9
+display_all_separate_windows: False
+#
 
 norm_diff_threshold: 0.25
 heatmap_vis_upper_bound: 0.75
@@ -19,5 +20,6 @@ num_camera_target: 2
 
 networks:
 - "imitation/sugar_spatial_3"
+#- "imitation/real_shoe_spatial_3"
 
 kernel_variance: 1.0
