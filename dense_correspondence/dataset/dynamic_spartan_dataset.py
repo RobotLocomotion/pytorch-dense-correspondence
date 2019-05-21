@@ -115,6 +115,10 @@ class DynamicSpartanDataset(SpartanDataset):
         return rgb, depth, mask, pose
 
 
+    def get_rgb_image_from_scene_name_and_idx_and_cam(self, scene_name, idx, camera_num):
+        rgb_file = self.get_image_filename(scene_name, camera_num, idx, ImageType.RGB)
+        return self.get_rgb_image(rgb_file)
+
     def get_image_filename(self, scene_name, camera_num, img_index, image_type):
         """
         Get the image filename for that scene and image index
@@ -438,4 +442,7 @@ class DynamicSpartanDataset(SpartanDataset):
 
 
 
-        return metadata["type"], image_a_rgb, image_b_rgb, matches_a, matches_b, masked_non_matches_a, masked_non_matches_b, background_non_matches_a, background_non_matches_b, blind_non_matches_a, blind_non_matches_b, metadata
+        depth_to_tensor = transforms.Compose([transforms.ToTensor()])
+        depth_a_torch = depth_to_tensor(image_a_depth).float() / 1000.0
+        depth_b_torch = depth_to_tensor(image_b_depth).float() / 1000.0
+        return metadata["type"], image_a_rgb, image_b_rgb, matches_a, matches_b, masked_non_matches_a, masked_non_matches_b, background_non_matches_a, background_non_matches_b, blind_non_matches_a, blind_non_matches_b, metadata, depth_a_torch, depth_b_torch

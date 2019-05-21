@@ -342,7 +342,10 @@ class DenseCorrespondenceNetwork(nn.Module):
         network_params_folder = utils.convert_to_absolute_path(network_params_folder)
         dataset_config_file = os.path.join(network_params_folder, 'dataset.yaml')
         config = utils.getDictFromYamlFilename(dataset_config_file)
-        return SpartanDataset(config_expanded=config)
+        if "imitation" in config["logs_root_path"]:
+            return DynamicSpartanDataset(config_expanded=config)
+        else:
+            return SpartanDataset(config_expanded=config)
 
 
     @staticmethod
