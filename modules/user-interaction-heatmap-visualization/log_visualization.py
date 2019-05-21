@@ -15,6 +15,7 @@ from dense_correspondence.evaluation.evaluation import *
 from dense_correspondence.evaluation.plotting import normalize_descriptor
 from dense_correspondence.network.dense_correspondence_network import DenseCorrespondenceNetwork
 import dense_correspondence.network.dense_correspondence_network
+from dense_correspondence.correspondence_tools.correspondence_finder import random_sample_from_masked_image_torch
 
 
 import dense_correspondence_manipulation.utils.visualization as vis_utils
@@ -71,6 +72,41 @@ class LogVisualization(object):
             if self._dataset is None:
                 self._dataset = dcn.load_training_dataset()
 
+    
+    def _sample_new_reference_descriptor_pixels(self):
+        num_samples = 5
+        self.img1_mask = torch.from_numpy(np.asarray(self._dataset.get_mask_image_from_scene_name_and_idx_and_cam(self.scene_name_1, self.image_1_idx, 0)))
+
+        self.ref_pixels_uv = random_sample_from_masked_image_torch(self.img1_mask, num_samples) # tuple of (u's, v's)
+        self.ref_pixels_flattened = self.ref_pixels_uv[1]*self.img1_mask.shape[1]+self.ref_pixels_uv[0]
+
+        # DEBUG
+        # import matplotlib.pyplot as plt
+        # plt.imshow(np.asarray(self.img1_pil))
+        # ref_pixels_uv_numpy = (ref_pixels_uv[0].numpy(), ref_pixels_uv[1].numpy())
+        # plt.scatter(ref_pixels_uv_numpy[0], ref_pixels_uv_numpy[1])
+        # plt.show()
+        # sys.exit(0)
+
+        # ref_pixels_flattened = ref_pixels_flattened.cuda()
+        
+        # # descriptor_image_reference starts out as H, W, D
+        # D = descriptor_image_reference.shape[2]
+        # WxH = descriptor_image_reference.shape[0]*descriptor_image_reference.shape[1]
+        
+        # # now switch it to D, H, W
+        # descriptor_image_reference = descriptor_image_reference.permute(2, 0, 1)
+
+        # # now view as D, H*W
+        # descriptor_image_reference = descriptor_image_reference.contiguous().view(D, WxH)
+
+        # # now switch back to H*W, D
+        # descriptor_image_reference = descriptor_image_reference.permute(1,0)
+        
+        # # self.ref_descriptor_vec is Nref, D 
+        # self.ref_descriptor_vec = torch.index_select(descriptor_image_reference, 0, ref_pixels_flattened)
+        # self.ref_descriptor_vec.requires_grad_()
+
     def _get_new_reference(self):
         self.object_id = self._dataset.get_random_object_id()
         
@@ -82,6 +118,9 @@ class LogVisualization(object):
             self.image_1_idx = 0
 
         self.img1_pil = self._dataset.get_rgb_image_from_scene_name_and_idx_and_cam(self.scene_name_1, self.image_1_idx, 0)
+
+        if self._config["use_descriptor_tracks"]:
+            self._sample_new_reference_descriptor_pixels()
 
 
     def _get_new_target_scene(self):
@@ -160,10 +199,73 @@ class LogVisualization(object):
             for rgb_2_tensor in self.rgb_2_tensors:
                 self._res_b[network_name].append(dcn.forward_single_image_tensor(rgb_2_tensor).data.cpu().numpy())
 
-        self.find_best_match(None, self.last_u, self.last_v, None, None)
+        if self._config["use_heatmap"]:
+            self.find_best_match(None, self.last_u, self.last_v, None, None)
+        elif self._config["use_descriptor_tracks"]:
+            self.detect_reference_descriptors()
 
     def send_img_to_ros(self, topic_name, rgb, depth, pose, K):
         self.ros_heatmap_vis.update_rgb(topic_name, rgb, depth, pose, K)
+
+
+    def get_color(self, index):
+        r = (index * 55) % 255
+        g = (150 + index * 35) % 255
+        b = (255 - (index*85)) % 255
+        return np.array([r, g, b])
+
+    def detect_reference_descriptors(self):
+        img_1_with_reticles = np.copy(self.img1)
+        print self.ref_pixels_uv
+        us = self.ref_pixels_uv[0]
+        vs = self.ref_pixels_uv[1]
+        i = 0
+        for u, v in zip(us,vs):
+            print u, v
+            draw_reticle(img_1_with_reticles, u, v, self.get_color(i))
+            i += 1 
+        cv2.imshow("source", img_1_with_reticles)
+
+        alpha = self._config["blend_weight_original_image"]
+        beta = 1 - alpha
+
+        img_2s_with_reticle = []
+        for img2 in self.img2s:
+            img_2s_with_reticle.append(np.copy(img2))
+
+        for network_name in self._dcn_dict:
+            res_a = self._res_a[network_name]
+            dense_correspondence.network.dense_correspondence_network.COMPUTE_BEST_MATCH_WITH = self._dcn_dict[network_name].config["compute_best_match_with"]
+
+            for image_num, res_b in enumerate(self._res_b[network_name]):
+
+                i = 0
+                for u, v in zip(us,vs):
+                
+                    best_match_uv, best_match_diff, norm_diffs = \
+                        DenseCorrespondenceNetwork.find_best_match((u, v), res_a, res_b)
+
+
+                    threshold = self._config["norm_diff_threshold"]
+
+                    heatmap_color = vis_utils.compute_gaussian_kernel_heatmap_from_norm_diffs(norm_diffs, self._config['kernel_variance'])
+
+                    
+                    reticle_color = self.get_color(i)
+                    draw_reticle(heatmap_color, best_match_uv[0], best_match_uv[1], reticle_color)
+                    draw_reticle(img_2s_with_reticle[image_num], best_match_uv[0], best_match_uv[1], reticle_color)
+
+                    blended = cv2.addWeighted(self.img2s[image_num], alpha, heatmap_color, beta, 0)
+                    window_name = network_name+"-target"+str(image_num)+"-d"+str(i)
+                    cv2.imshow(window_name, blended)
+                
+                    if self._config["publish_to_ros"]:
+                        self.send_img_to_ros(window_name, blended, self.img2_depth_np[image_num], self.img2_poses[image_num], self.img2_Ks[image_num])
+
+                    i += 1
+
+        for i, v in enumerate(img_2s_with_reticle):
+            cv2.imshow("target"+str(i), v)
 
     def find_best_match(self, event,u,v,flags,param):
 
@@ -248,8 +350,8 @@ class LogVisualization(object):
         self._get_new_target_scene()
 
         self._get_new_images(increment=0)
-        cv2.setMouseCallback('source', self.find_best_match)
-
+        if self._config["use_heatmap"]:
+            cv2.setMouseCallback('source', self.find_best_match)
 
         while True:
             k = cv2.waitKey(20) & 0xFF
@@ -278,6 +380,11 @@ if __name__ == "__main__":
     dc_source_dir = utils.getDenseCorrespondenceSourceDir()
     config_file = os.path.join(dc_source_dir, 'config', 'dense_correspondence', 'log_vis', 'log_vis.yaml')
     config = utils.getDictFromYamlFilename(config_file)
+    
+    if config["use_heatmap"] and config["use_descriptor_tracks"]:
+        print "can't do both!"
+        sys.exit(0)
+
     log_vis = LogVisualization(config)
 
     print "starting log vis"

@@ -1,3 +1,9 @@
+# --------- CHOOSE ONE
+use_heatmap: True
+use_descriptor_tracks: False
+# ---------
+
+
 norm_diff_threshold: 0.25
 heatmap_vis_upper_bound: 0.75
 blend_weight_original_image: 0.3

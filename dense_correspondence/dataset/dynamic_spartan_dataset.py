@@ -119,6 +119,10 @@ class DynamicSpartanDataset(SpartanDataset):
         rgb_file = self.get_image_filename(scene_name, camera_num, idx, ImageType.RGB)
         return self.get_rgb_image(rgb_file)
 
+    def get_mask_image_from_scene_name_and_idx_and_cam(self, scene_name, idx, camera_num):
+        mask_file = self.get_image_filename(scene_name, camera_num, idx, ImageType.MASK)
+        return self.get_mask_image(mask_file)
+
     def get_image_filename(self, scene_name, camera_num, img_index, image_type):
         """
         Get the image filename for that scene and image index
