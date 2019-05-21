@@ -106,15 +106,15 @@ class LogVisualization(object):
     def _get_new_images(self, increment):
 
         self._get_next_target_image(increment)
-        image_2_idxs = [self.image_2_idx]
+        image_2_idxs = [self.image_2_idx] * self._config["num_camera_target"]
 
         self.img2_pils = []
         self.img2_depth_np = []
         self.img2_poses = []
         self.img2_Ks = []
 
-        for image_2_idx in image_2_idxs:
-            self.img2_pils.append(self._dataset.get_rgb_image_from_scene_name_and_idx_and_cam(self.scene_name_2, image_2_idx, 0))
+        for camera_num, image_2_idx in enumerate(image_2_idxs):
+            self.img2_pils.append(self._dataset.get_rgb_image_from_scene_name_and_idx_and_cam(self.scene_name_2, image_2_idx, camera_num))
             if self._config["publish_to_ros"]:
                 self.img2_depth_np.append(np.asarray(self._dataset.get_depth_image_from_scene_name_and_idx(self.scene_name_2, image_2_idx)))
                 scene_pose_data = self._dataset.get_pose_data(self.scene_name_2)

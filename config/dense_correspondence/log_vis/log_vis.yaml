@@ -1,0 +1,14 @@
+norm_diff_threshold: 0.25
+heatmap_vis_upper_bound: 0.75
+blend_weight_original_image: 0.3
+randomize_images: True
+publish_to_ros: False
+
+# -------------------------------------------
+num_camera_target: 2
+# -------------------------------------------
+
+networks:
+- "imitation/sugar_spatial_3"
+
+kernel_variance: 1.0
