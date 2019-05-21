@@ -590,6 +590,45 @@ class DenseCorrespondenceNetwork(nn.Module):
 
         return best_match_uv, best_match_diff, norm_diffs
 
+    @staticmethod
+    def find_multi_view_best_match(kernel_images_b, depths_b, poses_b, Ks_b):
+        """
+        Compute the correspondence expectation for some set of images.
+        The "kernel image" has already been computed for these images.
+
+        :param kernel_images_b: list of kernel images, each shape (H, W)
+        :depths_b: list of depth images, each shape (H, W)
+        :poses_b: list of poses, each in quaternion, tranlsation dicts
+        :Ks_b: list of K matrices, each shape (3,3)
+
+        """
+        # print len(kernel_images_b)
+        # print len(depths_b)
+        # print len(poses_b)
+        # print len(Ks_b)
+
+        # print kernel_images_b[0].shape
+        # print depths_b[0].shape
+        # print poses_b[0]
+        # print Ks_b[0].shape
+
+        poses_b_homogenous = [utils.homogenous_transform_from_dict(i) for i in poses_b]
+
+        sums = [kernel_image.sum() for kernel_image in kernel_images_b]
+        print sums
+
+        total_sum = np.asarray(sums).sum()
+        
+
+
+        
+        if COMPUTE_BEST_MATCH_WITH == "min_l2":
+            return NotImplementedError
+
+        elif COMPUTE_BEST_MATCH_WITH == "spatial_expectation":
+            return NotImplementedError
+
+
 
     def evaluate_descriptor_at_keypoints(self, res, keypoint_list):
         """

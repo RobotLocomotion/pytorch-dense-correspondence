@@ -227,13 +227,13 @@ class HeatmapVisualization(object):
 
         self.img1_pil = self._dataset.get_rgb_image_from_scene_name_and_idx(scene_name_1, image_1_idx)
         self.img2_pils = []
-        self.img2_depth_pils = []
+        self.img2_depth_np = []
         self.img2_poses = []
         self.img2_Ks = []
         for image_2_idx in image_2_idxs:
             self.img2_pils.append(self._dataset.get_rgb_image_from_scene_name_and_idx(scene_name_2, image_2_idx))
             if self._config["publish_to_ros"]:
-                self.img2_depth_pils.append(self._dataset.get_depth_image_from_scene_name_and_idx(scene_name_2, image_2_idx))
+                self.img2_depth_np.append(np.asarray(self._dataset.get_depth_image_from_scene_name_and_idx(scene_name_2, image_2_idx)))
                 scene_pose_data = self._dataset.get_pose_data(scene_name_2)
                 pose_data = scene_pose_data[image_2_idx]['camera_to_world']
                 self.img2_poses.append(pose_data)
@@ -339,11 +339,17 @@ class HeatmapVisualization(object):
         for network_name in self._dcn_dict:
             res_a = self._res_a[network_name]
             dense_correspondence.network.dense_correspondence_network.COMPUTE_BEST_MATCH_WITH = self._dcn_dict[network_name].config["compute_best_match_with"]
+            
+            norm_diffs_list = []
 
             for image_num, res_b in enumerate(self._res_b[network_name]):
                 
                 best_match_uv, best_match_diff, norm_diffs = \
                     DenseCorrespondenceNetwork.find_best_match((u, v), res_a, res_b)
+
+                norm_diffs_list.append(norm_diffs)
+
+
                 #print "\n\n"
                 # print "network_name:", network_name
                 # print "scene_name_1", self._scene_name_1
@@ -387,7 +393,11 @@ class HeatmapVisualization(object):
                 cv2.imshow(window_name, blended)
                 
                 if self._config["publish_to_ros"]:
-                    self.send_img_to_ros(window_name, blended, np.asarray(self.img2_depth_pils[image_num]), self.img2_poses[image_num], self.img2_Ks[image_num])
+                    self.send_img_to_ros(window_name, blended, self.img2_depth_np[image_num], self.img2_poses[image_num], self.img2_Ks[image_num])
+
+            # if self._config["multi_view"]:
+            #     xyz = DenseCorrespondenceNetwork.find_multi_view_best_match(norm_diffs_list, self.img2_depth_np, self.img2_poses, self.img2_Ks)
+
 
         for i, v in enumerate(img_2s_with_reticle):
             cv2.imshow("target"+str(i), v)
