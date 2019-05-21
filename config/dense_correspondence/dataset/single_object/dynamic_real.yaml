@@ -1,4 +1,4 @@
-logs_root_path: first_real_logs
+logs_root_path: imitation/first_real_logs
 object_id: "shoe"
 train:
 - "2019-03-30-23-12-54"
