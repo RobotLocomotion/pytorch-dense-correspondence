@@ -123,6 +123,14 @@ class LogVisualization(object):
             self._sample_new_reference_descriptor_pixels()
 
 
+    def set_reference_from_trained_model(self, object_id, scene_name, index, ref_pixels_uv):
+        self.object_id = object_id
+        self.scene_name_1 = scene_name
+        self.image_1_idx = index
+        self.ref_pixels_uv = ref_pixels_uv
+        self.img1_pil = self._dataset.get_rgb_image_from_scene_name_and_idx_and_cam(self.scene_name_1, self.image_1_idx, 0)
+
+
     def _get_new_target_scene(self):
         self.scene_name_2  = self._dataset.get_different_scene_for_object(self.object_id, self.scene_name_1)
         
@@ -389,10 +397,11 @@ class LogVisualization(object):
         if event == cv2.EVENT_LBUTTONDOWN:
             utils.saveToYaml(self._res_uv, 'clicked_point.yaml')
 
-    def run(self):
+    def run(self, bypass_reference=False):
         self.last_u = 0
         self.last_v = 0
-        self._get_new_reference()
+        if not bypass_reference:
+            self._get_new_reference()
         self._get_new_target_scene()
 
         self._get_new_images(increment=0)
@@ -433,8 +442,30 @@ if __name__ == "__main__":
 
     log_vis = LogVisualization(config)
 
+    if len(sys.argv) > 1:
+
+        # Import the model definition
+        import spartan.utils.utils as spartan_utils    
+        spartan_src = spartan_utils.getSpartanSourceDir()
+        model_def = os.path.join(spartan_src, "src", "catkin_projects", "imitation_agent", "model")
+        sys.path.append(model_def)
+        from spatial_model_don import SpatialNet
+
+        # Load the model (just to get required metadata)
+        path_to_trained_net = sys.argv[1]
+        model = torch.load(path_to_trained_net)
+        log_vis.set_reference_from_trained_model(model.ref_object_id, model.ref_scene_name, model.ref_index, model.ref_pixels_uv)
+
+        # Get it out of memory
+        del model
+
+        log_vis.run(bypass_reference=True)
+    else:
+        log_vis.run()
+
+
     print "starting log vis"
-    log_vis.run()
+    
     cv2.destroyAllWindows()
 
 cv2.destroyAllWindows()
