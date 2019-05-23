@@ -75,7 +75,7 @@ class LogVisualization(object):
     
     def _sample_new_reference_descriptor_pixels(self):
         num_samples = self._config["num_reference_descriptors"]
-        self.img1_mask = torch.from_numpy(np.asarray(self._dataset.get_mask_image_from_scene_name_and_idx_and_cam(self.scene_name_1, self.image_1_idx, 0)))
+        self.img1_mask = torch.from_numpy(np.asarray(self._dataset.get_mask_image_from_scene_name_and_idx_and_cam(self.scene_name_1, self.image_1_idx, self.REFERENCE_VIEW)))
 
         self.ref_pixels_uv = random_sample_from_masked_image_torch(self.img1_mask, num_samples) # tuple of (u's, v's)
         self.ref_pixels_flattened = self.ref_pixels_uv[1]*self.img1_mask.shape[1]+self.ref_pixels_uv[0]
@@ -117,7 +117,8 @@ class LogVisualization(object):
         else:
             self.image_1_idx = 0
 
-        self.img1_pil = self._dataset.get_rgb_image_from_scene_name_and_idx_and_cam(self.scene_name_1, self.image_1_idx, 0)
+        self.REFERENCE_VIEW = 1
+        self.img1_pil = self._dataset.get_rgb_image_from_scene_name_and_idx_and_cam(self.scene_name_1, self.image_1_idx, self.REFERENCE_VIEW)
 
         if self._config["use_descriptor_tracks"]:
             self._sample_new_reference_descriptor_pixels()
@@ -161,7 +162,7 @@ class LogVisualization(object):
         self.img2_Ks = []
 
         for camera_num, image_2_idx in enumerate(image_2_idxs):
-            self.img2_pils.append(self._dataset.get_rgb_image_from_scene_name_and_idx_and_cam(self.scene_name_2, image_2_idx, camera_num))
+            self.img2_pils.append(self._dataset.get_rgb_image_from_scene_name_and_idx_and_cam(self.scene_name_2, image_2_idx, camera_num+1)) # HACK
             if self._config["publish_to_ros"]:
                 self.img2_depth_np.append(np.asarray(self._dataset.get_depth_image_from_scene_name_and_idx(self.scene_name_2, image_2_idx)))
                 scene_pose_data = self._dataset.get_pose_data(self.scene_name_2)
@@ -237,9 +238,11 @@ class LogVisualization(object):
         alpha = self._config["blend_weight_original_image"]
         beta = 1 - alpha
 
-        img_2s_with_reticle = []
-        for img2 in self.img2s:
-            img_2s_with_reticle.append(np.copy(img2))
+        img_2s_by_network_with_reticle = dict()
+        for network_name in self._dcn_dict:
+            img_2s_by_network_with_reticle[network_name] = []
+            for img2 in self.img2s:
+                img_2s_by_network_with_reticle[network_name].append(np.copy(img2))
 
         for network_name in self._dcn_dict:
             res_a = self._res_a[network_name]
@@ -262,7 +265,7 @@ class LogVisualization(object):
                     
                     reticle_color = self.get_color(i)
                     draw_reticle(heatmap_color, best_match_uv[0], best_match_uv[1], reticle_color)
-                    draw_reticle(img_2s_with_reticle[image_num], best_match_uv[0], best_match_uv[1], reticle_color)
+                    draw_reticle(img_2s_by_network_with_reticle[network_name][image_num], best_match_uv[0], best_match_uv[1], reticle_color)
 
                     blended = cv2.addWeighted(self.img2s[image_num], alpha, heatmap_color, beta, 0)
                     
@@ -318,8 +321,10 @@ class LogVisualization(object):
                     cv2.resizeWindow(window_name, 640, 480)
                     cv2.imshow(window_name, vstack)
 
-        for i, v in enumerate(img_2s_with_reticle):
-            cv2.imshow("target"+str(i), v)
+        
+        for network_name in self._dcn_dict:
+            for i, v in enumerate(img_2s_by_network_with_reticle[network_name]):
+                cv2.imshow("target-"+network_name+"-"+str(i), v)
 
     def find_best_match(self, event,u,v,flags,param):
 

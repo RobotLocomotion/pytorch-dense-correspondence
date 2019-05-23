@@ -15,11 +15,13 @@ randomize_images: True
 publish_to_ros: False
 
 # -------------------------------------------
-num_camera_target: 2
+num_camera_target: 1
 # -------------------------------------------
 
 networks:
-- "imitation/sugar_spatial_3"
+#- "imitation/sugar_spatial_3"
 #- "imitation/real_shoe_spatial_3"
+- "imitation/real_many_shoes_spatial_3"
+- "imitation/real_many_shoes_corl_3"
 
 kernel_variance: 1.0
