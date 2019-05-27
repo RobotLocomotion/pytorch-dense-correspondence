@@ -26,7 +26,7 @@ and then restart your machine.
 
 **Note**: It's possible that the latest nvidia-docker doesn't include `nvidia-smi`. Try testing your `docker` installation by running
 ```
-nvidia-docker run --rm nvidia/cuda:9.1-base nvidia-smi.
+nvidia-docker run --rm nvidia/cuda:10.0-base nvidia-smi.
 ```
 instead.
 
