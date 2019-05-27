@@ -24,11 +24,9 @@ Decide where you want to download the data to and then use our provided script t
 download a subset.  (This script will only download a 5.3 GB subset of data.  The full dataset is about 100 GB.)
 
 ```
-## first, navigate to where you want to download the data
-## this example will just place the data folder inside of pytorch-dense-correspondence
-## you may alternatively want to place the data on an external drive
+# navigate to the root of the project so paths can be inferred
 cd pytorch-dense-correspondence
-python config/download_pdc_data.py config/dense_correspondence/dataset/composite/caterpillar_only_9.yaml
+python config/download_pdc_data.py config/dense_correspondence/dataset/composite/caterpillar_only_9.yaml <full_path_to_data_location>
 ```
 
 The above will download only the scenes with the single caterpillar object, as a starting subset of the data.
