@@ -26,7 +26,7 @@ download a subset.  (This script will only download a 5.3 GB subset of data.  Th
 ```
 # navigate to the root of the project so paths can be inferred
 cd pytorch-dense-correspondence
-python config/download_pdc_data.py config/dense_correspondence/dataset/composite/caterpillar_only_9.yaml <full_path_to_data_location>
+python config/download_pdc_data.py config/dense_correspondence/dataset/composite/caterpillar_upright.yaml <full_path_to_data_location>
 ```
 
 The above will download only the scenes with the single caterpillar object, as a starting subset of the data.
@@ -113,7 +113,7 @@ cd modules/user-interaction-heatmap-visualization
 python live_heatmap_visualization.py
 ```
 
-This brings up the heatmap visualization. Using the learned descriptors for the caterpillar network you just trained it finds correspondences between the source and target images. The best match for the point you are mousing over in the target image is indicated by the reticle in the target image. Other nearby points (in descriptor space) are indicated by the dark regions in the grayscale image.
+This brings up the heatmap visualization. Using the learned descriptors for the caterpillar network you just trained it finds correspondences between the source and target images. The best match for the point you are mousing over in the source image is indicated by the reticle in the target image. Other nearby points (in descriptor space) are indicated by the red regions in the heatmap image.
 
 Use `n` on your keyboard to bring up a new pair of random images.
 
