@@ -28,9 +28,6 @@ RUN yes "Y" | /tmp/install_pytorch.sh
 COPY ./install_more.sh /tmp/install_more.sh
 RUN yes "Y" | /tmp/install_more.sh
 
-COPY ./install_poser.sh /tmp/install_poser.sh
-RUN yes "Y" | /tmp/install_poser.sh
-
 # install director
 COPY ./install_director.sh /tmp/install_director.sh
 RUN cd $WORKDIR && yes "Y" | /tmp/install_director.sh
