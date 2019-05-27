@@ -23,11 +23,19 @@ def vtk_image_to_numpy_array(vtk_image):
 
 
 def computeDepthImageAndPointCloud(depthBuffer, colorBuffer, camera):
-    '''
-    Input args are an OpenGL depth buffer and color buffer as vtkImageData objects,
-    and the vtkCamera instance that was used to render the scene.  The function returns
-    returns a depth image and a point cloud as vtkImageData and vtkPolyData.
-    '''
+    """
+    Returns depth image and pointcloud as vtkImageData and vtkPolyData
+
+    :param depthBuffer: OpenGL depth buffer
+    :type depthBuffer:
+    :param colorBuffer: OpenGL color buffer
+    :type colorBuffer:
+    :param camera: vtkCamera instance that was used to render the scene
+    :type camera: vtkCamera instance
+    :return:
+    :rtype: vtkImageData, vtkPolyData, numpy array
+    """
+
     depthImage = vtk.vtkImageData()
     pts = vtk.vtkPoints()
     ptColors = vtk.vtkUnsignedCharArray()

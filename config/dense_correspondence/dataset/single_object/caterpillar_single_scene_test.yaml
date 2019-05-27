@@ -1,0 +1,6 @@
+logs_root_path: code/data_volume/pdc/logs_test
+object_id: "caterpillar"
+train:
+- "caterpillar"
+test: []
+evaluation_labeled_data_path: []

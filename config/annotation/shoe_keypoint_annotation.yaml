@@ -1,0 +1,13 @@
+save_dir: "annotations/keypoints/shoes"
+logs_dir: "logs_proto"
+object_type: "shoe"
+annotation_type: "shoe_standard"
+keypoint_names:
+  - "toe"
+#  - "heel_bottom"
+  - "heel_top"
+#  - "tongue"
+
+scene_list:
+  - "2018-05-14-22-10-53"
+  - "2018-11-16-21-11-01"

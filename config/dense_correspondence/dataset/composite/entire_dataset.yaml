@@ -1,4 +1,4 @@
-logs_root_path: code/data_volume/pdc/logs_proto
+logs_root_path: logs_proto
 
 single_object_scenes_config_files:
 - entire_dataset.yaml # this also contains multi-object-scenes, but keeps in one file
