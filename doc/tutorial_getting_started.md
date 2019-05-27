@@ -9,7 +9,8 @@ We'll use the data and approach from our [paper, "Dense Object Nets"](https://ar
 
 - An Ubuntu machine (we've tested 14.04, 16.04, 18.04) with an Nvidia GPU (recommended at least 4 GB of memory)
 - Python 2 and a handful of Python 2 modules (`yaml`, etc) to run initial scripts
-- Everything else will be set up automatically inside an `nvidia-docker` container
+- Everything else will be set up automatically inside an `nvidia-docker` container.
+- Inside the docker container we use CUDA 10 and Pytorch 1.1. If you would like to update to a different CUDA or pytorch version you can modify the [dockerfile](../docker/pytorch-dense-correspondence.dockerfile) for which CUDA version to inherit from. To modify which pytorch version gets installed see [install_pytorch.sh](../docker/install_pytorch.sh). 
 
 ## Step 0: Clone the repo
 
