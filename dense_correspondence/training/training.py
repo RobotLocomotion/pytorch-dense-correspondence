@@ -350,9 +350,6 @@ class DenseCorrespondenceTraining(object):
 
                 elapsed = time.time() - start_iter
 
-                print "single iteration took %.3f seconds" %(elapsed)
-
-
                 def update_plots(loss, match_loss, masked_non_match_loss, background_non_match_loss, blind_non_match_loss):
                     """
                     Updates the tensorboard plots with current loss function information
