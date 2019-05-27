@@ -1,4 +1,4 @@
-logs_root_path: code/data_volume/pdc/logs_proto
+logs_root_path: logs_proto
 train:
 - "2018-04-24-18-10-31"
 - "2018-04-24-18-14-35"
@@ -12,4 +12,4 @@ test:
 - "2018-04-24-18-33-20"
 - "2018-04-24-18-36-29"
 evaluation_labeled_data_path: 
-- "code/data_volume/pdc/evaluation_labeled_data/caterpillar_cross_scene_labels.yaml"
+- "evaluation_labeled_data/caterpillar_cross_scene_labels.yaml"

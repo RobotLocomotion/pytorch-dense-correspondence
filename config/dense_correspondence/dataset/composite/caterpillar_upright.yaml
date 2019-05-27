@@ -1,0 +1,6 @@
+logs_root_path: logs_proto
+
+single_object_scenes_config_files:
+- caterpillar_upright.yaml
+
+multi_object_scenes_config_files: []

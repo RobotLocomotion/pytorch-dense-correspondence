@@ -5,6 +5,7 @@ randomize_images: False
 same_object: True
 different_objects: False
 multiple_object: False # sample from multi object scenes
+kernel_variance: 0.25
 networks:
 - "caterpillar_3"
 

@@ -21,8 +21,11 @@ def get_loss(pixelwise_contrastive_loss, match_type,
     :rtypes: each pytorch Variables
 
     """
+    verbose = False
+
     if (match_type == SpartanDatasetDataType.SINGLE_OBJECT_WITHIN_SCENE).all():
-        print "applying SINGLE_OBJECT_WITHIN_SCENE loss"
+        if verbose:
+            print "applying SINGLE_OBJECT_WITHIN_SCENE loss"
         return get_within_scene_loss(pixelwise_contrastive_loss, image_a_pred, image_b_pred,
                                             matches_a,    matches_b,
                                             masked_non_matches_a, masked_non_matches_b,
@@ -30,18 +33,21 @@ def get_loss(pixelwise_contrastive_loss, match_type,
                                             blind_non_matches_a, blind_non_matches_b)
 
     if (match_type == SpartanDatasetDataType.SINGLE_OBJECT_ACROSS_SCENE).all():
-        print "applying SINGLE_OBJECT_ACROSS_SCENE loss"
+        if verbose:
+            print "applying SINGLE_OBJECT_ACROSS_SCENE loss"
         return get_same_object_across_scene_loss(pixelwise_contrastive_loss, image_a_pred, image_b_pred,
                                             blind_non_matches_a, blind_non_matches_b)
 
     if (match_type == SpartanDatasetDataType.DIFFERENT_OBJECT).all():
-        print "applying DIFFERENT_OBJECT loss"
+        if verbose:
+            print "applying DIFFERENT_OBJECT loss"
         return get_different_object_loss(pixelwise_contrastive_loss, image_a_pred, image_b_pred,
                                             blind_non_matches_a, blind_non_matches_b)
 
 
     if (match_type == SpartanDatasetDataType.MULTI_OBJECT).all():
-        print "applying MULTI_OBJECT loss"
+        if verbose:
+            print "applying MULTI_OBJECT loss"
         return get_within_scene_loss(pixelwise_contrastive_loss, image_a_pred, image_b_pred,
                                             matches_a,    matches_b,
                                             masked_non_matches_a, masked_non_matches_b,
@@ -49,7 +55,8 @@ def get_loss(pixelwise_contrastive_loss, match_type,
                                             blind_non_matches_a, blind_non_matches_b)
 
     if (match_type == SpartanDatasetDataType.SYNTHETIC_MULTI_OBJECT).all():
-        print "applying SYNTHETIC_MULTI_OBJECT loss"
+        if verbose:
+            print "applying SYNTHETIC_MULTI_OBJECT loss"
         return get_within_scene_loss(pixelwise_contrastive_loss, image_a_pred, image_b_pred,
                                             matches_a,    matches_b,
                                             masked_non_matches_a, masked_non_matches_b,
@@ -208,6 +215,6 @@ def zero_loss():
     return Variable(torch.FloatTensor([0]).cuda())
 
 def is_zero_loss(loss):
-    return loss.data[0] < 1e-20
+    return loss.item() < 1e-20
 
 

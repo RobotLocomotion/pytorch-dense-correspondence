@@ -10,9 +10,7 @@ training:
   compute_test_loss: False
   compute_test_loss_rate: 500 # how often to compute the test loss
   test_loss_num_iterations: 50 # how many samples to use to compute the test loss
-  logging_rate: 10 # how often to print out
   garbage_collect_rate: 1
-  save_rate: 500 # how often to save the network
   batch_size: 1
   # Datset config
   domain_randomize: True
@@ -32,18 +30,26 @@ training:
   # Loss function config
   loss_function: pixelwise_contrastive_loss # not currently used
   # Logging config
-  logging_rate: 10 # how often to print out
-  save_rate: 500 # how often to save the network
+  logging_rate: 100 # how often to print out
+  save_rate: 1000 # how often to save the network
   logging_dir_name: test # overwrites if this is here
-  logging_dir: code/data_volume/pdc/trained_models # where to store trained models
+  logging_dir: trained_models # where to store trained models
 
 dense_correspondence_network:
   descriptor_dimension: 3
   image_width: 640
   image_height: 480
+  normalize: False
+  backbone:
+    model_class: "Resnet"         # options: {Resnet, Unet}
+    # If Resnet
+    resnet_name: "Resnet34_8s"  # options: {Resnet34_8s, Resnet101_8s, etc.}
+    # If Unet
+    # currently no options supported
+
 
 loss_function:
-  M_masked: 0.5 # margin for masked non-match desciptor distance
+  M_masked: 0.5 # margin for masked non-match descriptor distance
   M_background: 0.5 # margin for background
   M_pixel: 50 # Clamp for pixel distance
   match_loss_weight: 1.0

@@ -1,4 +1,4 @@
-logs_root_path: code/data_volume/pdc/logs_proto
+logs_root_path: logs_proto
 object_id: "hat_ihmc_black"
 train:
 - "2018-04-23-13-45-36" # pointing down

@@ -24,6 +24,7 @@ from dense_correspondence_manipulation.utils.constants import *
 import dense_correspondence_manipulation.utils.utils as utils
 import dense_correspondence_manipulation.utils.director_utils as director_utils
 from dense_correspondence_manipulation.fusion.fusion_reconstruction import FusionReconstruction, TSDFReconstruction
+from dense_correspondence_manipulation.mesh_processing.mesh_render import MeshColorizer
 
 
 CONFIG = utils.getDictFromYamlFilename(CHANGE_DETECTION_CONFIG_FILE)
@@ -63,9 +64,9 @@ def createApp(globalsDict=None):
     app.gridObj.setProperty('Visible', True)
     app.viewOptions.setProperty('Orientation widget', True)
     app.viewOptions.setProperty('View angle', 30)
-    app.sceneBrowserDock.setVisible(False)
+    app.sceneBrowserDock.setVisible(True)
     app.propertiesDock.setVisible(False)
-    app.mainWindow.setWindowTitle('Depth Scanner')
+    app.mainWindow.setWindowTitle('Mesh Processing')
     app.mainWindow.show()
     app.mainWindow.resize(920,600)
     app.mainWindow.move(0,0)
@@ -84,15 +85,22 @@ def main(globalsDict, data_folder):
     app = globalsDict['app']
 
     reconstruction = TSDFReconstruction.from_data_folder(data_folder, config=CONFIG)
-    reconstruction.visualize_reconstruction(view, vis_uncropped=True)
-
+    reconstruction.visualize_reconstruction(view, vis_uncropped=False)
     rp = ReconstructionProcessing()
+
+    mesh_colorizer = MeshColorizer(reconstruction.vis_obj)
+
+
     globalsDict['r'] = reconstruction
+    globalsDict['reconstruction'] = reconstruction
     globalsDict['rp'] = rp
 
+    globalsDict['mc'] = mesh_colorizer
+    globalsDict['app'] = app
 
-    rp.spawnCropBox()
-    app.app.start(restoreWindow=True)
+    # rp.spawnCropBox()
+
+    return globalsDict
 
     
 
