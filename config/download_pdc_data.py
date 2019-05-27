@@ -7,7 +7,7 @@ print sys.argv
 if len(sys.argv) < 2:
     print "expected arg to specify which composite dataset .yaml to download data for"
     print "for example:"
-    print "    python download_pdc_data.py /path/to/pytorch-dense-correspondence/config/dense_correspondence/dataset/composite/caterpillar_only.yaml"
+    print "    python download_pdc_data.py /path/to/pytorch-dense-correspondence/config/dense_correspondence/dataset/composite/caterpillar_upright.yaml"
     quit()
 
 
