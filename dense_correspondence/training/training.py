@@ -390,7 +390,6 @@ class DenseCorrespondenceTraining(object):
 
                     # loss is never zero
                     if data_type == SpartanDatasetDataType.SINGLE_OBJECT_WITHIN_SCENE:
-                        print "logging train loss"
                         self._tensorboard_logger.log_value("train loss SINGLE_OBJECT_WITHIN_SCENE", loss.item(), loss_current_iteration)
 
                     elif data_type == SpartanDatasetDataType.DIFFERENT_OBJECT:
