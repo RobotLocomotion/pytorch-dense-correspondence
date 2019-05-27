@@ -723,9 +723,13 @@ class DenseCorrespondenceEvaluation(object):
                 if uv_a_vec is None:
                     logging.info("no matches found, continuing")
                     continue
+                elif uv_a_vec[0].numel() == 0:
+                    logging.info("no matches found, continuing")
+                    continue
 
                 diff_rgb_a_tensor = dataset.rgb_image_to_tensor(diff_rgb_a)
                 diff_res_a = dcn.forward_single_image_tensor(diff_rgb_a_tensor).data.cpu().numpy()
+
 
                 diff_uv_a = (diff_uv_a_vec[0][0], diff_uv_a_vec[1][0])
                 diff_uv_a = DCE.clip_pixel_to_image_size_and_round(diff_uv_a, image_width, image_height)
@@ -752,6 +756,9 @@ class DenseCorrespondenceEvaluation(object):
                 (uv_b_vec, diff_uv_b_vec) = correspondence_finder.batch_find_pixel_correspondences(depth_b, pose_b, diff_depth_b, diff_pose_b,
                                                                uv_a=uv_b)
                 if uv_b_vec is None:
+                    logging.info("no matches found, continuing")
+                    continue
+                elif uv_b_vec[0].numel() == 0:
                     logging.info("no matches found, continuing")
                     continue
 
