@@ -40,7 +40,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
     PADDED_STRING_WIDTH = 6
 
-    def __init__(self, debug=False, mode="train", config=None, config_expanded=None):
+    def __init__(self, debug=False, mode="train", config=None, config_expanded=None, verbose=False):
         """
         :param config: This is for creating a dataset from a composite dataset config file.
             This is of the form:
@@ -82,6 +82,8 @@ class SpartanDataset(DenseCorrespondenceDataset):
             self.num_matching_attempts = 10000
             self.sample_matches_only_off_mask = True
 
+        self._verbose = verbose
+
         if config is not None:
             self._setup_scene_data(config)
         elif config_expanded is not None:
@@ -120,27 +122,32 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
         # Case 0: Same scene, same object
         if data_load_type == SpartanDatasetDataType.SINGLE_OBJECT_WITHIN_SCENE:
-            print "Same scene, same object"
+            if self._verbose:
+                print "Same scene, same object"
             return self.get_single_object_within_scene_data()
 
         # Case 1: Same object, different scene
         if data_load_type == SpartanDatasetDataType.SINGLE_OBJECT_ACROSS_SCENE:
-            print "Same object, different scene"
+            if self._verbose:
+                print "Same object, different scene"
             return self.get_single_object_across_scene_data()
 
         # Case 2: Different object
         if data_load_type == SpartanDatasetDataType.DIFFERENT_OBJECT:
-            print "Different object"
+            if self._verbose:
+                print "Different object"
             return self.get_different_object_data()
 
         # Case 3: Multi object
         if data_load_type == SpartanDatasetDataType.MULTI_OBJECT:
-            print "Multi object"
+            if self._verbose:
+                print "Multi object"
             return self.get_multi_object_within_scene_data()
 
         # Case 4: Synthetic multi object
         if data_load_type == SpartanDatasetDataType.SYNTHETIC_MULTI_OBJECT:
-            print "Synthetic multi object"
+            if self._verbose:
+                print "Synthetic multi object"
             return self.get_synthetic_multi_object_within_scene_data()
 
 
