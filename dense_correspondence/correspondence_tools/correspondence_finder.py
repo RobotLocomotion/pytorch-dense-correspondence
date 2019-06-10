@@ -428,10 +428,6 @@ def get_depth2_vec(img_b_depth, u2_vec, v2_vec, image_width):
     # uv_b_vec_flattened = ((v2_vec+0.5).type(dtype_long)*image_width+(u2_vec+0.5).type(dtype_long))  # simply round to int -- good enough 
     #                                                                    # occlusion check for smooth surfaces
 
-    print torch.max(uv_b_vec_flattened)
-    print torch.min(uv_b_vec_flattened)
-    print img_b_depth_torch.shape
-
     depth2_vec = torch.index_select(img_b_depth_torch, 0, uv_b_vec_flattened)*1.0/DEPTH_IM_SCALE
     depth2_vec = depth2_vec.squeeze(1)
     return depth2_vec
@@ -523,60 +519,78 @@ def reproject_pixels(depth_vec, u_a_pruned, v_a_pruned, K_a, K_b, img_a_pose, im
     z2_vec = vec2_vec[2]
     return u2_vec, v2_vec, z2_vec
 
-def prune_if_outside_FOV(u_a_pruned, v_a_pruned, u2_vec, v2_vec, z2_vec, image_width, image_height):
-    """
-    NOTE: no return args, but will prune-by-reference
-    """
+def prune_if_outside_FOV(u_a, v_a, u2_vec, v2_vec, z2_vec, image_width, image_height):
 
     # u2_vec bounds should be: 0, image_width
     # v2_vec bounds should be: 0, image_height
 
-    ## do u2-based pruning
+    ## do u2-based checking
     u2_vec_lower_bound = 0.0
     epsilon = 1e-3
     u2_vec_upper_bound = image_width*1.0 - epsilon  # careful, needs to be epsilon less!!
     lower_bound_vec = torch.ones_like(u2_vec) * u2_vec_lower_bound
     upper_bound_vec = torch.ones_like(u2_vec) * u2_vec_upper_bound
-    zeros_vec       = torch.zeros_like(u2_vec)
 
-    u2_vec = where(u2_vec < lower_bound_vec, zeros_vec, u2_vec)
-    u2_vec = where(u2_vec > upper_bound_vec, zeros_vec, u2_vec)
-    in_bound_indices = torch.nonzero(u2_vec)
+    zeros_vec       = torch.zeros_like(u2_vec)
+    u2_vec_in_bounds = where(u2_vec < lower_bound_vec, zeros_vec, u2_vec)
+    u2_vec_in_bounds = where(u2_vec > upper_bound_vec, zeros_vec, u2_vec_in_bounds)
+
+    in_bound_indices = torch.nonzero(u2_vec_in_bounds)
     if in_bound_indices.dim() == 0:
-        return True, None, None, None, None, None
+        return True, None, None, None, None, None, None, None
     in_bound_indices = in_bound_indices.squeeze(1)
 
+    out_of_bound_indices = torch.nonzero(u2_vec_in_bounds == 0)
+
     # apply pruning
-    
-    u2_vec = torch.index_select(u2_vec, 0, in_bound_indices)
-    v2_vec = torch.index_select(v2_vec, 0, in_bound_indices)
-    z2_vec = torch.index_select(z2_vec, 0, in_bound_indices)
-    u_a_pruned = torch.index_select(u_a_pruned, 0, in_bound_indices) # also prune from first list
-    v_a_pruned = torch.index_select(v_a_pruned, 0, in_bound_indices) # also prune from first list
+    u2_vec_in_bounds = torch.index_select(u2_vec, 0, in_bound_indices)
+    v2_vec_in_bounds = torch.index_select(v2_vec, 0, in_bound_indices)
+    z2_vec_in_bounds = torch.index_select(z2_vec, 0, in_bound_indices)
+    u_a_pruned_in_bounds = torch.index_select(u_a, 0, in_bound_indices) # also prune from first list
+    v_a_pruned_in_bounds = torch.index_select(v_a, 0, in_bound_indices) # also prune from first list
 
+    if out_of_bound_indices.dim() != 0:
+        out_of_bound_indices = out_of_bound_indices.squeeze(1)
+        u_a_pruned_out_of_bounds = torch.index_select(u_a, 0, out_of_bound_indices) # also prune from first list
+        v_a_pruned_out_of_bounds = torch.index_select(v_a, 0, out_of_bound_indices) # also prune from first list
+    else:
+        u_a_pruned_out_of_bounds = v_a_pruned_out_of_bounds = torch.tensor([]) # empty tensor which will be cat-ed later
 
-    ## do v2-based pruning
+    ## do v2-based checking
     v2_vec_lower_bound = 0.0
     v2_vec_upper_bound = image_height*1.0 - epsilon
-    lower_bound_vec = torch.ones_like(v2_vec) * v2_vec_lower_bound
-    upper_bound_vec = torch.ones_like(v2_vec) * v2_vec_upper_bound
-    zeros_vec       = torch.zeros_like(v2_vec)    
-
-    v2_vec = where(v2_vec < lower_bound_vec, zeros_vec, v2_vec)
-    v2_vec = where(v2_vec > upper_bound_vec, zeros_vec, v2_vec)
-    in_bound_indices = torch.nonzero(v2_vec)
+    lower_bound_vec = torch.ones_like(v2_vec_in_bounds) * v2_vec_lower_bound
+    upper_bound_vec = torch.ones_like(v2_vec_in_bounds) * v2_vec_upper_bound
+    
+    zeros_vec       = torch.zeros_like(v2_vec_in_bounds)    
+    v2_vec_in_bounds_2 = where(v2_vec_in_bounds < lower_bound_vec, zeros_vec, v2_vec_in_bounds)
+    v2_vec_in_bounds_2 = where(v2_vec_in_bounds > upper_bound_vec, zeros_vec, v2_vec_in_bounds_2)
+    
+    in_bound_indices = torch.nonzero(v2_vec_in_bounds_2)
     if in_bound_indices.dim() == 0:
-        return True, None, None, None, None, None
+        return True, None, None, None, None, None, None, None
     in_bound_indices = in_bound_indices.squeeze(1)
 
-    # apply pruning
-    u2_vec = torch.index_select(u2_vec, 0, in_bound_indices)
-    v2_vec = torch.index_select(v2_vec, 0, in_bound_indices)
-    z2_vec = torch.index_select(z2_vec, 0, in_bound_indices)
-    u_a_pruned = torch.index_select(u_a_pruned, 0, in_bound_indices) # also prune from first list
-    v_a_pruned = torch.index_select(v_a_pruned, 0, in_bound_indices) # also prune from first list
+    out_of_bound_indices = torch.nonzero(v2_vec_in_bounds_2 == 0)
 
-    return False, u_a_pruned, v_a_pruned, u2_vec, v2_vec, z2_vec
+    # apply pruning
+    u2_vec_in_bounds_2 = torch.index_select(u2_vec_in_bounds, 0, in_bound_indices)
+    v2_vec_in_bounds_2 = torch.index_select(v2_vec_in_bounds, 0, in_bound_indices)
+    z2_vec_in_bounds_2 = torch.index_select(z2_vec_in_bounds, 0, in_bound_indices)
+    u_a_pruned_in_bounds_2 = torch.index_select(u_a_pruned_in_bounds, 0, in_bound_indices) # also prune from first list
+    v_a_pruned_in_bounds_2 = torch.index_select(v_a_pruned_in_bounds, 0, in_bound_indices) # also prune from first list
+
+    if out_of_bound_indices.dim() != 0:
+        out_of_bound_indices = out_of_bound_indices.squeeze(1)
+        u_a_pruned_out_of_bounds_2 = torch.index_select(u_a_pruned_in_bounds, 0, out_of_bound_indices) # also prune from first list
+        v_a_pruned_out_of_bounds_2 = torch.index_select(v_a_pruned_in_bounds, 0, out_of_bound_indices) # also prune from first list
+    else:
+        u_a_pruned_out_of_bounds_2 = v_a_pruned_out_of_bounds_2 = torch.tensor([]) # empty tensor which will be cat-ed later
+
+    u_a_pruned_out_of_bounds = torch.cat((u_a_pruned_out_of_bounds,u_a_pruned_out_of_bounds_2))
+    v_a_pruned_out_of_bounds = torch.cat((v_a_pruned_out_of_bounds,v_a_pruned_out_of_bounds_2))
+
+    return False, u_a_pruned_in_bounds_2, v_a_pruned_in_bounds_2, u2_vec_in_bounds_2, v2_vec_in_bounds_2, z2_vec_in_bounds_2, u_a_pruned_out_of_bounds, v_a_pruned_out_of_bounds
 
 
 
@@ -668,12 +682,11 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
 
     u2_vec, v2_vec, z2_vec = reproject_pixels(depth_vec, u_a_pruned, v_a_pruned, K_a, K_b, img_a_pose, img_b_pose)
 
-    # Prune based on
+    # Prune or flag based on
     # Case 2: the pixels projected into image b are outside FOV
-    empty_flag, u_a_pruned, v_a_pruned, u2_vec, v2_vec, z2_vec = prune_if_outside_FOV(u_a_pruned, v_a_pruned, u2_vec, v2_vec, z2_vec, image_width, image_height)
+    empty_flag, u_a_pruned, v_a_pruned, u2_vec, v2_vec, z2_vec, u_a_outsideFOV, v_a_outsideFOV = prune_if_outside_FOV(u_a_pruned, v_a_pruned, u2_vec, v2_vec, z2_vec, image_width, image_height)
     if empty_flag == True:
         return (None, None)
-
 
     depth2_vec = get_depth2_vec(img_b_depth, u2_vec, v2_vec, image_width)
 
@@ -694,6 +707,3 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
 
     if matching_type == "only_matches":
         return uv_a_vec, uv_b_vec
-
-    if matching_type == "with_detections":
-        return pixels_a, pixels_b, gt_detections_a, gt_detections_b
