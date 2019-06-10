@@ -463,13 +463,15 @@ def prune_if_unknown_depth_b(u2_vec, v2_vec, z2_vec, u_a_pruned, v_a_pruned, dep
     return False, u2_vec, v2_vec, z2_vec, u_a_pruned, v_a_pruned, depth2_vec
 
 
-def prune_if_occluded(u2_vec, v2_vec, z2_vec, u_a_pruned, v_a_pruned, depth2_vec):
+def prune_if_occluded(u2_vec, v2_vec, z2_vec, u_a, v_a, depth2_vec):
     occlusion_margin = 0.003            # in meters
     z2_vec = z2_vec - occlusion_margin
 
     zeros_vec = torch.zeros_like(depth2_vec)
     depth2_vec = where(depth2_vec < z2_vec, zeros_vec, depth2_vec)    # prune occlusions
+    
     non_occluded_indices = torch.nonzero(depth2_vec)
+    occluded_indices = torch.nonzero(depth2_vec == 0)
 
     if non_occluded_indices.dim() == 0 or len(non_occluded_indices) == 0:
         return True, None, None, None, None, None, None
@@ -477,15 +479,22 @@ def prune_if_occluded(u2_vec, v2_vec, z2_vec, u_a_pruned, v_a_pruned, depth2_vec
     non_occluded_indices = non_occluded_indices.squeeze(1)
 
     # apply pruning
-    u2_vec = torch.index_select(u2_vec, 0, non_occluded_indices)
-    v2_vec = torch.index_select(v2_vec, 0, non_occluded_indices)
-    u_a_pruned = torch.index_select(u_a_pruned, 0, non_occluded_indices) # also prune from first list
-    v_a_pruned = torch.index_select(v_a_pruned, 0, non_occluded_indices) # also prune from first list
+    u2_vec_non_occluded = torch.index_select(u2_vec, 0, non_occluded_indices)
+    v2_vec_non_occluded = torch.index_select(v2_vec, 0, non_occluded_indices)
+    u_a_pruned_non_occluded = torch.index_select(u_a, 0, non_occluded_indices) # also prune from first list
+    v_a_pruned_non_occluded = torch.index_select(v_a, 0, non_occluded_indices) # also prune from first list
     
-    if u2_vec.dim() == 0 or u_a_pruned.dim() == 0:
-        return True, None, None, None, None, None, None
+    if u2_vec_non_occluded.dim() == 0 or u_a_pruned_non_occluded.dim() == 0:
+        return True, None, None, None, None, None, None, None, None
 
-    return False, u2_vec, v2_vec, z2_vec, u_a_pruned, v_a_pruned, depth2_vec
+    if occluded_indices.dim() != 0:
+        occluded_indices = occluded_indices.squeeze(1)
+        u_a_pruned_occluded = torch.index_select(u_a, 0, occluded_indices) # also prune from first list
+        v_a_pruned_occluded = torch.index_select(v_a, 0, occluded_indices) # also prune from first list
+    else:
+        u_a_pruned_occluded = v_a_pruned_occluded = torch.tensor([]) # empty tensor which will be cat-ed later
+
+    return False, u2_vec_non_occluded, v2_vec_non_occluded, z2_vec, u_a_pruned_non_occluded, v_a_pruned_non_occluded, u_a_pruned_occluded, v_a_pruned_occluded
 
 
 def reproject_pixels(depth_vec, u_a_pruned, v_a_pruned, K_a, K_b, img_a_pose, img_b_pose):
@@ -598,7 +607,7 @@ def prune_if_outside_FOV(u_a, v_a, u2_vec, v2_vec, z2_vec, image_width, image_he
 # If uv_a is not set, then random correspondences are attempted to be found
 def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b_pose, 
                                         uv_a=None, num_attempts=20, device='CPU', img_a_mask=None, K_a=None, K_b=None,
-                                        matching_type="only_matches"):
+                                        matching_type="with_detections"):
     """
     Computes pixel correspondences in batch
 
@@ -697,7 +706,9 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
         return (None, None)
 
     # Case 4: the pixels in image b are occluded
-    empty_flag, u2_vec, v2_vec, z2_vec, u_a_pruned, v_a_pruned, depth2_vec = prune_if_occluded(u2_vec, v2_vec, z2_vec, u_a_pruned, v_a_pruned, depth2_vec)
+    empty_flag, u2_vec, v2_vec, z2_vec, u_a_pruned, v_a_pruned, u_a_occluded, v_a_occluded = prune_if_occluded(u2_vec, v2_vec, z2_vec, u_a_pruned, v_a_pruned, depth2_vec)
+    print u_a_occluded.shape
+    print v_a_occluded.shape
     if empty_flag == True:
         return (None, None)
     
@@ -707,3 +718,11 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
 
     if matching_type == "only_matches":
         return uv_a_vec, uv_b_vec
+
+    if matching_type == "with_detections":
+        print len(u_a_outsideFOV), "outside FOV"
+        print len(u_a_occluded), "occluded"
+        u_a_not_detected = torch.cat((u_a_outsideFOV,u_a_occluded))
+        v_a_not_detected = torch.cat((v_a_outsideFOV,v_a_occluded))
+        uv_a_not_detected = (u_a_not_detected, v_a_not_detected)
+        return uv_a_vec, uv_b_vec, uv_a_not_detected

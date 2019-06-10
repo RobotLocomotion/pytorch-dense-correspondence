@@ -649,7 +649,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
             correspondence_mask = None
 
         # find correspondences
-        uv_a, uv_b = correspondence_finder.batch_find_pixel_correspondences(image_a_depth_numpy, image_a_pose,
+        uv_a, uv_b, uv_a_not_detected = correspondence_finder.batch_find_pixel_correspondences(image_a_depth_numpy, image_a_pose,
                                                                             image_b_depth_numpy, image_b_pose,
                                                                             img_a_mask=correspondence_mask,
                                                                             num_attempts=self.num_matching_attempts)
@@ -780,6 +780,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
             blind_uv_a = utils.flattened_pixel_locations_to_u_v(blind_non_matches_a, image_width)
             plot_blind_uv_a, plot_blind_uv_b = SD.subsample_tuple_pair(blind_uv_a, blind_uv_b, num_samples=num_matches_to_plot*10)
+            plot_uv_a_not_detected, _ = SD.subsample_tuple_pair(uv_a_not_detected, uv_a_not_detected, num_samples=num_matches_to_plot*10)
 
 
         if self.debug:
@@ -813,6 +814,11 @@ class SpartanDataset(DenseCorrespondenceDataset):
                                                                    image_b_rgb_PIL, image_b_depth_numpy,
                                                                    plot_blind_uv_a, plot_blind_uv_b,
                                                                    circ_color='k', show=True)
+
+                correspondence_plotter.plot_correspondences_direct(image_a_rgb_PIL, image_a_depth_numpy,
+                                                                   image_b_rgb_PIL, image_b_depth_numpy,
+                                                                   plot_uv_a_not_detected, (torch.tensor([]), torch.tensor([])),
+                                                                   circ_color='purple', show=True)
 
                 # Mask-plotting city
                 import matplotlib.pyplot as plt
