@@ -405,26 +405,91 @@ def create_non_correspondences(uv_b_matches, img_b_shape, num_non_matches_per_ma
         uv_b_non_matches_1_flat.view(num_matches, num_non_matches_per_match))
 
 
-def get_depth_vec(img_a_depth, uv_a_vec):
+def get_depth_vec(img_a_depth, uv_a_vec, image_width):
     img_a_depth_torch = torch.from_numpy(img_a_depth).type(dtype_float)
     img_a_depth_torch = torch.squeeze(img_a_depth_torch, 0)
     img_a_depth_torch = img_a_depth_torch.view(-1,1)
 
-    uv_a_vec_flattened = uv_a_vec[1]*img_a_depth.shape[1]+uv_a_vec[0]
+    uv_a_vec_flattened = uv_a_vec[1]*image_width+uv_a_vec[0]
     depth_vec = torch.index_select(img_a_depth_torch, 0, uv_a_vec_flattened)*1.0/DEPTH_IM_SCALE
     depth_vec = depth_vec.squeeze(1)
     return depth_vec
 
+    
+def get_depth2_vec(img_b_depth, u2_vec, v2_vec, image_width):
+    img_b_depth_torch = torch.from_numpy(img_b_depth).type(dtype_float)
+    img_b_depth_torch = torch.squeeze(img_b_depth_torch, 0)
+    img_b_depth_torch = img_b_depth_torch.view(-1,1)
+
+    # needed for pdc data
+    uv_b_vec_flattened = (v2_vec.type(dtype_long)*image_width+u2_vec.type(dtype_long)) 
+
+    # for some reason works better on sim data?
+    # uv_b_vec_flattened = ((v2_vec+0.5).type(dtype_long)*image_width+(u2_vec+0.5).type(dtype_long))  # simply round to int -- good enough 
+    #                                                                    # occlusion check for smooth surfaces
+
+    print torch.max(uv_b_vec_flattened)
+    print torch.min(uv_b_vec_flattened)
+    print img_b_depth_torch.shape
+
+    depth2_vec = torch.index_select(img_b_depth_torch, 0, uv_b_vec_flattened)*1.0/DEPTH_IM_SCALE
+    depth2_vec = depth2_vec.squeeze(1)
+    return depth2_vec
+
+
 def prune_if_unknown_depth(uv_a_vec, depth_vec):
     nonzero_indices = torch.nonzero(depth_vec)
     if nonzero_indices.dim() == 0:
-        return (None, None)
+        return True, None, None
     nonzero_indices = nonzero_indices.squeeze(1)
     depth_vec = torch.index_select(depth_vec, 0, nonzero_indices)
 
     u_a_pruned = torch.index_select(uv_a_vec[0], 0, nonzero_indices)
     v_a_pruned = torch.index_select(uv_a_vec[1], 0, nonzero_indices)
-    return u_a_pruned, v_a_pruned
+    return False, u_a_pruned, v_a_pruned
+
+def prune_if_unknown_depth_b(u2_vec, v2_vec, z2_vec, u_a_pruned, v_a_pruned, depth2_vec):
+    zeros_vec = torch.zeros_like(depth2_vec)
+    depth2_vec = where(depth2_vec < (zeros_vec+1e-6), zeros_vec, depth2_vec) # to be careful, prune any negative depths
+    non_zero_indices = torch.nonzero(depth2_vec)
+    if non_zero_indices.dim() == 0 or len(non_zero_indices) == 0:
+        return True, None, None, None, None, None, None
+
+    non_zero_indices = non_zero_indices.squeeze(1)
+
+    # apply pruning
+    u2_vec = torch.index_select(u2_vec, 0, non_zero_indices)
+    v2_vec = torch.index_select(v2_vec, 0, non_zero_indices)
+    z2_vec = torch.index_select(z2_vec, 0, non_zero_indices)
+    u_a_pruned = torch.index_select(u_a_pruned, 0, non_zero_indices) # also prune from first list
+    v_a_pruned = torch.index_select(v_a_pruned, 0, non_zero_indices) # also prune from first list
+    depth2_vec = torch.index_select(depth2_vec, 0, non_zero_indices)
+    return False, u2_vec, v2_vec, z2_vec, u_a_pruned, v_a_pruned, depth2_vec
+
+
+def prune_if_occluded(u2_vec, v2_vec, z2_vec, u_a_pruned, v_a_pruned, depth2_vec):
+    occlusion_margin = 0.003            # in meters
+    z2_vec = z2_vec - occlusion_margin
+
+    zeros_vec = torch.zeros_like(depth2_vec)
+    depth2_vec = where(depth2_vec < z2_vec, zeros_vec, depth2_vec)    # prune occlusions
+    non_occluded_indices = torch.nonzero(depth2_vec)
+
+    if non_occluded_indices.dim() == 0 or len(non_occluded_indices) == 0:
+        return True, None, None, None, None, None, None
+    
+    non_occluded_indices = non_occluded_indices.squeeze(1)
+
+    # apply pruning
+    u2_vec = torch.index_select(u2_vec, 0, non_occluded_indices)
+    v2_vec = torch.index_select(v2_vec, 0, non_occluded_indices)
+    u_a_pruned = torch.index_select(u_a_pruned, 0, non_occluded_indices) # also prune from first list
+    v_a_pruned = torch.index_select(v_a_pruned, 0, non_occluded_indices) # also prune from first list
+    
+    if u2_vec.dim() == 0 or u_a_pruned.dim() == 0:
+        return True, None, None, None, None, None, None
+
+    return False, u2_vec, v2_vec, z2_vec, u_a_pruned, v_a_pruned, depth2_vec
 
 
 def reproject_pixels(depth_vec, u_a_pruned, v_a_pruned, K_a, K_b, img_a_pose, img_b_pose):
@@ -457,6 +522,61 @@ def reproject_pixels(depth_vec, u_a_pruned, v_a_pruned, K_a, K_b, img_a_pose, im
     v2_vec = vec2_vec[1]/vec2_vec[2]
     z2_vec = vec2_vec[2]
     return u2_vec, v2_vec, z2_vec
+
+def prune_if_outside_FOV(u_a_pruned, v_a_pruned, u2_vec, v2_vec, z2_vec, image_width, image_height):
+    """
+    NOTE: no return args, but will prune-by-reference
+    """
+
+    # u2_vec bounds should be: 0, image_width
+    # v2_vec bounds should be: 0, image_height
+
+    ## do u2-based pruning
+    u2_vec_lower_bound = 0.0
+    epsilon = 1e-3
+    u2_vec_upper_bound = image_width*1.0 - epsilon  # careful, needs to be epsilon less!!
+    lower_bound_vec = torch.ones_like(u2_vec) * u2_vec_lower_bound
+    upper_bound_vec = torch.ones_like(u2_vec) * u2_vec_upper_bound
+    zeros_vec       = torch.zeros_like(u2_vec)
+
+    u2_vec = where(u2_vec < lower_bound_vec, zeros_vec, u2_vec)
+    u2_vec = where(u2_vec > upper_bound_vec, zeros_vec, u2_vec)
+    in_bound_indices = torch.nonzero(u2_vec)
+    if in_bound_indices.dim() == 0:
+        return True, None, None, None, None, None
+    in_bound_indices = in_bound_indices.squeeze(1)
+
+    # apply pruning
+    
+    u2_vec = torch.index_select(u2_vec, 0, in_bound_indices)
+    v2_vec = torch.index_select(v2_vec, 0, in_bound_indices)
+    z2_vec = torch.index_select(z2_vec, 0, in_bound_indices)
+    u_a_pruned = torch.index_select(u_a_pruned, 0, in_bound_indices) # also prune from first list
+    v_a_pruned = torch.index_select(v_a_pruned, 0, in_bound_indices) # also prune from first list
+
+
+    ## do v2-based pruning
+    v2_vec_lower_bound = 0.0
+    v2_vec_upper_bound = image_height*1.0 - epsilon
+    lower_bound_vec = torch.ones_like(v2_vec) * v2_vec_lower_bound
+    upper_bound_vec = torch.ones_like(v2_vec) * v2_vec_upper_bound
+    zeros_vec       = torch.zeros_like(v2_vec)    
+
+    v2_vec = where(v2_vec < lower_bound_vec, zeros_vec, v2_vec)
+    v2_vec = where(v2_vec > upper_bound_vec, zeros_vec, v2_vec)
+    in_bound_indices = torch.nonzero(v2_vec)
+    if in_bound_indices.dim() == 0:
+        return True, None, None, None, None, None
+    in_bound_indices = in_bound_indices.squeeze(1)
+
+    # apply pruning
+    u2_vec = torch.index_select(u2_vec, 0, in_bound_indices)
+    v2_vec = torch.index_select(v2_vec, 0, in_bound_indices)
+    z2_vec = torch.index_select(z2_vec, 0, in_bound_indices)
+    u_a_pruned = torch.index_select(u_a_pruned, 0, in_bound_indices) # also prune from first list
+    v_a_pruned = torch.index_select(v_a_pruned, 0, in_bound_indices) # also prune from first list
+
+    return False, u_a_pruned, v_a_pruned, u2_vec, v2_vec, z2_vec
 
 
 
@@ -535,118 +655,39 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
         # mask_a = mask_a/torch.max(mask_a)
         # nonzero = (torch.nonzero(mask_a)).type(dtype_long)
         # uv_a_vec = (nonzero[:,1], nonzero[:,0])
-
-        # Always use this line        
-        
+             
     
-    depth_vec = get_depth_vec(img_a_depth, uv_a_vec)
+    depth_vec = get_depth_vec(img_a_depth, uv_a_vec, image_width)
 
     # Prune based on
     # Case 1: depth is zero (for this data, this means no-return)
-    u_a_pruned, v_a_pruned = prune_if_unknown_depth(uv_a_vec, depth_vec)
+    empty_flag, u_a_pruned, v_a_pruned = prune_if_unknown_depth(uv_a_vec, depth_vec)
+    if empty_flag == True:
+        return (None, None)
 
 
     u2_vec, v2_vec, z2_vec = reproject_pixels(depth_vec, u_a_pruned, v_a_pruned, K_a, K_b, img_a_pose, img_b_pose)
 
     # Prune based on
     # Case 2: the pixels projected into image b are outside FOV
-    # u2_vec bounds should be: 0, image_width
-    # v2_vec bounds should be: 0, image_height
-
-    ## do u2-based pruning
-    u2_vec_lower_bound = 0.0
-    epsilon = 1e-3
-    u2_vec_upper_bound = image_width*1.0 - epsilon  # careful, needs to be epsilon less!!
-    lower_bound_vec = torch.ones_like(u2_vec) * u2_vec_lower_bound
-    upper_bound_vec = torch.ones_like(u2_vec) * u2_vec_upper_bound
-    zeros_vec       = torch.zeros_like(u2_vec)
-
-    u2_vec = where(u2_vec < lower_bound_vec, zeros_vec, u2_vec)
-    u2_vec = where(u2_vec > upper_bound_vec, zeros_vec, u2_vec)
-    in_bound_indices = torch.nonzero(u2_vec)
-    if in_bound_indices.dim() == 0:
+    empty_flag, u_a_pruned, v_a_pruned, u2_vec, v2_vec, z2_vec = prune_if_outside_FOV(u_a_pruned, v_a_pruned, u2_vec, v2_vec, z2_vec, image_width, image_height)
+    if empty_flag == True:
         return (None, None)
-    in_bound_indices = in_bound_indices.squeeze(1)
-
-    # apply pruning
-    if matching_type == "only_matches":
-        u2_vec = torch.index_select(u2_vec, 0, in_bound_indices)
-        v2_vec = torch.index_select(v2_vec, 0, in_bound_indices)
-        z2_vec = torch.index_select(z2_vec, 0, in_bound_indices)
-        u_a_pruned = torch.index_select(u_a_pruned, 0, in_bound_indices) # also prune from first list
-        v_a_pruned = torch.index_select(v_a_pruned, 0, in_bound_indices) # also prune from first list
-    elif matching_type == "with_detections":
-        pass
 
 
-    ## do v2-based pruning
-    v2_vec_lower_bound = 0.0
-    v2_vec_upper_bound = image_height*1.0 - epsilon
-    lower_bound_vec = torch.ones_like(v2_vec) * v2_vec_lower_bound
-    upper_bound_vec = torch.ones_like(v2_vec) * v2_vec_upper_bound
-    zeros_vec       = torch.zeros_like(v2_vec)    
-
-    v2_vec = where(v2_vec < lower_bound_vec, zeros_vec, v2_vec)
-    v2_vec = where(v2_vec > upper_bound_vec, zeros_vec, v2_vec)
-    in_bound_indices = torch.nonzero(v2_vec)
-    if in_bound_indices.dim() == 0:
-        return (None, None)
-    in_bound_indices = in_bound_indices.squeeze(1)
-
-    # apply pruning
-    u2_vec = torch.index_select(u2_vec, 0, in_bound_indices)
-    v2_vec = torch.index_select(v2_vec, 0, in_bound_indices)
-    z2_vec = torch.index_select(z2_vec, 0, in_bound_indices)
-    u_a_pruned = torch.index_select(u_a_pruned, 0, in_bound_indices) # also prune from first list
-    v_a_pruned = torch.index_select(v_a_pruned, 0, in_bound_indices) # also prune from first list
+    depth2_vec = get_depth2_vec(img_b_depth, u2_vec, v2_vec, image_width)
 
     # Prune based on
-    # Case 3: the pixels in image b are occluded, OR there is no depth return in image b so we aren't sure
+    # Case 3: there is no depth return in image b so we aren't sure if occluded
+    empty_flag, u2_vec, v2_vec, z2_vec, u_a_pruned, v_a_pruned, depth2_vec = prune_if_unknown_depth_b(u2_vec, v2_vec, z2_vec, u_a_pruned, v_a_pruned, depth2_vec)
+    if empty_flag == True:
+        return (None, None)
 
-   
-    img_b_depth_torch = torch.from_numpy(img_b_depth).type(dtype_float)
-    img_b_depth_torch = torch.squeeze(img_b_depth_torch, 0)
-    img_b_depth_torch = img_b_depth_torch.view(-1,1)
-
-    
-    # needed for pdc data
-    uv_b_vec_flattened = (v2_vec.type(dtype_long)*image_width+u2_vec.type(dtype_long)) 
-
-    # for some reason works better on sim data?
-    # uv_b_vec_flattened = ((v2_vec+0.5).type(dtype_long)*image_width+(u2_vec+0.5).type(dtype_long))  # simply round to int -- good enough 
-    #                                                                    # occlusion check for smooth surfaces
-
-    depth2_vec = torch.index_select(img_b_depth_torch, 0, uv_b_vec_flattened)*1.0/DEPTH_IM_SCALE
-    depth2_vec = depth2_vec.squeeze(1)
-
-    # occlusion margin, in meters
-    occlusion_margin = 0.003
-    z2_vec = z2_vec - occlusion_margin
-    zeros_vec = torch.zeros_like(depth2_vec)
-
-    depth2_vec = where(depth2_vec < (zeros_vec+1e-6), zeros_vec, depth2_vec) # to be careful, prune any negative depths
-
-
-    ## TODAY ###
-    depth2_vec = where(depth2_vec < z2_vec, zeros_vec, depth2_vec)    # prune occlusions
-
-    
-    non_occluded_indices = torch.nonzero(depth2_vec)
-
-    if non_occluded_indices.dim() == 0 or len(non_occluded_indices) == 0:
+    # Case 4: the pixels in image b are occluded
+    empty_flag, u2_vec, v2_vec, z2_vec, u_a_pruned, v_a_pruned, depth2_vec = prune_if_occluded(u2_vec, v2_vec, z2_vec, u_a_pruned, v_a_pruned, depth2_vec)
+    if empty_flag == True:
         return (None, None)
     
-    non_occluded_indices = non_occluded_indices.squeeze(1)
-
-    # apply pruning
-    u2_vec = torch.index_select(u2_vec, 0, non_occluded_indices)
-    v2_vec = torch.index_select(v2_vec, 0, non_occluded_indices)
-    u_a_pruned = torch.index_select(u_a_pruned, 0, non_occluded_indices) # also prune from first list
-    v_a_pruned = torch.index_select(v_a_pruned, 0, non_occluded_indices) # also prune from first list
-    
-
-    if u2_vec.dim() == 0 or u_a_pruned.dim() == 0:
-        return (None, None)
 
     uv_b_vec = (u2_vec, v2_vec)
     uv_a_vec = (u_a_pruned, v_a_pruned)
