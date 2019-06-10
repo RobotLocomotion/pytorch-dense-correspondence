@@ -671,7 +671,7 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
         # Option A: This next line samples from img mask
         uv_a_vec = random_sample_from_masked_image_torch(img_a_mask, num_samples=num_attempts)
         if uv_a_vec[0] is None:
-            return (None, None)
+            return None, None, None
         
         # Option B: These 4 lines grab ALL from img mask
         # mask_a = img_a_mask.squeeze(0)
@@ -686,7 +686,7 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
     # Case 1: depth is zero (for this data, this means no-return)
     empty_flag, u_a_pruned, v_a_pruned = prune_if_unknown_depth(uv_a_vec, depth_vec)
     if empty_flag == True:
-        return (None, None)
+        return None, None, None
 
 
     u2_vec, v2_vec, z2_vec = reproject_pixels(depth_vec, u_a_pruned, v_a_pruned, K_a, K_b, img_a_pose, img_b_pose)
@@ -695,7 +695,7 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
     # Case 2: the pixels projected into image b are outside FOV
     empty_flag, u_a_pruned, v_a_pruned, u2_vec, v2_vec, z2_vec, u_a_outsideFOV, v_a_outsideFOV = prune_if_outside_FOV(u_a_pruned, v_a_pruned, u2_vec, v2_vec, z2_vec, image_width, image_height)
     if empty_flag == True:
-        return (None, None)
+        return None, None, None
 
     depth2_vec = get_depth2_vec(img_b_depth, u2_vec, v2_vec, image_width)
 
@@ -703,14 +703,12 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
     # Case 3: there is no depth return in image b so we aren't sure if occluded
     empty_flag, u2_vec, v2_vec, z2_vec, u_a_pruned, v_a_pruned, depth2_vec = prune_if_unknown_depth_b(u2_vec, v2_vec, z2_vec, u_a_pruned, v_a_pruned, depth2_vec)
     if empty_flag == True:
-        return (None, None)
+        return None, None, None
 
     # Case 4: the pixels in image b are occluded
     empty_flag, u2_vec, v2_vec, z2_vec, u_a_pruned, v_a_pruned, u_a_occluded, v_a_occluded = prune_if_occluded(u2_vec, v2_vec, z2_vec, u_a_pruned, v_a_pruned, depth2_vec)
-    print u_a_occluded.shape
-    print v_a_occluded.shape
     if empty_flag == True:
-        return (None, None)
+        return None, None, None
     
 
     uv_b_vec = (u2_vec, v2_vec)
@@ -720,8 +718,6 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
         return uv_a_vec, uv_b_vec
 
     if matching_type == "with_detections":
-        print len(u_a_outsideFOV), "outside FOV"
-        print len(u_a_occluded), "occluded"
         u_a_not_detected = torch.cat((u_a_outsideFOV,u_a_occluded))
         v_a_not_detected = torch.cat((v_a_outsideFOV,v_a_occluded))
         uv_a_not_detected = (u_a_not_detected, v_a_not_detected)

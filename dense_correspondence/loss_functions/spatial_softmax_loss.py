@@ -63,6 +63,7 @@ class SpatialSoftmaxLoss(object):
 
         """
         N, D, H, W = image_a_pred.shape
+        assert N == 1
         num_matches = len(matches_a[0])
 
         matches_x_a = (matches_a%640).float() / 8.0 # convert to x,y coordinates in the downsampled image
@@ -79,13 +80,7 @@ class SpatialSoftmaxLoss(object):
                 one_image = image_pred[i,:]
                 one_image = one_image.permute(1,2,0)
                 one_matches_x = matches_x[i,:].unsqueeze(0)
-                #print one_matches_x.shape
                 one_matches_y = matches_y[i,:].unsqueeze(0)
-                #print one_matches_y.shape
-                #print torch.min(one_matches_x)
-                #print torch.min(one_matches_y)
-                #print torch.max(one_matches_x)
-                #print torch.max(one_matches_y)
                 descriptors[i,:] = bilinear_interpolate_torch(one_image, one_matches_x, one_matches_y)
             
             return descriptors
@@ -114,7 +109,7 @@ class SpatialSoftmaxLoss(object):
                 softmax = torch.nn.Softmax(dim=2)
                 softmax_activations[i] = softmax(neg_squared_norm_diffs_flat).view(N, num_matches, H, W).squeeze(0) # 1, nm, H, W
 
-            return softmax_activations
+            return softmax_activations, neg_squared_norm_diffs
 
 
         def compute_expected_x_y(softmax_activations):
@@ -222,8 +217,8 @@ class SpatialSoftmaxLoss(object):
         norm_matches_x_a, norm_matches_y_a = convert_pixel_coords_to_norm_coords(matches_x_a, matches_y_a)
         norm_matches_x_b, norm_matches_y_b = convert_pixel_coords_to_norm_coords(matches_x_b, matches_y_b)
 
-        softmax_activations_a = compute_softmax_activations(image_a_pred, b_descriptors)
-        softmax_activations_b = compute_softmax_activations(image_b_pred, a_descriptors)
+        softmax_activations_a, kern_image_a = compute_softmax_activations(image_a_pred, b_descriptors)
+        softmax_activations_b, kern_image_b = compute_softmax_activations(image_b_pred, a_descriptors)
 
         pos_x_repeated = (self.pos_x.unsqueeze(2).expand(60,80,num_matches).contiguous().view(-1)/2.0+0.5)*640.0
         pos_y_repeated = (self.pos_y.unsqueeze(2).expand(60,80,num_matches).contiguous().view(-1)/2.0+0.5)*480.0
@@ -270,7 +265,7 @@ class SpatialSoftmaxLoss(object):
 
         loss = l_1 + l_2 + l_3 + l_4 + divergence_loss_a + divergence_loss_b #+ l_5 + l_6
         
-        return loss
+        return loss, kern_image_a, kern_image_b
 
     def setup_pixel_maps(self):
         pos_x, pos_y = np.meshgrid(
