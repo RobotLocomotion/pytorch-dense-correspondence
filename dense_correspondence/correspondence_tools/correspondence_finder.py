@@ -404,10 +404,67 @@ def create_non_correspondences(uv_b_matches, img_b_shape, num_non_matches_per_ma
     return (uv_b_non_matches_0_flat.view(num_matches, num_non_matches_per_match),
         uv_b_non_matches_1_flat.view(num_matches, num_non_matches_per_match))
 
+
+def get_depth_vec(img_a_depth, uv_a_vec):
+    img_a_depth_torch = torch.from_numpy(img_a_depth).type(dtype_float)
+    img_a_depth_torch = torch.squeeze(img_a_depth_torch, 0)
+    img_a_depth_torch = img_a_depth_torch.view(-1,1)
+
+    uv_a_vec_flattened = uv_a_vec[1]*img_a_depth.shape[1]+uv_a_vec[0]
+    depth_vec = torch.index_select(img_a_depth_torch, 0, uv_a_vec_flattened)*1.0/DEPTH_IM_SCALE
+    depth_vec = depth_vec.squeeze(1)
+    return depth_vec
+
+def prune_if_unknown_depth(uv_a_vec, depth_vec):
+    nonzero_indices = torch.nonzero(depth_vec)
+    if nonzero_indices.dim() == 0:
+        return (None, None)
+    nonzero_indices = nonzero_indices.squeeze(1)
+    depth_vec = torch.index_select(depth_vec, 0, nonzero_indices)
+
+    u_a_pruned = torch.index_select(uv_a_vec[0], 0, nonzero_indices)
+    v_a_pruned = torch.index_select(uv_a_vec[1], 0, nonzero_indices)
+    return u_a_pruned, v_a_pruned
+
+
+def reproject_pixels(depth_vec, u_a_pruned, v_a_pruned, K_a, K_b, img_a_pose, img_b_pose):
+    if K_a is None and K_b is None:
+        K_a = get_default_K_matrix()
+        K_b = get_default_K_matrix()
+
+    K_a_inv = inv(K_a)
+    K_b_inv = inv(K_b)
+    body_to_rdf = get_body_to_rdf()
+    rdf_to_body = inv(body_to_rdf)
+
+    u_vec = u_a_pruned.type(dtype_float)*depth_vec
+    v_vec = v_a_pruned.type(dtype_float)*depth_vec
+
+    z_vec = depth_vec
+    full_vec = torch.stack((u_vec, v_vec, z_vec))
+
+    K_a_inv_torch = torch.from_numpy(K_a_inv).type(dtype_float)
+    K_b_inv_torch = torch.from_numpy(K_b_inv).type(dtype_float)
+    point_camera_frame_rdf_vec = K_a_inv_torch.mm(full_vec)
+
+    point_world_frame_rdf_vec = apply_transform_torch(point_camera_frame_rdf_vec, torch.from_numpy(img_a_pose).type(dtype_float))
+    point_camera_2_frame_rdf_vec = apply_transform_torch(point_world_frame_rdf_vec, torch.from_numpy(invert_transform(img_b_pose)).type(dtype_float))
+
+    K_b_torch = torch.from_numpy(K_b).type(dtype_float)
+    vec2_vec = K_b_torch.mm(point_camera_2_frame_rdf_vec)
+
+    u2_vec = vec2_vec[0]/vec2_vec[2]
+    v2_vec = vec2_vec[1]/vec2_vec[2]
+    z2_vec = vec2_vec[2]
+    return u2_vec, v2_vec, z2_vec
+
+
+
 # Optionally, uv_a specifies the pixels in img_a for which to find matches
 # If uv_a is not set, then random correspondences are attempted to be found
 def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b_pose, 
-                                        uv_a=None, num_attempts=20, device='CPU', img_a_mask=None, K_a=None, K_b=None):
+                                        uv_a=None, num_attempts=20, device='CPU', img_a_mask=None, K_a=None, K_b=None,
+                                        matching_type="only_matches"):
     """
     Computes pixel correspondences in batch
 
@@ -465,7 +522,6 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
 
     if img_a_mask is None:
         uv_a_vec = (torch.ones(num_attempts).type(dtype_long)*uv_a[0],torch.ones(num_attempts).type(dtype_long)*uv_a[1])
-        uv_a_vec_flattened = uv_a_vec[1]*image_width+uv_a_vec[0]
     else:
         img_a_mask = torch.from_numpy(img_a_mask).type(dtype_float)  
         
@@ -481,62 +537,16 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
         # uv_a_vec = (nonzero[:,1], nonzero[:,0])
 
         # Always use this line        
-        uv_a_vec_flattened = uv_a_vec[1]*image_width+uv_a_vec[0]
-
-
-    if K_a is None and K_b is None:
-        K_a = get_default_K_matrix()
-        K_b = get_default_K_matrix()
-
-    K_a_inv = inv(K_a)
-    K_b_inv = inv(K_b)
-    body_to_rdf = get_body_to_rdf()
-    rdf_to_body = inv(body_to_rdf)
-
-    img_a_depth_torch = torch.from_numpy(img_a_depth).type(dtype_float)
-    img_a_depth_torch = torch.squeeze(img_a_depth_torch, 0)
-    img_a_depth_torch = img_a_depth_torch.view(-1,1)
-
+        
     
-    depth_vec = torch.index_select(img_a_depth_torch, 0, uv_a_vec_flattened)*1.0/DEPTH_IM_SCALE
-    depth_vec = depth_vec.squeeze(1)
-    
+    depth_vec = get_depth_vec(img_a_depth, uv_a_vec)
+
     # Prune based on
     # Case 1: depth is zero (for this data, this means no-return)
-    nonzero_indices = torch.nonzero(depth_vec)
-    if nonzero_indices.dim() == 0:
-        return (None, None)
-    nonzero_indices = nonzero_indices.squeeze(1)
-    depth_vec = torch.index_select(depth_vec, 0, nonzero_indices)
+    u_a_pruned, v_a_pruned = prune_if_unknown_depth(uv_a_vec, depth_vec)
 
-    # prune u_vec and v_vec, then multiply by already pruned depth_vec
-    u_a_pruned = torch.index_select(uv_a_vec[0], 0, nonzero_indices)
-    u_vec = u_a_pruned.type(dtype_float)*depth_vec
 
-    v_a_pruned = torch.index_select(uv_a_vec[1], 0, nonzero_indices)
-    v_vec = v_a_pruned.type(dtype_float)*depth_vec
-
-    z_vec = depth_vec
-
-    full_vec = torch.stack((u_vec, v_vec, z_vec))
-
-    K_a_inv_torch = torch.from_numpy(K_a_inv).type(dtype_float)
-    K_b_inv_torch = torch.from_numpy(K_b_inv).type(dtype_float)
-    point_camera_frame_rdf_vec = K_a_inv_torch.mm(full_vec)
-
-    point_world_frame_rdf_vec = apply_transform_torch(point_camera_frame_rdf_vec, torch.from_numpy(img_a_pose).type(dtype_float))
-    point_camera_2_frame_rdf_vec = apply_transform_torch(point_world_frame_rdf_vec, torch.from_numpy(invert_transform(img_b_pose)).type(dtype_float))
-
-    K_b_torch = torch.from_numpy(K_b).type(dtype_float)
-    vec2_vec = K_b_torch.mm(point_camera_2_frame_rdf_vec)
-
-    u2_vec = vec2_vec[0]/vec2_vec[2]
-    v2_vec = vec2_vec[1]/vec2_vec[2]
-
-    maybe_z2_vec = point_camera_2_frame_rdf_vec[2]
-    
-
-    z2_vec = vec2_vec[2]
+    u2_vec, v2_vec, z2_vec = reproject_pixels(depth_vec, u_a_pruned, v_a_pruned, K_a, K_b, img_a_pose, img_b_pose)
 
     # Prune based on
     # Case 2: the pixels projected into image b are outside FOV
@@ -559,11 +569,15 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
     in_bound_indices = in_bound_indices.squeeze(1)
 
     # apply pruning
-    u2_vec = torch.index_select(u2_vec, 0, in_bound_indices)
-    v2_vec = torch.index_select(v2_vec, 0, in_bound_indices)
-    z2_vec = torch.index_select(z2_vec, 0, in_bound_indices)
-    u_a_pruned = torch.index_select(u_a_pruned, 0, in_bound_indices) # also prune from first list
-    v_a_pruned = torch.index_select(v_a_pruned, 0, in_bound_indices) # also prune from first list
+    if matching_type == "only_matches":
+        u2_vec = torch.index_select(u2_vec, 0, in_bound_indices)
+        v2_vec = torch.index_select(v2_vec, 0, in_bound_indices)
+        z2_vec = torch.index_select(z2_vec, 0, in_bound_indices)
+        u_a_pruned = torch.index_select(u_a_pruned, 0, in_bound_indices) # also prune from first list
+        v_a_pruned = torch.index_select(v_a_pruned, 0, in_bound_indices) # also prune from first list
+    elif matching_type == "with_detections":
+        pass
+
 
     ## do v2-based pruning
     v2_vec_lower_bound = 0.0
@@ -599,8 +613,8 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
     uv_b_vec_flattened = (v2_vec.type(dtype_long)*image_width+u2_vec.type(dtype_long)) 
 
     # for some reason works better on sim data?
-    #uv_b_vec_flattened = ((v2_vec+0.5).type(dtype_long)*image_width+(u2_vec+0.5).type(dtype_long))  # simply round to int -- good enough 
-                                                                       # occlusion check for smooth surfaces
+    # uv_b_vec_flattened = ((v2_vec+0.5).type(dtype_long)*image_width+(u2_vec+0.5).type(dtype_long))  # simply round to int -- good enough 
+    #                                                                    # occlusion check for smooth surfaces
 
     depth2_vec = torch.index_select(img_b_depth_torch, 0, uv_b_vec_flattened)*1.0/DEPTH_IM_SCALE
     depth2_vec = depth2_vec.squeeze(1)
@@ -610,7 +624,10 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
     z2_vec = z2_vec - occlusion_margin
     zeros_vec = torch.zeros_like(depth2_vec)
 
-    depth2_vec = where(depth2_vec < zeros_vec, zeros_vec, depth2_vec) # to be careful, prune any negative depths
+    depth2_vec = where(depth2_vec < (zeros_vec+1e-6), zeros_vec, depth2_vec) # to be careful, prune any negative depths
+
+
+    ## TODAY ###
     depth2_vec = where(depth2_vec < z2_vec, zeros_vec, depth2_vec)    # prune occlusions
 
     
@@ -633,4 +650,9 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
 
     uv_b_vec = (u2_vec, v2_vec)
     uv_a_vec = (u_a_pruned, v_a_pruned)
-    return (uv_a_vec, uv_b_vec)
+
+    if matching_type == "only_matches":
+        return uv_a_vec, uv_b_vec
+
+    if matching_type == "with_detections":
+        return pixels_a, pixels_b, gt_detections_a, gt_detections_b
