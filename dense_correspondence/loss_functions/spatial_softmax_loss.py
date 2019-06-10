@@ -52,6 +52,29 @@ class SpatialSoftmaxLoss(object):
         self.setup_pixel_maps()
         self.debug_counter = 0
 
+
+    def convert_to_downsampled_coordinates(self, matches):
+        matches_x = (matches%640).float() / 8.0 # convert to x,y coordinates in the downsampled image
+        matches_y = (matches/640).float() / 8.0
+        return matches_x, matches_y
+
+    def sample_descriptors(self, image_pred, matches_x, matches_y):
+        N, D, H, W = image_pred.shape
+        num_matches = len(matches_x[0])
+        descriptors = torch.zeros(N, num_matches, D).cuda()
+
+        # self.ref_descriptor_vec is Nref, D 
+        for i in range(N):
+            one_image = image_pred[i,:]
+            one_image = one_image.permute(1,2,0)
+            one_matches_x = matches_x[i,:].unsqueeze(0)
+            one_matches_y = matches_y[i,:].unsqueeze(0)
+            descriptors[i,:] = bilinear_interpolate_torch(one_image, one_matches_x, one_matches_y)
+        
+        return descriptors
+
+    #def get_kern_image_only(image_b_pred, b_pixels, a_descriptors):
+
     def get_loss(self, image_a_pred, image_b_pred, matches_a, matches_b, img_a, depth_a, depth_b):
         """
         image_a_pred: N, D, H, W
@@ -66,28 +89,12 @@ class SpatialSoftmaxLoss(object):
         assert N == 1
         num_matches = len(matches_a[0])
 
-        matches_x_a = (matches_a%640).float() / 8.0 # convert to x,y coordinates in the downsampled image
-        matches_y_a = (matches_a/640).float() / 8.0
+        matches_x_a, matches_y_a = self.convert_to_downsampled_coordinates(matches_a)
+        matches_x_b, matches_y_b = self.convert_to_downsampled_coordinates(matches_b)
 
-        matches_x_b = (matches_b%640).float() / 8.0 # convert to x,y coordinates in the downsampled image
-        matches_y_b = (matches_b/640).float() / 8.0
-
-        def sample_descriptors(image_pred, matches_x, matches_y):
-            descriptors = torch.zeros(N, num_matches, D).cuda()
-
-            # self.ref_descriptor_vec is Nref, D 
-            for i in range(N):
-                one_image = image_pred[i,:]
-                one_image = one_image.permute(1,2,0)
-                one_matches_x = matches_x[i,:].unsqueeze(0)
-                one_matches_y = matches_y[i,:].unsqueeze(0)
-                descriptors[i,:] = bilinear_interpolate_torch(one_image, one_matches_x, one_matches_y)
-            
-            return descriptors
-            
         # a_descriptors is N, num_matches, D
-        a_descriptors = sample_descriptors(image_a_pred, matches_x_a, matches_y_a)
-        b_descriptors = sample_descriptors(image_b_pred, matches_x_b, matches_y_b)
+        a_descriptors = self.sample_descriptors(image_a_pred, matches_x_a, matches_y_a)
+        b_descriptors = self.sample_descriptors(image_b_pred, matches_x_b, matches_y_b)
 
         def compute_softmax_activations(image_pred, descriptors):
                                                # image_pred starts N, D, H, W
