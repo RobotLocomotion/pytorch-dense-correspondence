@@ -63,7 +63,6 @@ class SpatialSoftmaxLoss(object):
         num_matches = len(matches_x[0])
         descriptors = torch.zeros(N, num_matches, D).cuda()
 
-        # self.ref_descriptor_vec is Nref, D 
         for i in range(N):
             one_image = image_pred[i,:]
             one_image = one_image.permute(1,2,0)
@@ -73,7 +72,32 @@ class SpatialSoftmaxLoss(object):
         
         return descriptors
 
-    #def get_kern_image_only(image_b_pred, b_pixels, a_descriptors):
+    def get_kern_images_only(self, image_pred, descriptors):
+        """
+        There is some code copy with compute_softmax_activations
+        But for some reason this code gets slow if I try to modularize...
+        Figure this out later.  Fine for now.
+        """
+        N, D, H, W = image_pred.shape
+        num_matches = descriptors.shape[1]      
+                                               # image_pred starts N, D, H, W
+        image_pred = image_pred.permute(0,2,3,1)            # N, H, W, D
+        image_pred = image_pred.unsqueeze(3)                # N, H, W, 1,  D
+        image_pred = image_pred.expand(N,H,W,num_matches,D) # N, H, W, nm, D 
+
+        # descriptors starts out N, nm, D
+        
+        kern_images = torch.zeros(N, num_matches, H, W).cuda()
+
+        for i in range(N):
+            one_image = image_pred[i,:]           # H, W, nm, D
+            deltas = one_image - descriptors[i] # H, W, nm, D
+            neg_squared_norm_diffs = -1.0*torch.sum(torch.pow(deltas,2), dim=3) # H, W, nm
+            neg_squared_norm_diffs = neg_squared_norm_diffs.permute(2,0,1).unsqueeze(0) # 1, nm, H, W
+            kern_images[i] = neg_squared_norm_diffs
+
+        return kern_images
+
 
     def get_loss(self, image_a_pred, image_b_pred, matches_a, matches_b, img_a, depth_a, depth_b):
         """

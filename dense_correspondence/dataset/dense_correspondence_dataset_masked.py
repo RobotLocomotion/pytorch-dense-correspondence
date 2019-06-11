@@ -204,7 +204,7 @@ class DenseCorrespondenceDataset(data.Dataset):
             metadata = dict()
 
         empty = DenseCorrespondenceDataset.empty_tensor()
-        return -1, image_a_rgb, image_b_rgb, empty, empty, empty, empty, empty, empty, empty, empty, metadata, empty, empty
+        return -1, image_a_rgb, image_b_rgb, empty, empty, empty, empty, empty, empty, empty, empty, metadata, empty, empty, empty
 
     @staticmethod
     def empty_tensor():

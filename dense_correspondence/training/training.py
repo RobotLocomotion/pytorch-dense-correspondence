@@ -37,6 +37,7 @@ from pytorch_segmentation_detection.transforms import (ComposeJoint,
 
 from dense_correspondence.dataset.spartan_dataset_masked import SpartanDataset, SpartanDatasetDataType
 from dense_correspondence.network.dense_correspondence_network import DenseCorrespondenceNetwork
+from dense_correspondence.network.dense_detection_network import DenseDetectionNetwork, DenseDetectionResnet
 
 from dense_correspondence.loss_functions.pixelwise_contrastive_loss import PixelwiseContrastiveLoss
 from dense_correspondence.loss_functions.spatial_softmax_loss import SpatialSoftmaxLoss
@@ -212,7 +213,7 @@ class DenseCorrespondenceTraining(object):
 
         return iteration
 
-    def run_from_pretrained(self, model_folder, iteration=None, learning_rate=None, use_spatial_softmax_only=False):
+    def run_from_pretrained(self, model_folder, iteration=None, learning_rate=None, use_spatial_softmax_only=False, train_correspondence=True, train_detection=False):
         """
         Wrapper for load_pretrained(), then run()
         """
@@ -224,9 +225,10 @@ class DenseCorrespondenceTraining(object):
             self._config["training"]["learning_rate_starting_from_pretrained"] = learning_rate
             self.set_learning_rate(self._optimizer, learning_rate)
 
-        self.run(loss_current_iteration=iteration, use_pretrained=True, use_spatial_softmax_only=use_spatial_softmax_only)
+        self.run(loss_current_iteration=iteration, use_pretrained=True, use_spatial_softmax_only=use_spatial_softmax_only, 
+            train_correspondence=train_correspondence, train_detection=train_detection)
 
-    def run(self, loss_current_iteration=0, use_pretrained=False, use_spatial_softmax_only=False):
+    def run(self, loss_current_iteration=0, use_pretrained=False, use_spatial_softmax_only=False, train_correspondence=True, train_detection=False):
         """
         Runs the training
         :return:
@@ -256,6 +258,11 @@ class DenseCorrespondenceTraining(object):
         dcn.cuda()
         dcn.train()
 
+        detection_net = DenseDetectionResnet().cuda()
+        detection_criterion = nn.CrossEntropyLoss()
+        detection_optimizer = optim.Adam(detection_net.parameters(), lr=1e-4, weight_decay=1e-4)
+        #detection_optimizer = optim.SGD(detection_net.parameters(), lr=0.001, momentum=0.9)
+
         optimizer = self._optimizer
         batch_size = self._data_loader.batch_size
 
@@ -280,7 +287,8 @@ class DenseCorrespondenceTraining(object):
                                            "background_non_match_loss": [],
                                            "blind_non_match_loss": [],
                                            "learning_rate": [],
-                                           "different_object_non_match_loss": []}
+                                           "different_object_non_match_loss": [],
+                                           "detection_loss": []}
 
         self._logging_dict['test'] = {"iteration": [], "loss": [], "match_loss": [],
                                            "non_match_loss": []}
@@ -305,7 +313,7 @@ class DenseCorrespondenceTraining(object):
                 background_non_matches_a, background_non_matches_b, \
                 blind_non_matches_a, blind_non_matches_b, \
                 metadata, \
-                depth_a, depth_b = data
+                depth_a, depth_b, a_not_detected = data
 
                 if (match_type == -1).all():
                     print "\n empty data, continuing \n"
@@ -323,6 +331,7 @@ class DenseCorrespondenceTraining(object):
                 else:
                     matches_a = Variable(matches_a.cuda(), requires_grad=False)
                     matches_b = Variable(matches_b.cuda(), requires_grad=False)
+                    a_not_detected = Variable(a_not_detected.cuda(), requires_grad=False)
 
                 masked_non_matches_a = Variable(masked_non_matches_a.cuda().squeeze(0), requires_grad=False)
                 masked_non_matches_b = Variable(masked_non_matches_b.cuda().squeeze(0), requires_grad=False)
@@ -353,9 +362,9 @@ class DenseCorrespondenceTraining(object):
                 else:
                     image_b_pred = dcn.forward(img_b, upsample=False)
 
-                # get loss
+                # get matching loss
                 if use_spatial_softmax_only:
-                    loss = spatial_softmax_loss_fn.get_loss(image_a_pred, image_b_pred, matches_a, matches_b, img_a, depth_a.cuda(), depth_b.cuda())
+                    loss, kern_images_a, kern_images_b = spatial_softmax_loss_fn.get_loss(image_a_pred, image_b_pred, matches_a, matches_b, img_a, depth_a.cuda(), depth_b.cuda())
                     spatial_softmax_loss = loss
                     match_loss = masked_non_match_loss = background_non_match_loss = blind_non_match_loss = Variable(torch.Tensor([10.0]), requires_grad=False)
                 else:
@@ -367,17 +376,83 @@ class DenseCorrespondenceTraining(object):
                                                                                     masked_non_matches_a, masked_non_matches_b,
                                                                                     background_non_matches_a, background_non_matches_b,
                                                                                     blind_non_matches_a, blind_non_matches_b)
-                
 
                 loss.backward()
-                optimizer.step()
+                if train_correspondence:
+                    optimizer.step()
+
+                # get detection loss
+                if train_detection: #and loss_current_iteration > 1000:
+                    self.adjust_learning_rate(detection_optimizer, loss_current_iteration)
+                    detection_optimizer.zero_grad()
+
+                    a_not_detected_x, a_not_detected_y = spatial_softmax_loss_fn.convert_to_downsampled_coordinates(a_not_detected)
+                    a_descriptors_not_detected = spatial_softmax_loss_fn.sample_descriptors(image_a_pred.detach(), a_not_detected_x, a_not_detected_y)
+                    kern_images_b_not_detected = spatial_softmax_loss_fn.get_kern_images_only(image_b_pred.detach(), a_descriptors_not_detected)
+
+                    def run_detection_get_loss(kern_images, gt):
+                        # normalize
+                        mean = -50.0
+                        std  = 20.0
+
+                        MAX_BATCH = 128
+                        num_batch = min(MAX_BATCH,kern_images.shape[1])
+                        minibatch = kern_images.permute(1,0,2,3)[0:num_batch,:,:,:]
+                        minibatch = (minibatch - mean) / (std + 1e-6)
+                        predicted = detection_net(minibatch)
+                        if gt == "ones":
+                            gt_detections = torch.ones(num_batch).long().cuda()
+                        elif gt == "zeros":
+                            gt_detections = torch.zeros(num_batch).long().cuda()
+                        return detection_criterion(predicted, gt_detections)                        
+                    
+                    
+                    detection_loss  = run_detection_get_loss(kern_images_a.detach(), "ones")*0.5
+                    detection_loss += run_detection_get_loss(kern_images_b.detach(), "ones")*0.5
+                    detection_loss += run_detection_get_loss(kern_images_b_not_detected, "zeros")
+
+                    # print "these are max values"
+                    # print torch.max(kern_images_a)
+                    # print torch.max(kern_images_b)
+                    # print torch.max(kern_images_b_not_detected)
+                    # print "these are min values"
+                    # print torch.min(kern_images_a)
+                    # print torch.min(kern_images_b)
+                    # print torch.min(kern_images_b_not_detected)
+                    # print "these are avg values"
+                    # print torch.mean(kern_images_a)
+                    # print torch.mean(kern_images_b)
+                    # print torch.mean(kern_images_b_not_detected)
+                    # print "these are std values"
+                    # print torch.std(kern_images_a)
+                    # print torch.std(kern_images_b)
+                    # print torch.std(kern_images_b_not_detected)
+                    # print kern_images_a.shape, "shape"
+
+
+                    if loss_current_iteration % 50 == 1:
+                        import matplotlib.pyplot as plt
+                        print "new plots -- in these plots, yellow is 'hot', i.e. yes correspondence"
+                        plt.imshow(kern_images_a[0,0,:,:].detach().cpu().numpy())
+                        plt.show()
+                        plt.imshow(kern_images_b[0,0,:,:].detach().cpu().numpy())
+                        plt.show()
+                        plt.imshow(kern_images_b_not_detected[0,0,:,:].detach().cpu().numpy())
+                        plt.show()
+
+                    print detection_loss.item()
+                    detection_loss.backward()
+                    detection_optimizer.step()
+                else:
+                    detection_loss = Variable(torch.FloatTensor([0]))
+
 
                 #if i % 10 == 0:
                 # TPV.update(self._dataset, dcn, loss_current_iteration, now_training_object_id=metadata["object_id"])
 
                 elapsed = time.time() - start_iter
 
-                if i % 40 == 0:
+                if i % 15 == 0:
                     print "single iteration took %.3f seconds" %(elapsed)
 
 
@@ -418,6 +493,10 @@ class DenseCorrespondenceTraining(object):
                         if data_type == SpartanDatasetDataType.DIFFERENT_OBJECT:
                             self._tensorboard_logger.log_value("train blind DIFFERENT_OBJECT", blind_non_match_loss.item(), loss_current_iteration)
 
+                    if not loss_composer.is_zero_loss(detection_loss):
+                        self._logging_dict['train']['detection_loss'].append(detection_loss.item())
+                        self._tensorboard_logger.log_value("detection loss", detection_loss.item(), loss_current_iteration)
+
 
                     # loss is never zero
                     self._tensorboard_logger.log_value('spatial_softmax_loss', spatial_softmax_loss.item(), loss_current_iteration)
@@ -446,7 +525,10 @@ class DenseCorrespondenceTraining(object):
                 update_plots(loss, match_loss, masked_non_match_loss, background_non_match_loss, blind_non_match_loss)
 
                 if loss_current_iteration % save_rate == 0:
-                    self.save_network(dcn, optimizer, loss_current_iteration, logging_dict=self._logging_dict)
+                    if train_correspondence:
+                        self.save_network(dcn, optimizer, loss_current_iteration, logging_dict=self._logging_dict)
+                    if train_detection:
+                        self.save_detection_network(detection_net, detection_optimizer, loss_current_iteration, logging_dict=self._logging_dict)
 
                 if loss_current_iteration % logging_rate == 0:
                     logging.info("Training on iteration %d of %d" %(loss_current_iteration, max_num_iterations))
@@ -544,6 +626,22 @@ class DenseCorrespondenceTraining(object):
         torch.save(optimizer.state_dict(), optimizer_param_file)
 
         # also save loss history stuff
+        if logging_dict is not None:
+            log_history_file = os.path.join(self._logging_dir, utils.getPaddedString(iteration, width=6) + "_log_history.yaml")
+            utils.saveToYaml(logging_dict, log_history_file)
+
+            current_loss_file = os.path.join(self._logging_dir, 'loss.yaml')
+            current_loss_data = self._get_current_loss(logging_dict)
+
+            utils.saveToYaml(current_loss_data, current_loss_file)
+
+    def save_detection_network(self, detection_net, detection_optimizer, iteration, logging_dict):
+        network_param_file = os.path.join(self._logging_dir, "detection_"+utils.getPaddedString(iteration, width=6) + ".pth")
+        optimizer_param_file = network_param_file + ".opt"
+        torch.save(detection_net, network_param_file)
+        torch.save(detection_optimizer, optimizer_param_file)
+
+                # also save loss history stuff
         if logging_dict is not None:
             log_history_file = os.path.join(self._logging_dir, utils.getPaddedString(iteration, width=6) + "_log_history.yaml")
             utils.saveToYaml(logging_dict, log_history_file)

@@ -716,6 +716,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
         matches_a = SD.flatten_uv_tensor(uv_a, image_width)
         matches_b = SD.flatten_uv_tensor(uv_b, image_width)
+        a_not_detected = SD.flatten_uv_tensor(uv_a_not_detected, image_width)
 
         # Masked non-matches
         uv_a_masked_long, uv_b_masked_non_matches_long = self.create_non_matches(uv_a, uv_b_masked_non_matches, self.num_masked_non_matches_per_match)
@@ -846,7 +847,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
             depth_to_tensor = transforms.Compose([transforms.ToTensor()])
             depth_a_torch = depth_to_tensor(image_a_depth).float() / 1000.0
             depth_b_torch = depth_to_tensor(image_b_depth).float() / 1000.0
-            return metadata["type"], image_a_rgb, image_b_rgb, matches_a, matches_b, masked_non_matches_a, masked_non_matches_b, background_non_matches_a, background_non_matches_b, blind_non_matches_a, blind_non_matches_b, metadata, depth_a_torch, depth_b_torch
+            return metadata["type"], image_a_rgb, image_b_rgb, matches_a, matches_b, masked_non_matches_a, masked_non_matches_b, background_non_matches_a, background_non_matches_b, blind_non_matches_a, blind_non_matches_b, metadata, depth_a_torch, depth_b_torch, a_not_detected
 
 
         return metadata["type"], image_a_rgb, image_b_rgb, matches_a, matches_b, masked_non_matches_a, masked_non_matches_b, background_non_matches_a, background_non_matches_b, blind_non_matches_a, blind_non_matches_b, metadata
