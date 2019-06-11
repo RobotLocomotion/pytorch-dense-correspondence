@@ -263,7 +263,7 @@ class DenseCorrespondenceNetwork(nn.Module):
 
         return res
 
-    def forward_single_image_tensor(self, img_tensor):
+    def forward_single_image_tensor(self, img_tensor, upsample=True):
         """
         Simple forward pass on the network.
 
@@ -287,7 +287,7 @@ class DenseCorrespondenceNetwork(nn.Module):
         img_tensor = torch.tensor(img_tensor, device=torch.device("cuda"))
 
 
-        res = self.forward(img_tensor) # shape [1,D,H,W]
+        res = self.forward(img_tensor, upsample) # shape [1,D,H,W]
         # print "res.shape 1", res.shape
 
 

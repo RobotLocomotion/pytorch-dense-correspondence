@@ -1,6 +1,7 @@
 import dense_correspondence_manipulation.utils.utils as utils
 utils.add_dense_correspondence_to_python_path()
 
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -47,5 +48,25 @@ class DenseDetectionResnet(nn.Module):
         x = self.fc(x)
         #print x.shape, "is final shape"
         return x
+
+    @staticmethod
+    def from_model_folder(model_folder, model_param_file=None, iteration=None):
+        """
+        """
+
+        from_model_folder = False
+        model_folder = utils.convert_to_absolute_path(model_folder)
+
+        if model_param_file is None:
+            model_param_file, _, _ = utils.get_model_param_file_from_directory(os.path.join(model_folder,"detection"), iteration=iteration)
+            from_model_folder = True
+
+        model_param_file = utils.convert_to_absolute_path(model_param_file)
+
+        print model_param_file, "loading"
+
+        detection_net = torch.load(model_param_file)
+
+        return detection_net
 
         

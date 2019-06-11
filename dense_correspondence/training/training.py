@@ -636,7 +636,7 @@ class DenseCorrespondenceTraining(object):
             utils.saveToYaml(current_loss_data, current_loss_file)
 
     def save_detection_network(self, detection_net, detection_optimizer, iteration, logging_dict):
-        network_param_file = os.path.join(self._logging_dir, "detection_"+utils.getPaddedString(iteration, width=6) + ".pth")
+        network_param_file = os.path.join(self._logging_dir, "detection", utils.getPaddedString(iteration, width=6) + ".pth")
         optimizer_param_file = network_param_file + ".opt"
         torch.save(detection_net, network_param_file)
         torch.save(detection_optimizer, optimizer_param_file)

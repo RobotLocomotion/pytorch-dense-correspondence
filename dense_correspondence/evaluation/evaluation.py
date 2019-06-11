@@ -31,6 +31,7 @@ from dense_correspondence.dataset.dynamic_spartan_dataset import DynamicSpartanD
 import dense_correspondence.correspondence_tools.correspondence_plotter as correspondence_plotter
 import dense_correspondence.correspondence_tools.correspondence_finder as correspondence_finder
 from dense_correspondence.network.dense_correspondence_network import DenseCorrespondenceNetwork
+from dense_correspondence.network.dense_detection_network import DenseDetectionResnet
 from dense_correspondence.loss_functions.pixelwise_contrastive_loss import PixelwiseContrastiveLoss
 import dense_correspondence_manipulation.utils.visualization as vis_utils
 
@@ -128,6 +129,18 @@ class DenseCorrespondenceEvaluation(object):
         dcn = DenseCorrespondenceNetwork.from_model_folder(model_folder, model_param_file=path_to_network_params)
         dcn.eval()
         return dcn
+
+    def load_detection_network_from_config(self, name):
+        if name not in self._config["networks"]:
+            raise ValueError("Network %s is not in config file" %(name))
+        path_to_network_params = self._config["networks"][name]["path_to_network_params"]
+        path_to_network_params = utils.convert_data_relative_path_to_absolute_path(path_to_network_params, assert_path_exists=True)
+        model_folder = os.path.dirname(path_to_network_params)
+        detection_net = DenseDetectionResnet.from_model_folder(model_folder, model_param_file=path_to_network_params)
+        detection_net.eval()
+        return detection_net
+
+
 
     def load_dataset_for_network(self, network_name):
         """
