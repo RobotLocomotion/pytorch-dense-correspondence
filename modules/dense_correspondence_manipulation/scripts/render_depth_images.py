@@ -7,8 +7,10 @@ import dense_correspondence_manipulation.change_detection.change_detection as ch
 import dense_correspondence_manipulation.utils.utils as utils
 from dense_correspondence_manipulation.utils.constants import *
 from director.timercallback import TimerCallback
+
+
 """
-Runs change detection to compute masks for each image
+Renders depth images against the entire scene
 """
 
 CONFIG_FILE = CHANGE_DETECTION_CONFIG_FILE
@@ -38,6 +40,9 @@ def run(data_folder, config_file=CONFIG_FILE, debug=False, globalsDict=None):
 
     changeDetection, obj_dict = change_detection.ChangeDetection.from_data_folder(data_folder, config=config, globalsDict=globalsDict,
                                                                                   background_data_folder=data_folder)
+
+    # set foreground mesh to actually be background mesh
+    changeDetection.foreground_reconstruction = changeDetection.background_reconstruction
 
     app = obj_dict['app']
     globalsDict['cd'] = changeDetection

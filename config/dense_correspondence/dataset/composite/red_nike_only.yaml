@@ -1,8 +1,8 @@
-logs_root_path: code/data_volume/pdc/logs_proto
+logs_root_path: logs_proto
 
 single_object_scenes_config_files:
 - shoe_red_nike.yaml
 
 multi_object_scenes_config_files:
-- "code/data_volume/pdc/evaluation_labeled_data/shoe_red_nike.yaml"
+- "evaluation_labeled_data/shoe_red_nike.yaml"
 

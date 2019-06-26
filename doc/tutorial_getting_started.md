@@ -9,7 +9,8 @@ We'll use the data and approach from our [paper, "Dense Object Nets"](https://ar
 
 - An Ubuntu machine (we've tested 14.04, 16.04, 18.04) with an Nvidia GPU (recommended at least 4 GB of memory)
 - Python 2 and a handful of Python 2 modules (`yaml`, etc) to run initial scripts
-- Everything else will be set up automatically inside an `nvidia-docker` container
+- Everything else will be set up automatically inside an `nvidia-docker` container.
+- Inside the docker container we use CUDA 10 and Pytorch 1.1. If you would like to update to a different CUDA or pytorch version you can modify the [dockerfile](../docker/pytorch-dense-correspondence.dockerfile) for which CUDA version to inherit from. To modify which pytorch version gets installed see [install_pytorch.sh](../docker/install_pytorch.sh). 
 
 ## Step 0: Clone the repo
 
@@ -23,11 +24,9 @@ Decide where you want to download the data to and then use our provided script t
 download a subset.  (This script will only download a 5.3 GB subset of data.  The full dataset is about 100 GB.)
 
 ```
-## first, navigate to where you want to download the data
-## this example will just place the data folder inside of pytorch-dense-correspondence
-## you may alternatively want to place the data on an external drive
+# navigate to the root of the project so paths can be inferred
 cd pytorch-dense-correspondence
-python config/download_pdc_data.py config/dense_correspondence/dataset/composite/caterpillar_only_9.yaml
+python config/download_pdc_data.py config/dense_correspondence/dataset/composite/caterpillar_upright.yaml <full_path_to_data_location>
 ```
 
 The above will download only the scenes with the single caterpillar object, as a starting subset of the data.
@@ -114,7 +113,7 @@ cd modules/user-interaction-heatmap-visualization
 python live_heatmap_visualization.py
 ```
 
-This brings up the heatmap visualization. Using the learned descriptors for the caterpillar network you just trained it finds correspondences between the source and target images. The best match for the point you are mousing over in the target image is indicated by the reticle in the target image. Other nearby points (in descriptor space) are indicated by the dark regions in the grayscale image.
+This brings up the heatmap visualization. Using the learned descriptors for the caterpillar network you just trained it finds correspondences between the source and target images. The best match for the point you are mousing over in the source image is indicated by the reticle in the target image. Other nearby points (in descriptor space) are indicated by the red regions in the heatmap image.
 
 Use `n` on your keyboard to bring up a new pair of random images.
 

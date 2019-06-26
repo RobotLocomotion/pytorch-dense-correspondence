@@ -409,6 +409,7 @@ class ChangeDetection(object):
 
     def render_depth_images(self, output_dir=None, rendered_images_dir=None):
         """
+        Note: This is actually rendering against whatever is saved as self.foreground_reconstruction
         Renders the depth images on the entire scene
         processed/rendered_images/000000_depth.png
         :return:
@@ -420,6 +421,7 @@ class ChangeDetection(object):
         if rendered_images_dir is None:
             rendered_images_dir = os.path.join(self.foreground_reconstruction.data_dir, 'rendered_images')
 
+        start_time = time.time()
         start_time = time.time()
 
         # read in each image in the log
@@ -499,7 +501,7 @@ class ChangeDetection(object):
 
         print "background folder: ", background_data_folder
 
-        background_reconstruction_placeholder = TSDFReconstruction.from_data_folder(background_data_folder, config=config)
+        background_reconstruction_placeholder = TSDFReconstruction.from_data_folder(background_data_folder, config=config, load_foreground_mesh=False)
 
 
         if globalsDict is None:

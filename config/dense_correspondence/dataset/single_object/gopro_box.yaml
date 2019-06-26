@@ -1,4 +1,4 @@
-logs_root_path: code/data_volume/pdc/logs_proto
+logs_root_path: logs_proto
 object_id: "gopro_box"
 train:
 - "2018-04-24-16-49-18"

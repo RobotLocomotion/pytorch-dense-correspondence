@@ -1,6 +1,8 @@
-logs_root_path: code/data_volume/pdc/logs_proto
+logs_root_path: logs_proto
 
 single_object_scenes_config_files:
 - mugs.yaml
+- white_plastic_mug.yaml
+- blue_plastic_mug.yaml
 
 multi_object_scenes_config_files: []

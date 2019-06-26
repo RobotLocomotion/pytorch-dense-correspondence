@@ -1,0 +1,13 @@
+logs_root_path: logs_proto
+object_id: "shoe_globalwin_blue_grey"
+train:
+  - "2018-11-16-19-23-06" # down
+  - "2018-11-16-20-22-29" # right down
+  - "2018-11-16-20-28-22" # up
+  - "2018-11-16-20-33-21" # left up
+test:
+  - "2018-11-16-19-23-06" # down
+  - "2018-11-16-20-22-29" # right down
+  - "2018-11-16-20-28-22" # up
+  - "2018-11-16-20-33-21" # left up
+evaluation_labeled_data_path: []
