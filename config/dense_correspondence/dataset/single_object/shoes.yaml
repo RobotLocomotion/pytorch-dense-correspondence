@@ -1,4 +1,4 @@
-logs_root_path: code/data_volume/pdc/logs_proto
+logs_root_path: logs_proto
 object_id: "shoes"
 train:
 - "2018-05-09-18-04-04"

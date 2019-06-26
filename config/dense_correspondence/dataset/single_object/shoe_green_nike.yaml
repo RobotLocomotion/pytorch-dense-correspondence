@@ -1,4 +1,4 @@
-logs_root_path: code/data_volume/pdc/logs_proto
+logs_root_path: logs_proto
 object_id: "shoe_green_nike"
 train:
 - "2018-05-15-00-04-06" # green nike
@@ -9,4 +9,4 @@ test:
 - "2018-05-15-00-06-46" # green nike
 - "2018-05-15-00-08-46" # green nike
 evaluation_labeled_data_path: 
-- "code/data_volume/pdc/evaluation_labeled_data/shoe_green_nike.yaml"
+- "evaluation_labeled_data/shoe_green_nike.yaml"

@@ -1,0 +1,13 @@
+logs_root_path: logs_proto
+object_id: "shoe_tesla_maroon"
+train: 
+  - "2018-11-16-18-03-13" # down
+  - "2018-11-16-19-03-23" # right down
+  - "2018-11-16-19-08-44" # right up
+  - "2018-11-16-19-14-26" # left up
+test:
+  - "2018-11-16-18-03-13" # down
+  - "2018-11-16-19-03-23" # right down
+  - "2018-11-16-19-08-44" # right up
+  - "2018-11-16-19-14-26" # left up
+evaluation_labeled_data_path: []

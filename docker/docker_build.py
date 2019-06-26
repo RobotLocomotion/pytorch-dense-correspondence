@@ -18,11 +18,13 @@ if __name__=="__main__":
 
 	parser.add_argument("-d", "--dry_run", action='store_true', help="(optional) perform a dry_run, print the command that would have been executed but don't execute it.")
 
-	parser.add_argument("-p", "--password", type=str,
+	parser.add_argument("-pw", "--password", type=str,
                         help="(optional) password for the user", default="password")
 
 	parser.add_argument('-uid','--user_id', type=int, help="(optional) user id for this user", default=os.getuid())
 	parser.add_argument('-gid','--group_id', type=int, help="(optional) user gid for this user", default=os.getgid())
+
+	parser.add_argument('-p', "--passthrough", type=str, help="(optional) passthrough arguments to add to the docker build")
 
 	args = parser.parse_args()
 	print("building docker image named ", args.image)
@@ -31,6 +33,10 @@ if __name__=="__main__":
 			--build-arg USER_ID=%(user_id)s \
 			--build-arg USER_GID=%(group_id)s" \
 			%{'user_name': user_name, 'password': args.password, 'user_id': args.user_id, 'group_id': args.group_id}
+
+	if args.passthrough:
+		cmd += " " + args.passthrough
+
 	cmd += " -t %s -f pytorch-dense-correspondence.dockerfile ." % args.image
 	
 

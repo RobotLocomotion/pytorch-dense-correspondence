@@ -5,7 +5,7 @@
 
 set -exu
 
-root_dir=$(pwd)
+root_dir=$USER_HOME_DIR
 install_dir=$root_dir/install
 
 apt-get update
@@ -29,6 +29,7 @@ apt install --no-install-recommends \
 
 build_director()
 {
+  cd $root_dir
   director_version=0.1.0-318-gd10dfa9
   director_binary=ubuntu-16.04
   wget https://dl.bintray.com/patmarion/director/director-$director_version-$director_binary.tar.gz

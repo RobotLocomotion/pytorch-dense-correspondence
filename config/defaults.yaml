@@ -12,3 +12,7 @@ iiwa-2:
   manuelli:
     cuda_visible_devices: [] # this means use all gpus
 
+iiwa-workstation:
+  manulli:
+    cuda_visible_devices: [0]
+

@@ -1,4 +1,4 @@
-qlogs_root_path: code/data_volume/pdc/logs_proto
+qlogs_root_path: logs_proto
 object_id: "baymax"
 train:
 - "2018-04-24-17-16-40" # head pointed down left
@@ -13,4 +13,4 @@ test:
 - "2018-04-24-17-42-27" # head pointed up and right
 - "2018-04-24-17-30-08" # head pointed down
 evaluation_labeled_data_path:
-- "code/data_volume/pdc/evaluation_labeled_data/baymax_front_cross_scene_labels.yaml"
+- "evaluation_labeled_data/baymax_front_cross_scene_labels.yaml"
