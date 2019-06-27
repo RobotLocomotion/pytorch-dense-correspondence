@@ -258,10 +258,11 @@ class DenseCorrespondenceTraining(object):
         dcn.cuda()
         dcn.train()
 
-        detection_net = DenseDetectionResnet().cuda()
-        detection_criterion = nn.CrossEntropyLoss()
-        detection_optimizer = optim.Adam(detection_net.parameters(), lr=1e-4, weight_decay=1e-4)
-        #detection_optimizer = optim.SGD(detection_net.parameters(), lr=0.001, momentum=0.9)
+        if train_detection:
+            detection_net = DenseDetectionResnet().cuda()
+            detection_criterion = nn.CrossEntropyLoss()
+            detection_optimizer = optim.Adam(detection_net.parameters(), lr=1e-4, weight_decay=1e-4)
+            #detection_optimizer = optim.SGD(detection_net.parameters(), lr=0.001, momentum=0.9)
 
         optimizer = self._optimizer
         batch_size = self._data_loader.batch_size
