@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-export DATA_DIR=~/spartan/data_volume
+export DATA_DIR=~/data
 export DC_DATA_DIR=$DATA_DIR/imitation
 export DC_SOURCE_DIR=~/spartan/src/catkin_projects/pytorch-dense-correspondence-private
 export PDC_BUILD_DIR=$DC_SOURCE_DIR/build
