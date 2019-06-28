@@ -455,4 +455,4 @@ class DynamicSpartanDataset(SpartanDataset):
         depth_to_tensor = transforms.Compose([transforms.ToTensor()])
         depth_a_torch = depth_to_tensor(image_a_depth).float() / 1000.0
         depth_b_torch = depth_to_tensor(image_b_depth).float() / 1000.0
-        return metadata["type"], image_a_rgb, image_b_rgb, matches_a, matches_b, masked_non_matches_a, masked_non_matches_b, background_non_matches_a, background_non_matches_b, blind_non_matches_a, blind_non_matches_b, metadata, depth_a_torch, depth_b_torch
+        return metadata["type"], image_a_rgb, image_b_rgb, matches_a, matches_b, masked_non_matches_a, masked_non_matches_b, background_non_matches_a, background_non_matches_b, blind_non_matches_a, blind_non_matches_b, metadata, depth_a_torch, depth_b_torch, torch.FloatTensor([0])
