@@ -1,4 +1,4 @@
-logs_root_path: imitation/real_right_shoes
+logs_root_path: imitation/logs
 
 single_object_scenes_config_files:
 - dynamic_real_right_shoes.yaml
