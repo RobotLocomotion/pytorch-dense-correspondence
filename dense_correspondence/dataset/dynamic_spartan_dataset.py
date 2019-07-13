@@ -9,6 +9,7 @@ import random
 import copy
 
 import torch
+import json
 
 # note that this is the torchvision provided by the warmspringwinds
 # pytorch-segmentation-detection repo. It is a fork of pytorch/vision
@@ -55,11 +56,12 @@ class DynamicSpartanDataset(SpartanDataset):
         :type config_expanded: dict()
         """
         SpartanDataset.__init__(self, debug=debug, mode=mode, config=config, config_expanded=config_expanded)
+        self.getitem_passthrough = super(DynamicSpartanDataset, self).__getitem__
         # HACK
         self.num_images_total = 1000 
 
     def __len__(self):
-        return 1000
+        return 50000
 
     def get_camera_info_dict(self, scene_name, camera_num):
         scene_directory = self.get_full_path_for_scene(scene_name)
@@ -151,6 +153,7 @@ class DynamicSpartanDataset(SpartanDataset):
 
         if isinstance(img_index, int):
             img_index = utils.getPaddedString(img_index, width=SpartanDataset.PADDED_STRING_WIDTH)
+        img_index = img_index.zfill(6)
 
         scene_directory = self.get_full_path_for_scene(scene_name)
         if not os.path.isdir(scene_directory):
@@ -164,8 +167,8 @@ class DynamicSpartanDataset(SpartanDataset):
 
     def get_random_image_index(self, scene_name):
         scene_directory = self.get_full_path_for_scene(scene_name)
-        state_info_filename = os.path.join(scene_directory, "states.yaml")
-        state_info_dict = utils.getDictFromYamlFilename(state_info_filename)
+        state_info_filename = os.path.join(scene_directory, "states.json")
+        state_info_dict = json.load(file(state_info_filename))
         image_idxs = state_info_dict.keys() # list of integers
         return random.choice(image_idxs)
 
@@ -177,6 +180,38 @@ class DynamicSpartanDataset(SpartanDataset):
         K[1,2] = 239.5 # principal point y
         K[2,2] = 1.0
         return K
+
+    def set_small_image_size(self, H, W):
+        assert H == W
+        self.H_small = H
+
+    def get_simple_image(self, index, gray=False):
+        object_id = self.get_random_object_id()
+        scene_name = self.get_random_single_object_scene_name(object_id)
+        idx = self.get_random_image_index(scene_name)
+        camera_num_a = 0
+        image_a_rgb = self.get_rgb_image_from_scene_name_and_idx_and_cam(scene_name, idx, camera_num_a)
+        image_a_rgb_PIL = image_a_rgb
+        img = self.rgb_image_to_tensor(image_a_rgb)
+        if gray:
+            img_gray = torch.zeros(480,480)
+            img_gray = img[0,:,80:-80] + img[1,:,80:-80] + img[2,:,80:-80]
+            img_gray_down = torch.nn.functional.interpolate(img_gray.unsqueeze(0).unsqueeze(0), scale_factor=self.H_small/480.0, mode='bilinear', align_corners=True).squeeze(0).squeeze(0)
+            return img_gray_down
+        else:
+            img = img[:,:,80:-80]
+            img = torch.nn.functional.interpolate(img.unsqueeze(0), scale_factor=self.H_small/480.0, mode='bilinear', align_corners=True).squeeze(0)
+            return img
+
+
+
+    def __getitem__(self, index):
+        return self.getitem_passthrough(index) 
+
+
+    def set_as_simple_image_loader(self):
+        print "SETTING AS SIMPLE IMAGE LOADER"
+        self.getitem_passthrough = self.get_simple_image
         
     def get_within_scene_data(self, scene_name, metadata, for_synthetic_multi_object=False):
         """
@@ -279,15 +314,16 @@ class DynamicSpartanDataset(SpartanDataset):
             image_a_rgb = correspondence_augmentation.random_domain_randomize_background(image_a_rgb, image_a_mask)
             image_b_rgb = correspondence_augmentation.random_domain_randomize_background(image_b_rgb, image_b_mask)
 
-        if not self.debug:
-            [image_a_rgb, image_a_mask], uv_a = correspondence_augmentation.random_image_and_indices_mutation([image_a_rgb, image_a_mask], uv_a)
-            [image_b_rgb, image_b_mask], uv_b = correspondence_augmentation.random_image_and_indices_mutation(
-                [image_b_rgb, image_b_mask], uv_b)
-        else:  # also mutate depth just for plotting
-            [image_a_rgb, image_a_depth, image_a_mask], uv_a = correspondence_augmentation.random_image_and_indices_mutation(
-                [image_a_rgb, image_a_depth, image_a_mask], uv_a)
-            [image_b_rgb, image_b_depth, image_b_mask], uv_b = correspondence_augmentation.random_image_and_indices_mutation(
-                [image_b_rgb, image_b_depth, image_b_mask], uv_b)
+        if self._domain_randomize:
+            if not self.debug:
+                [image_a_rgb, image_a_mask], uv_a = correspondence_augmentation.random_image_and_indices_mutation([image_a_rgb, image_a_mask], uv_a)
+                [image_b_rgb, image_b_mask], uv_b = correspondence_augmentation.random_image_and_indices_mutation(
+                    [image_b_rgb, image_b_mask], uv_b)
+            else:  # also mutate depth just for plotting
+                [image_a_rgb, image_a_depth, image_a_mask], uv_a = correspondence_augmentation.random_image_and_indices_mutation(
+                    [image_a_rgb, image_a_depth, image_a_mask], uv_a)
+                [image_b_rgb, image_b_depth, image_b_mask], uv_b = correspondence_augmentation.random_image_and_indices_mutation(
+                    [image_b_rgb, image_b_depth, image_b_mask], uv_b)
 
         image_a_depth_numpy = np.asarray(image_a_depth)
         image_b_depth_numpy = np.asarray(image_b_depth)
