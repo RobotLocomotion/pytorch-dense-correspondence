@@ -1,0 +1,6 @@
+logs_root_path: imitation/move_to_box_careful
+
+single_object_scenes_config_files:
+- dynamic_sugar_move_to_box_0710.yaml
+
+multi_object_scenes_config_files: []
