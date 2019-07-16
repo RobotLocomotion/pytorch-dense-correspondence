@@ -425,8 +425,8 @@ def get_depth2_vec(img_b_depth, u2_vec, v2_vec, image_width):
     uv_b_vec_flattened = (v2_vec.type(dtype_long)*image_width+u2_vec.type(dtype_long)) 
 
     # for some reason works better on sim data?
-    # uv_b_vec_flattened = ((v2_vec+0.5).type(dtype_long)*image_width+(u2_vec+0.5).type(dtype_long))  # simply round to int -- good enough 
-    #                                                                    # occlusion check for smooth surfaces
+    #uv_b_vec_flattened = ((v2_vec+0.5).type(dtype_long)*image_width+(u2_vec+0.5).type(dtype_long))  # simply round to int -- good enough 
+                                                                       # occlusion check for smooth surfaces
 
     depth2_vec = torch.index_select(img_b_depth_torch, 0, uv_b_vec_flattened)*1.0/DEPTH_IM_SCALE
     depth2_vec = depth2_vec.squeeze(1)
@@ -474,7 +474,7 @@ def prune_if_occluded(u2_vec, v2_vec, z2_vec, u_a, v_a, depth2_vec):
     occluded_indices = torch.nonzero(depth2_vec == 0)
 
     if non_occluded_indices.dim() == 0 or len(non_occluded_indices) == 0:
-        return True, None, None, None, None, None, None
+        return True, None, None, None, None, None, None, None
     
     non_occluded_indices = non_occluded_indices.squeeze(1)
 
@@ -485,7 +485,7 @@ def prune_if_occluded(u2_vec, v2_vec, z2_vec, u_a, v_a, depth2_vec):
     v_a_pruned_non_occluded = torch.index_select(v_a, 0, non_occluded_indices) # also prune from first list
     
     if u2_vec_non_occluded.dim() == 0 or u_a_pruned_non_occluded.dim() == 0:
-        return True, None, None, None, None, None, None, None, None
+        return True, None, None, None, None, None, None, None
 
     if occluded_indices.dim() != 0:
         occluded_indices = occluded_indices.squeeze(1)
