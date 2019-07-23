@@ -15,6 +15,8 @@ from PIL import Image, ImageOps
 import numpy as np
 import random
 import torch
+import imgaug.augmenters as iaa
+import imgaug as ia
 
 def random_image_and_indices_mutation(images, uv_pixel_positions):
     """
@@ -345,6 +347,82 @@ def merge_matches(matches_one, matches_two):
     concatenated_u = torch.cat((matches_one[0], matches_two[0]))
     concatenated_v = torch.cat((matches_one[1], matches_two[1]))
     return (concatenated_u, concatenated_v)
+
+
+def piecewise_affine(images, uv_pixel_positions):
+    """
+    images: list of PIL images
+    uv_pixel_positions: tuple of torch tensors
+    """
+    all_uv_one_tensor = torch.stack((uv_pixel_positions[0],uv_pixel_positions[1])).permute(1,0)
+    all_uv_one_numpy = all_uv_one_tensor.numpy()
+    
+    images_numpy = [np.asarray(i) for i in images]
+
+    for i in images_numpy:
+        print i.shape
+
+
+    # HACK FOR VIS
+    #some_uv_one_numpy = all_uv_one_numpy[:100,:100]
+    #all_uv_one_numpy = some_uv_one_numpy
+    #print images_numpy[0].shape
+
+    kpsoi_new = ia.KeypointsOnImage.from_xy_array(all_uv_one_numpy, shape=images_numpy[0].shape)
+    
+    seq = iaa.Sequential([
+        #iaa.Multiply((0.8, 1.2)), # change brightness, doesn't affect keypoints
+        #iaa.AddToHueAndSaturation((-50, 50)),
+        iaa.Affine(
+            rotate=(-180,180),
+            scale=(0.8, 1.2),
+            shear=(-10,10)
+        ) # rotate by exactly 10deg and scale to 50-70%, affects keypoints
+    ])
+
+    rand = random.randint(0,1e9)
+    ia.seed(rand)
+
+    image_aug, kpsoi_aug = seq(image=images_numpy[0], keypoints=kpsoi_new)
+    ia.imshow(
+        np.hstack([
+            kpsoi_new.draw_on_image(images_numpy[0], size=7),
+            kpsoi_aug.draw_on_image(image_aug, size=7)
+        ])
+    )
+
+
+    kpsoi_new = ia.KeypointsOnImage.from_xy_array(all_uv_one_numpy, shape=images_numpy[1].shape)
+    ia.seed(rand)
+
+    next_img = np.expand_dims(images_numpy[1], axis=2)
+
+    image_aug, kpsoi_aug = seq(image=next_img, keypoints=kpsoi_new)
+
+    ia.imshow(
+        np.hstack([
+            kpsoi_new.draw_on_image(np.repeat(next_img, 3, axis=2), size=7),
+            kpsoi_aug.draw_on_image(np.repeat(image_aug, 3, axis=2), size=7)
+        ])
+    )
+
+    import matplotlib.pyplot as plt
+    plt.imshow(images_numpy[1], vmin=500.0, vmax=4000.0)
+    plt.show()
+
+    plt.imshow(image_aug[:,:,0], vmin=500.0, vmax=4000.0)
+    plt.show()
+
+    print np.max(images_numpy[1]), np.mean(images_numpy[1])
+    print np.max(image_aug), np.mean(image_aug)
+
+    print images_numpy[1][int(all_uv_one_numpy[0,1]), int(all_uv_one_numpy[0,0])]
+
+    rr = kpsoi_aug.to_xy_array()
+    print image_aug[int(rr[0,1]), int(rr[0,0])]
+
+    
+    sys.exit(0)
 
 
 
