@@ -327,6 +327,14 @@ class DynamicSpartanDataset(SpartanDataset):
         if self._domain_randomize:
             [image_a_rgb, image_a_depth, image_a_mask], [uv_a, uv_a_not_detected] = correspondence_augmentation.affine_augmentation([image_a_rgb, image_a_depth, image_a_mask], [uv_a, uv_a_not_detected])
             [image_b_rgb, image_b_depth, image_b_mask], [uv_b] = correspondence_augmentation.affine_augmentation([image_b_rgb, image_b_depth, image_b_mask], [uv_b])
+
+
+            uv_a, uv_a_not_detected, uv_b = correspondence_augmentation.joint_prune_out_of_FOV(uv_a, uv_a_not_detected, uv_b)
+            if uv_a is None or len(uv_a) == 0:
+                logging.info("no matches found, returning")
+                image_a_rgb_tensor = self.rgb_image_to_tensor(image_a_rgb)
+                return self.return_empty_data(image_a_rgb_tensor, image_a_rgb_tensor)
+
             # if not self.debug:
             #     [image_a_rgb, image_a_mask], uv_a = correspondence_augmentation.random_image_and_indices_mutation([image_a_rgb, image_a_mask], uv_a)
             #     [image_b_rgb, image_b_mask], uv_b = correspondence_augmentation.random_image_and_indices_mutation(
@@ -341,12 +349,30 @@ class DynamicSpartanDataset(SpartanDataset):
         image_b_depth_numpy = np.asarray(image_b_depth)
 
 
-        # find non_correspondences
         image_b_mask_torch = torch.from_numpy(np.asarray(image_b_mask)).type(torch.FloatTensor)
         image_b_shape = image_b_depth_numpy.shape
         image_width = image_b_shape[1]
         image_height = image_b_shape[0]
 
+
+        # convert PIL.Image to torch.FloatTensor
+        image_a_rgb_PIL = image_a_rgb
+        image_b_rgb_PIL = image_b_rgb
+        image_a_rgb = self.rgb_image_to_tensor(image_a_rgb)
+        image_b_rgb = self.rgb_image_to_tensor(image_b_rgb)
+
+
+
+        matches_a = SD.flatten_uv_tensor(uv_a, image_width)
+        matches_b = SD.flatten_uv_tensor(uv_b, image_width)
+
+        matches_a, matches_b = correspondence_finder.photometric_check(image_a_rgb, image_b_rgb, matches_a, matches_b)
+        if matches_a is None:
+            logging.info("no matches found, returning")
+            return self.return_empty_data(image_a_rgb, image_b_rgb)
+
+
+        # find non_correspondences
         uv_b_masked_non_matches = \
             correspondence_finder.create_non_correspondences(uv_b,
                                                              image_b_shape,
@@ -364,16 +390,6 @@ class DynamicSpartanDataset(SpartanDataset):
                                                                             num_non_matches_per_match=self.num_background_non_matches_per_match,
                                                                             img_b_mask=image_b_mask_inv)
 
-
-
-        # convert PIL.Image to torch.FloatTensor
-        image_a_rgb_PIL = image_a_rgb
-        image_b_rgb_PIL = image_b_rgb
-        image_a_rgb = self.rgb_image_to_tensor(image_a_rgb)
-        image_b_rgb = self.rgb_image_to_tensor(image_b_rgb)
-
-        matches_a = SD.flatten_uv_tensor(uv_a, image_width)
-        matches_b = SD.flatten_uv_tensor(uv_b, image_width)
 
         # Masked non-matches
         uv_a_masked_long, uv_b_masked_non_matches_long = self.create_non_matches(uv_a, uv_b_masked_non_matches, self.num_masked_non_matches_per_match)
@@ -503,4 +519,7 @@ class DynamicSpartanDataset(SpartanDataset):
         depth_to_tensor = transforms.Compose([transforms.ToTensor()])
         depth_a_torch = depth_to_tensor(image_a_depth).float() / 1000.0
         depth_b_torch = depth_to_tensor(image_b_depth).float() / 1000.0
+
+        #print len(matches_a), len(matches_b), "is len matches returning"
+
         return metadata["type"], image_a_rgb, image_b_rgb, matches_a, matches_b, masked_non_matches_a, masked_non_matches_b, background_non_matches_a, background_non_matches_b, blind_non_matches_a, blind_non_matches_b, metadata, depth_a_torch, depth_b_torch, torch.FloatTensor([0])

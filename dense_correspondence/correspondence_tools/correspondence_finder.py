@@ -16,6 +16,8 @@ import sys
 sys.path.insert(0, '../pytorch-segmentation-detection/vision/') # from subrepo
 from torchvision import transforms
 
+import dense_correspondence_manipulation.utils.utils as utils
+
 
 from dense_correspondence_manipulation.utils.constants import *
 
@@ -731,3 +733,100 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
         v_a_not_detected = torch.cat((v_a_outsideFOV,v_a_occluded))
         uv_a_not_detected = (u_a_not_detected, v_a_not_detected)
         return uv_a_vec, uv_b_vec, uv_a_not_detected
+
+
+def photometric_check(image_a_rgb, image_b_rgb, matches_a, matches_b):
+    """
+    image_a_rgb: torch.FloatTensor, shape D, H, W
+    matches_a: torch.FloatTensor, flat index into image
+    """
+    image_width = image_b_rgb.shape[2]
+
+    image_a_rgb_flat = image_a_rgb.view(image_a_rgb.shape[0], -1)
+    image_b_rgb_flat = image_b_rgb.view(image_b_rgb.shape[0], -1)
+    #print "BEFORE"
+    #print len(matches_a)
+    # print len(matches_b)
+
+    # print image_a_rgb_flat[:,matches_a[0]]
+    # print torch.index_select(image_a_rgb_flat, 1, matches_a[0])
+    
+    photovalues_a = torch.index_select(image_a_rgb_flat, 1, matches_a)
+    photovalues_b = torch.index_select(image_b_rgb_flat, 1, matches_b)
+
+    # print photovalues_a.shape, "photovalues_a shape"    
+    # print photovalues_b.shape, "photovalues_b shape"
+
+    photodiff = ((photovalues_a - photovalues_b)**2).sum(dim=0)
+    # print photodiff.shape, "is photodiff shape"
+    # print torch.max(photodiff), "is max photodiff"
+    # print torch.mean(photodiff), "is mean"
+
+    PHOTODIFF_THRESH = 4.0
+    zeros_vec       = torch.zeros_like(photodiff)   
+    matches_passed = where(photodiff > PHOTODIFF_THRESH, zeros_vec, matches_a.float()).long()
+    
+    valid_matches = torch.nonzero(matches_passed)
+    #print len(valid_matches), "is valid_matches"
+
+    invalid_matches = torch.nonzero(matches_passed == 0)
+    #print len(invalid_matches), "is invalid_matches"
+    
+    if valid_matches.dim() == 0 or len(valid_matches) == 0:
+        return None, None
+
+    valid_matches = valid_matches.squeeze(1)
+
+    DEBUG = False
+    if DEBUG:
+        import matplotlib.pyplot as plt
+
+        invalid_matches = invalid_matches.squeeze(1)
+
+        # apply pruning
+        invalid_matches_a = torch.index_select(matches_a, 0, invalid_matches)
+        invalid_matches_b = torch.index_select(matches_b, 0, invalid_matches)
+
+        print "REJECTED MATCHES"
+
+        plt.imshow(image_a_rgb.permute(1,2,0).numpy())
+        uv = utils.flattened_pixel_locations_to_u_v(invalid_matches_a, image_width)
+        for i in range(8):
+            plt.scatter(uv[0][i], uv[1][i])
+        plt.show()
+
+        plt.imshow(image_b_rgb.permute(1,2,0).numpy())
+        uv = utils.flattened_pixel_locations_to_u_v(invalid_matches_b, image_width)
+        for i in range(8):
+            plt.scatter(uv[0][i], uv[1][i])
+        plt.show()
+
+
+    # apply pruning
+    matches_a = torch.index_select(matches_a, 0, valid_matches)
+    matches_b = torch.index_select(matches_b, 0, valid_matches)
+
+    if DEBUG:
+        import matplotlib.pyplot as plt
+
+        print "PASSED MATCHES"
+
+        plt.imshow(image_a_rgb.permute(1,2,0).numpy())
+        uv = utils.flattened_pixel_locations_to_u_v(matches_a, image_width)
+        for i in range(8):
+            plt.scatter(uv[0][i], uv[1][i])
+        plt.show()
+
+        plt.imshow(image_b_rgb.permute(1,2,0).numpy())
+        uv = utils.flattened_pixel_locations_to_u_v(matches_b, image_width)
+        for i in range(8):
+            plt.scatter(uv[0][i], uv[1][i])
+        plt.show()
+
+
+
+    #print "AFTER"
+    #print len(matches_a)
+    # print len(matches_b)
+    
+    return matches_a, matches_b
