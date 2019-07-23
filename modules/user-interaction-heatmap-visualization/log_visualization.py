@@ -3,6 +3,7 @@ import os
 import cv2
 import numpy as np
 import copy
+import json
 
 import dense_correspondence_manipulation.utils.utils as utils
 dc_source_dir = utils.getDenseCorrespondenceSourceDir()
@@ -139,9 +140,15 @@ class LogVisualization(object):
         #self.scene_2_indices =  sorted(pose_data.keys())
 
         scene_directory = self._dataset.get_full_path_for_scene(self.scene_name_2)
-        state_info_filename = os.path.join(scene_directory, "states.yaml")
-        state_info_dict = utils.getDictFromYamlFilename(state_info_filename)
-        self.scene_2_indices = sorted(state_info_dict.keys()) # list of integers
+        try:
+            state_info_filename = os.path.join(scene_directory, "states.json")
+            state_info_dict = json.load(file(state_info_filename))
+            self.scene_2_indices = [str(i) for i in range(0,len(state_info_dict))]
+        except:
+            state_info_filename = os.path.join(scene_directory, "states.yaml")
+            state_info_dict = utils.getDictFromYamlFilename(state_info_filename)
+            self.scene_2_indices = sorted(state_info_dict.keys()) # list of integers
+        
 
         self.index_index = 0
         self.image_2_idx = self.scene_2_indices[self.index_index]
