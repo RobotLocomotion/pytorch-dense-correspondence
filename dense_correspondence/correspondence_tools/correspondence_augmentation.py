@@ -17,6 +17,7 @@ import random
 import torch
 import imgaug.augmenters as iaa
 import imgaug as ia
+import correspondence_finder
 
 def random_image_and_indices_mutation(images, uv_pixel_positions):
     """
@@ -462,5 +463,29 @@ def affine_augmentation(images, uv_pixel_positions):
 
 
 
+
+def joint_prune_out_of_FOV(uv_a, uv_a_not_detected, uv_b, image_width=640, image_height=480):
+
+    # print len(uv_a[0]), "len uv_a[0]"
+    # print torch.max(uv_a[0])
+    # print torch.max(uv_a[1])
+    # print torch.max(uv_b[0])
+    # print torch.max(uv_b[1])
+
+    empty_flag, u_a_pruned, v_a_pruned, u2_vec, v2_vec, z2_vec, u_a_outsideFOV, v_a_outsideFOV = correspondence_finder.prune_if_outside_FOV(uv_a[0], uv_a[1], uv_b[0], uv_b[1], None, image_width, image_height)
+    if empty_flag == True:
+        return None, None, None
+
+    uv_a = (u_a_pruned, v_a_pruned)
+    uv_a_not_detected = torch.cat((uv_a_not_detected[0], u_a_outsideFOV)), torch.cat((uv_a_not_detected[1], v_a_outsideFOV))
+    uv_b = (u2_vec, v2_vec)
+
+    empty_flag, u_b_pruned, v_b_pruned, u2_vec, v2_vec, z2_vec, u_a_outsideFOV, v_a_outsideFOV = correspondence_finder.prune_if_outside_FOV(uv_b[0], uv_b[1], uv_a[0], uv_a[1], None, image_width, image_height)
+    if empty_flag == True:
+        return None, None, None
+
+    uv_a = (u2_vec, v2_vec)
+    uv_b = (u_b_pruned, v_b_pruned)
     
+    return uv_a, uv_a_not_detected, uv_b
 

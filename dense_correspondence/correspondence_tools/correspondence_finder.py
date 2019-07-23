@@ -529,6 +529,10 @@ def reproject_pixels(depth_vec, u_a_pruned, v_a_pruned, K_a, K_b, img_a_pose, im
     return u2_vec, v2_vec, z2_vec
 
 def prune_if_outside_FOV(u_a, v_a, u2_vec, v2_vec, z2_vec, image_width, image_height):
+    """
+    Checks only if u2_vec and/or v2_vec are out of bounds.
+    Prunes u_a and v_a and z2_vec along with them.
+    """
 
     # u2_vec bounds should be: 0, image_width
     # v2_vec bounds should be: 0, image_height
@@ -554,7 +558,8 @@ def prune_if_outside_FOV(u_a, v_a, u2_vec, v2_vec, z2_vec, image_width, image_he
     # apply pruning
     u2_vec_in_bounds = torch.index_select(u2_vec, 0, in_bound_indices)
     v2_vec_in_bounds = torch.index_select(v2_vec, 0, in_bound_indices)
-    z2_vec_in_bounds = torch.index_select(z2_vec, 0, in_bound_indices)
+    if z2_vec is not None:
+        z2_vec_in_bounds = torch.index_select(z2_vec, 0, in_bound_indices)
     u_a_pruned_in_bounds = torch.index_select(u_a, 0, in_bound_indices) # also prune from first list
     v_a_pruned_in_bounds = torch.index_select(v_a, 0, in_bound_indices) # also prune from first list
 
@@ -585,7 +590,8 @@ def prune_if_outside_FOV(u_a, v_a, u2_vec, v2_vec, z2_vec, image_width, image_he
     # apply pruning
     u2_vec_in_bounds_2 = torch.index_select(u2_vec_in_bounds, 0, in_bound_indices)
     v2_vec_in_bounds_2 = torch.index_select(v2_vec_in_bounds, 0, in_bound_indices)
-    z2_vec_in_bounds_2 = torch.index_select(z2_vec_in_bounds, 0, in_bound_indices)
+    if z2_vec is not None:
+        z2_vec_in_bounds_2 = torch.index_select(z2_vec_in_bounds, 0, in_bound_indices)
     u_a_pruned_in_bounds_2 = torch.index_select(u_a_pruned_in_bounds, 0, in_bound_indices) # also prune from first list
     v_a_pruned_in_bounds_2 = torch.index_select(v_a_pruned_in_bounds, 0, in_bound_indices) # also prune from first list
 
@@ -598,6 +604,9 @@ def prune_if_outside_FOV(u_a, v_a, u2_vec, v2_vec, z2_vec, image_width, image_he
 
     u_a_pruned_out_of_bounds = torch.cat((u_a_pruned_out_of_bounds,u_a_pruned_out_of_bounds_2))
     v_a_pruned_out_of_bounds = torch.cat((v_a_pruned_out_of_bounds,v_a_pruned_out_of_bounds_2))
+
+    if z2_vec is None:
+        z2_vec_in_bounds_2 = None
 
     return False, u_a_pruned_in_bounds_2, v_a_pruned_in_bounds_2, u2_vec_in_bounds_2, v2_vec_in_bounds_2, z2_vec_in_bounds_2, u_a_pruned_out_of_bounds, v_a_pruned_out_of_bounds
 
