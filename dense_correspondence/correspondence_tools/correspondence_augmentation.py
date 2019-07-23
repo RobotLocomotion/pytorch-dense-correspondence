@@ -349,26 +349,24 @@ def merge_matches(matches_one, matches_two):
     return (concatenated_u, concatenated_v)
 
 
-def piecewise_affine(images, uv_pixel_positions):
+def affine_augmentation(images, uv_pixel_positions):
     """
     images: list of PIL images
-    uv_pixel_positions: tuple of torch tensors
+    uv_pixel_positions: list of tuples of torch tensors
     """
-    all_uv_one_tensor = torch.stack((uv_pixel_positions[0],uv_pixel_positions[1])).permute(1,0)
+    DEBUG = False
+
+    all_uv_one_tensor = torch.stack((uv_pixel_positions[0][0],uv_pixel_positions[0][1])).permute(1,0)
     all_uv_one_numpy = all_uv_one_tensor.numpy()
     
     images_numpy = [np.asarray(i) for i in images]
 
-    for i in images_numpy:
-        print i.shape
-
+    rand_int = random.randint(0,1e9)
 
     # HACK FOR VIS
     #some_uv_one_numpy = all_uv_one_numpy[:100,:100]
     #all_uv_one_numpy = some_uv_one_numpy
     #print images_numpy[0].shape
-
-    kpsoi_new = ia.KeypointsOnImage.from_xy_array(all_uv_one_numpy, shape=images_numpy[0].shape)
     
     seq = iaa.Sequential([
         #iaa.Multiply((0.8, 1.2)), # change brightness, doesn't affect keypoints
@@ -380,51 +378,86 @@ def piecewise_affine(images, uv_pixel_positions):
         ) # rotate by exactly 10deg and scale to 50-70%, affects keypoints
     ])
 
-    rand = random.randint(0,1e9)
-    ia.seed(rand)
-
-    image_aug, kpsoi_aug = seq(image=images_numpy[0], keypoints=kpsoi_new)
-    ia.imshow(
-        np.hstack([
-            kpsoi_new.draw_on_image(images_numpy[0], size=7),
-            kpsoi_aug.draw_on_image(image_aug, size=7)
-        ])
-    )
+    images_aug = []
+    kps_aug = []
 
 
-    kpsoi_new = ia.KeypointsOnImage.from_xy_array(all_uv_one_numpy, shape=images_numpy[1].shape)
-    ia.seed(rand)
+    for image_numpy in images_numpy:
 
-    next_img = np.expand_dims(images_numpy[1], axis=2)
+        kp = ia.KeypointsOnImage.from_xy_array(all_uv_one_numpy, shape=image_numpy.shape)    
+        ia.seed(rand_int)
 
-    image_aug, kpsoi_aug = seq(image=next_img, keypoints=kpsoi_new)
+        image_aug, kp_aug = seq(image=image_numpy, keypoints=kp)
 
-    ia.imshow(
-        np.hstack([
-            kpsoi_new.draw_on_image(np.repeat(next_img, 3, axis=2), size=7),
-            kpsoi_aug.draw_on_image(np.repeat(image_aug, 3, axis=2), size=7)
-        ])
-    )
+        if DEBUG:
 
-    import matplotlib.pyplot as plt
-    plt.imshow(images_numpy[1], vmin=500.0, vmax=4000.0)
-    plt.show()
+            if len(image_numpy.shape) == 3:
+                image_numpy_vis = image_numpy
+                image_aug_vis = image_aug
+            else:
+                image_numpy_vis = np.expand_dims(image_numpy, axis=2)
+                image_numpy_vis = np.repeat(image_numpy_vis, 3, axis=2)
 
-    plt.imshow(image_aug[:,:,0], vmin=500.0, vmax=4000.0)
-    plt.show()
-
-    print np.max(images_numpy[1]), np.mean(images_numpy[1])
-    print np.max(image_aug), np.mean(image_aug)
-
-    print images_numpy[1][int(all_uv_one_numpy[0,1]), int(all_uv_one_numpy[0,0])]
-
-    rr = kpsoi_aug.to_xy_array()
-    print image_aug[int(rr[0,1]), int(rr[0,0])]
-
-    
-    sys.exit(0)
+                image_aug_vis = np.expand_dims(image_aug, axis=2)
+                image_aug_vis = np.repeat(image_aug_vis, 3, axis=2)
 
 
+            ia.imshow(
+                np.hstack([
+                    kp.draw_on_image(image_numpy_vis, size=7),
+                    kp_aug.draw_on_image(image_aug_vis, size=7)
+                ])
+            )
+
+        images_aug.append(image_aug)
+        if len(kps_aug) == 0:
+            kps_aug.append(kp_aug)
+
+    if len(uv_pixel_positions) > 1:
+        for addition_pixel_positions in uv_pixel_positions[1:]:
+            all_uv_one_tensor = torch.stack((addition_pixel_positions[0],addition_pixel_positions[1])).permute(1,0)
+            all_uv_one_numpy = all_uv_one_tensor.numpy()
+
+            kp = ia.KeypointsOnImage.from_xy_array(all_uv_one_numpy, shape=images_numpy[0].shape)    
+            ia.seed(rand_int)
+
+            image_aug, kp_aug = seq(image=images_numpy[0], keypoints=kp)
+
+            if DEBUG:
+
+                ia.imshow(
+                    np.hstack([
+                        kp.draw_on_image(images_numpy[0], size=7),
+                        kp_aug.draw_on_image(image_aug, size=7)
+                    ])
+                )
+
+            kps_aug.append(kp_aug)
+
+    if DEBUG:
+
+        import matplotlib.pyplot as plt
+        plt.imshow(images_numpy[1], vmin=500.0, vmax=4000.0)
+        plt.show()
+
+        plt.imshow(images_aug[1], vmin=500.0, vmax=4000.0)
+        plt.show()
+
+        plt.imshow(images_numpy[2])
+        plt.show()
+
+        plt.imshow(images_aug[2])
+        plt.show()
+
+    images_aug_pil = [Image.fromarray(img) for img in images_aug]
+
+    uv_pixel_positions_aug = []
+    for kp_aug in kps_aug:
+        u = torch.from_numpy(kp_aug.to_xy_array()[:,0])
+        v = torch.from_numpy(kp_aug.to_xy_array()[:,1])
+        uv_pixel_positions_aug.append((u,v))
+
+    return images_aug_pil, uv_pixel_positions_aug
 
 
 

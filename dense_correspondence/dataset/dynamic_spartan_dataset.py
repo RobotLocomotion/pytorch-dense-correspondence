@@ -15,6 +15,7 @@ import json
 # pytorch-segmentation-detection repo. It is a fork of pytorch/vision
 from torchvision import transforms
 
+import spartan.utils.utils as spartan_utils
 import dense_correspondence_manipulation.utils.utils as utils
 from dense_correspondence_manipulation.utils.utils import CameraIntrinsics
 
@@ -171,8 +172,12 @@ class DynamicSpartanDataset(SpartanDataset):
 
     def get_random_image_index(self, scene_name):
         scene_directory = self.get_full_path_for_scene(scene_name)
-        state_info_filename = os.path.join(scene_directory, "states.json")
-        state_info_dict = json.load(file(state_info_filename))
+        try:
+            state_info_filename = os.path.join(scene_directory, "states.json")
+            state_info_dict = json.load(file(state_info_filename))
+        except:
+            state_info_filename = os.path.join(scene_directory, "states.yaml")
+            state_info_dict = spartan_utils.getDictFromYamlFilename(state_info_filename)
         image_idxs = state_info_dict.keys() # list of integers
         return random.choice(image_idxs)
 
@@ -270,6 +275,7 @@ class DynamicSpartanDataset(SpartanDataset):
         idx = self.get_random_image_index(scene_name)
         camera_num_a, camera_num_b = self.get_random_camera_nums_for_image_index(idx)
 
+
         metadata['image_a_idx'] = idx
         metadata["camera_a_num"] = camera_num_a
         image_a_rgb, image_a_depth, image_a_mask, image_a_pose = self.get_rgbd_mask_pose(scene_name, camera_num_a, idx)
@@ -319,15 +325,17 @@ class DynamicSpartanDataset(SpartanDataset):
             image_b_rgb = correspondence_augmentation.random_domain_randomize_background(image_b_rgb, image_b_mask)
 
         if self._domain_randomize:
-            if not self.debug:
-                [image_a_rgb, image_a_mask], uv_a = correspondence_augmentation.random_image_and_indices_mutation([image_a_rgb, image_a_mask], uv_a)
-                [image_b_rgb, image_b_mask], uv_b = correspondence_augmentation.random_image_and_indices_mutation(
-                    [image_b_rgb, image_b_mask], uv_b)
-            else:  # also mutate depth just for plotting
-                [image_a_rgb, image_a_depth, image_a_mask], uv_a = correspondence_augmentation.random_image_and_indices_mutation(
-                    [image_a_rgb, image_a_depth, image_a_mask], uv_a)
-                [image_b_rgb, image_b_depth, image_b_mask], uv_b = correspondence_augmentation.random_image_and_indices_mutation(
-                    [image_b_rgb, image_b_depth, image_b_mask], uv_b)
+            [image_a_rgb, image_a_depth, image_a_mask], [uv_a, uv_a_not_detected] = correspondence_augmentation.affine_augmentation([image_a_rgb, image_a_depth, image_a_mask], [uv_a, uv_a_not_detected])
+            [image_b_rgb, image_b_depth, image_b_mask], [uv_b] = correspondence_augmentation.affine_augmentation([image_b_rgb, image_b_depth, image_b_mask], [uv_b])
+            # if not self.debug:
+            #     [image_a_rgb, image_a_mask], uv_a = correspondence_augmentation.random_image_and_indices_mutation([image_a_rgb, image_a_mask], uv_a)
+            #     [image_b_rgb, image_b_mask], uv_b = correspondence_augmentation.random_image_and_indices_mutation(
+            #         [image_b_rgb, image_b_mask], uv_b)
+            # else:  # also mutate depth just for plotting
+            #     [image_a_rgb, image_a_depth, image_a_mask], uv_a = correspondence_augmentation.random_image_and_indices_mutation(
+            #         [image_a_rgb, image_a_depth, image_a_mask], uv_a)
+            #     [image_b_rgb, image_b_depth, image_b_mask], uv_b = correspondence_augmentation.random_image_and_indices_mutation(
+            #         [image_b_rgb, image_b_depth, image_b_mask], uv_b)
 
         image_a_depth_numpy = np.asarray(image_a_depth)
         image_b_depth_numpy = np.asarray(image_b_depth)
