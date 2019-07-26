@@ -1,0 +1,6 @@
+logs_root_path: imitation/logs
+
+single_object_scenes_config_files:
+- empty_bag.yaml
+
+multi_object_scenes_config_files: []

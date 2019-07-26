@@ -1,0 +1,6 @@
+logs_root_path: logs
+
+single_object_scenes_config_files:
+- dynamic_carrot.yaml
+
+multi_object_scenes_config_files: []
