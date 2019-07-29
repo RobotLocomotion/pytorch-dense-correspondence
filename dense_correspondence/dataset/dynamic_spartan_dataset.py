@@ -324,7 +324,7 @@ class DynamicSpartanDataset(SpartanDataset):
             image_a_rgb = correspondence_augmentation.random_domain_randomize_background(image_a_rgb, image_a_mask)
             image_b_rgb = correspondence_augmentation.random_domain_randomize_background(image_b_rgb, image_b_mask)
 
-        if self._domain_randomize:
+        if self._augment_data:
             [image_a_rgb, image_a_depth, image_a_mask], [uv_a, uv_a_not_detected] = correspondence_augmentation.affine_augmentation([image_a_rgb, image_a_depth, image_a_mask], [uv_a, uv_a_not_detected])
             [image_b_rgb, image_b_depth, image_b_mask], [uv_b] = correspondence_augmentation.affine_augmentation([image_b_rgb, image_b_depth, image_b_mask], [uv_b])
 
@@ -523,3 +523,30 @@ class DynamicSpartanDataset(SpartanDataset):
         #print len(matches_a), len(matches_b), "is len matches returning"
 
         return metadata["type"], image_a_rgb, image_b_rgb, matches_a, matches_b, masked_non_matches_a, masked_non_matches_b, background_non_matches_a, background_non_matches_b, blind_non_matches_a, blind_non_matches_b, metadata, depth_a_torch, depth_b_torch, torch.FloatTensor([0])
+
+    def get_img_pair_data(self, scene_name):
+        idx = self.get_random_image_index(scene_name)
+        camera_num_a, camera_num_b = self.get_random_camera_nums_for_image_index(idx)
+        image_a_rgb, image_a_depth, image_a_mask, image_a_pose = self.get_rgbd_mask_pose(scene_name, camera_num_a, idx)
+        image_b_rgb, image_b_depth, image_b_mask, image_b_pose = self.get_rgbd_mask_pose(scene_name, camera_num_b, idx)
+        K_a = self.get_K_matrix(scene_name, camera_num_a)
+        K_b = self.get_K_matrix(scene_name, camera_num_b)
+
+        img_a_data = dict()
+        img_a_data["rgb"] = image_a_rgb
+        img_a_data["depth"] = image_a_depth
+        img_a_data["mask"] = image_a_mask
+        img_a_data["pose"] = image_a_pose
+        img_a_data["K"] = K_a
+        img_a_data["index"] = idx
+
+        img_b_data = dict()
+        img_b_data["rgb"] = image_b_rgb
+        img_b_data["depth"] = image_b_depth
+        img_b_data["mask"] = image_b_mask
+        img_b_data["pose"] = image_b_pose
+        img_b_data["K"] = K_b
+        img_b_data["index"] = idx
+        return img_a_data, img_b_data
+
+

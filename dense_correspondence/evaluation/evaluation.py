@@ -16,6 +16,7 @@ import pandas as pd
 import random
 import scipy.stats as ss
 import itertools
+import yaml
 
 import torch
 from torch.autograd import Variable
@@ -70,6 +71,18 @@ class DCNEvaluationPandaTemplate(PandaDataFrameWrapper):
 
     def __init__(self):
         PandaDataFrameWrapper.__init__(self, DCNEvaluationPandaTemplate.columns)
+
+class DCNDetectionEvaluationPandaTemplate(PandaDataFrameWrapper):
+    columns = ['scene_name',
+               'img_a_idx',
+               'img_b_idx',
+               'best_match_diff',
+               'true_positive'
+               ]
+
+    def __init__(self):
+        PandaDataFrameWrapper.__init__(self, DCNDetectionEvaluationPandaTemplate.columns)
+
 
 class DCNEvaluationPandaTemplateAcrossObject(PandaDataFrameWrapper):
     columns = ['scene_name_a',
@@ -483,6 +496,160 @@ class DenseCorrespondenceEvaluation(object):
         df = pd.concat(pd_dataframe_list)
 
         return df
+
+    @staticmethod
+    def single_same_scene_image_pair_detection_analysis(dcn, dataset, scene_name,
+                                                            img_a_data,
+                                                            img_b_data,
+                                                            num_matches,
+                                                            debug):
+
+        depth_a = np.asarray(img_a_data["depth"])
+        depth_b = np.asarray(img_b_data["depth"])
+        mask_a = np.asarray(img_a_data["mask"])
+        mask_b = np.asarray(img_b_data["mask"])
+
+        # compute dense descriptors
+        rgb_a_tensor = dataset.rgb_image_to_tensor(img_a_data["rgb"])
+        rgb_b_tensor = dataset.rgb_image_to_tensor(img_b_data["rgb"])
+
+        # these are Variables holding torch.FloatTensors, first grab the data, then convert to numpy
+        res_a = dcn.forward_single_image_tensor(rgb_a_tensor).data.cpu().numpy()
+        res_b = dcn.forward_single_image_tensor(rgb_b_tensor).data.cpu().numpy()
+
+        # find correspondences
+        uv_a_vec, uv_b_vec, uv_a_not_detected_vec = correspondence_finder.batch_find_pixel_correspondences(depth_a, img_a_data["pose"],
+                                                                            depth_b, img_b_data["pose"],
+                                                                            img_a_mask=mask_a,
+                                                                            K_a=img_a_data["K"],
+                                                                            K_b=img_b_data["K"],
+                                                                            num_attempts=200)
+
+
+        if (uv_a_vec is None) or (len(uv_a_vec)==0):
+            print "no matches found, returning"
+            return None
+
+        print len(uv_a_vec[0]), len(uv_b_vec[0]), len(uv_a_not_detected_vec[0])
+
+
+        # container to hold a list of pandas dataframe
+        # will eventually combine them all with concat
+        dataframe_list = []
+
+        total_num_matches = len(uv_a_vec[0])
+        num_matches = min(num_matches, total_num_matches)
+        match_list = random.sample(range(0, total_num_matches), num_matches)
+
+        if debug:
+            match_list = [50]
+
+        image_height, image_width = dcn.image_shape
+
+        DCE = DenseCorrespondenceEvaluation
+
+        for i in match_list:
+            uv_a = (uv_a_vec[0][i], uv_a_vec[1][i])
+            
+            pd_template = DCE.compute_detection_statistics_true_positive(res_a, res_b, uv_a)
+            pd_template.set_value('scene_name', scene_name)
+            pd_template.set_value('img_a_idx', img_a_data["index"])
+            pd_template.set_value('img_b_idx', img_b_data["index"])
+
+            dataframe_list.append(pd_template.dataframe)
+
+        total_num_not_detected = len(uv_a_not_detected_vec[0])
+        num_not_detected = min(num_matches, total_num_not_detected)
+        not_detected_list = random.sample(range(0,total_num_not_detected), num_not_detected)
+
+        for i in not_detected_list:
+            uv_a_not_detected = (uv_a_not_detected_vec[0][i], uv_a_not_detected_vec[1][i])
+
+            pd_template = DCE.compute_detection_statistics_true_negative(res_a, res_b, uv_a_not_detected)
+            pd_template.set_value('scene_name', scene_name)
+            pd_template.set_value('img_a_idx', img_a_data["index"])
+            pd_template.set_value('img_b_idx', img_b_data["index"])
+
+            dataframe_list.append(pd_template.dataframe)
+
+        return dataframe_list
+
+
+    @staticmethod
+    def compute_detection_statistics_true_positive(res_a, res_b, uv_a):
+        uv_b_pred, best_match_diff, norm_diffs =\
+            DenseCorrespondenceNetwork.find_best_match(uv_a, res_a,
+                                                       res_b)
+
+        pd_template = DCNDetectionEvaluationPandaTemplate()
+        pd_template.set_value('best_match_diff', best_match_diff)
+        pd_template.set_value('true_positive', True)
+        return pd_template
+
+    @staticmethod
+    def compute_detection_statistics_true_negative(res_a, res_b, uv_a):
+        uv_b_pred, best_match_diff, norm_diffs =\
+            DenseCorrespondenceNetwork.find_best_match(uv_a, res_a,
+                                                       res_b)
+
+        pd_template = DCNDetectionEvaluationPandaTemplate()
+        pd_template.set_value('best_match_diff', best_match_diff)
+        pd_template.set_value('true_positive', False)
+        return pd_template
+
+
+
+    @staticmethod
+    def evaluate_detection_on_network(dcn, dataset, num_image_pairs=25, num_matches_per_image_pair=100):
+        """
+
+        :param nn: A neural network DenseCorrespondenceNetwork
+        :param test_dataset: DenseCorrespondenceDataset
+            the dataset to draw samples from
+        :return:
+        """
+
+        utils.reset_random_seed()
+
+        DCE = DenseCorrespondenceEvaluation
+        dcn.eval()
+
+        logging_rate = 5
+
+
+        pd_dataframe_list = []
+        for i in xrange(0, num_image_pairs):
+
+            # grab random scene
+            scene_name = dataset.get_random_scene_name()
+            if i % logging_rate == 0:
+                print "computing statistics for image %d of %d, scene_name %s" %(i, num_image_pairs, scene_name)
+                print "scene"
+
+            if isinstance(dataset, DynamicSpartanDataset):
+                img_a_data, img_b_data = dataset.get_img_pair_data(scene_name)
+            else:
+                print "found a static dataset"
+                return NotImplementedError("need to implement get_img_pair_data")
+
+
+            dataframe_list_temp =\
+                DCE.single_same_scene_image_pair_detection_analysis(dcn, dataset, scene_name,
+                                                            img_a_data,
+                                                            img_b_data,
+                                                            num_matches=num_matches_per_image_pair,
+                                                            debug=False)
+
+            if dataframe_list_temp is None:
+                print "no matches found, skipping"
+                continue
+
+            pd_dataframe_list += dataframe_list_temp
+            # pd_series_list.append(series_list_temp)
+
+        df = pd.concat(pd_dataframe_list)
+        return pd_dataframe_list, df
+
 
     @staticmethod
     def evaluate_network(dcn, dataset, num_image_pairs=25, num_matches_per_image_pair=100):
@@ -2316,6 +2483,67 @@ class DenseCorrespondenceEvaluation(object):
 
 
         return stats
+
+    @staticmethod
+    def run_detection_evaluation_on_network(model_folder, num_image_pairs=100,
+                                  num_matches_per_image_pair=100,
+                                  save_folder_name="analysis",
+                                  compute_descriptor_statistics=True, 
+                                  cross_scene=True,
+                                  dataset=None,
+                                  iteration=None):
+        """
+        Runs detection quantitative evaluations on the model folder
+        """
+
+        utils.reset_random_seed()
+
+        DCE = DenseCorrespondenceEvaluation
+
+        model_folder = utils.convert_data_relative_path_to_absolute_path(model_folder, assert_path_exists=True)
+
+        print "SETTING GLOBAL FOR MATCH TYPE"
+        training_dict = yaml.load(file(os.path.join(model_folder, "training.yaml")))
+        compute_best_match_with =  training_dict["dense_correspondence_network"]["compute_best_match_with"]
+        utils.add_dense_correspondence_to_python_path()
+        import dense_correspondence.network.dense_correspondence_network
+        dense_correspondence.network.dense_correspondence_network.COMPUTE_BEST_MATCH_WITH = compute_best_match_with
+
+
+        # save it to a csv file
+        output_dir = os.path.join(model_folder, save_folder_name)
+        train_output_dir = os.path.join(output_dir, "detection_train")
+        test_output_dir = os.path.join(output_dir, "detection_test")
+
+        # create the necessary directories
+        for dir in [output_dir, train_output_dir, test_output_dir]:
+            if not os.path.isdir(dir):
+                os.makedirs(dir)
+
+        dcn = DenseCorrespondenceNetwork.from_model_folder(model_folder, iteration=iteration)
+        dcn.eval()
+
+        if dataset is None:
+            dataset = dcn.load_training_dataset()
+
+        # evaluate on training data and on test data
+        logging.info("Evaluating detection on train data")
+        dataset.set_train_mode()
+        pd_dataframe_list, df = DCE.evaluate_detection_on_network(dcn, dataset, num_image_pairs=num_image_pairs,
+                                                     num_matches_per_image_pair=num_matches_per_image_pair)
+
+        detection_train_csv = os.path.join(train_output_dir, "data.csv")
+        df.to_csv(detection_train_csv)
+
+        logging.info("Evaluating detection on test data")
+        dataset.set_test_mode()
+        pd_dataframe_list, df = DCE.evaluate_detection_on_network(dcn, dataset, num_image_pairs=num_image_pairs,
+                                                     num_matches_per_image_pair=num_matches_per_image_pair)
+
+        detection_test_csv = os.path.join(test_output_dir, "data.csv")
+        df.to_csv(detection_test_csv)
+
+        logging.info("Finished running evaluation on network")
 
 
     @staticmethod
