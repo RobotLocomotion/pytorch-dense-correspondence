@@ -3249,6 +3249,43 @@ class DenseCorrespondenceEvaluationPlotter(object):
             fig.savefig(fig_file)
         
         return [fig, ax]
+
+
+    @staticmethod
+    def make_precision_recall_plot(ax, df, label):
+        plot = ax.plot(np.random.rand(5), np.random.rand(5))
+        return plot
+
+
+    @staticmethod
+    def run_on_single_detection_dataframe(path_to_df_csv, label=None, save=True, previous_fig_axes=None):
+
+        DCEP = DenseCorrespondenceEvaluationPlotter
+
+    
+        path_to_csv = utils.convert_data_relative_path_to_absolute_path(path_to_df_csv,
+            assert_path_exists=True)
+        df = pd.read_csv(path_to_csv, index_col=0, parse_dates=True)
+    
+        output_dir = os.path.dirname(path_to_csv)
+
+
+        if previous_fig_axes==None:
+            N = 2
+            fig, axes = plt.subplots(N, figsize=(10,N*5))
+        else:
+            [fig, axes] = previous_fig_axes
+        
+        
+        def get_ax(axes, index):
+            return axes[index]
+
+        # precision recall
+        ax = get_ax(axes, 0)
+        plot = DCEP.make_precision_recall_plot(ax, df, label=label)
+        ax.legend()
+       
+        return [fig, axes]
         
 
 
