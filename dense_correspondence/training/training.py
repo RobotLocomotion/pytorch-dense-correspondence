@@ -228,7 +228,7 @@ class DenseCorrespondenceTraining(object):
         self.run(loss_current_iteration=iteration, use_pretrained=True, use_spatial_softmax_only=use_spatial_softmax_only, 
             train_correspondence=train_correspondence, train_detection=train_detection)
 
-    def run(self, loss_current_iteration=0, use_pretrained=False, use_spatial_softmax_only=False, train_correspondence=True, train_detection=False):
+    def run(self, loss_current_iteration=0, use_pretrained=False, use_spatial_softmax_only=False, train_correspondence=True, train_detection=False, train_logit_detection=False):
         """
         Runs the training
         :return:
@@ -364,10 +364,41 @@ class DenseCorrespondenceTraining(object):
                     image_b_pred = dcn.forward(img_b, upsample=False)
 
                 # get matching loss
-                if use_spatial_softmax_only:
+                if use_spatial_softmax_only and not train_logit_detection:
                     loss, kern_images_a, kern_images_b = spatial_softmax_loss_fn.get_loss(image_a_pred, image_b_pred, matches_a, matches_b, img_a, depth_a.cuda(), depth_b.cuda())
                     spatial_softmax_loss = loss
                     match_loss = masked_non_match_loss = background_non_match_loss = blind_non_match_loss = Variable(torch.Tensor([10.0]), requires_grad=False)
+                elif train_logit_detection:
+                    # detection
+                    matches_a_x, matches_a_y = spatial_softmax_loss_fn.convert_to_downsampled_coordinates(matches_a)
+                    matches_b_x, matches_b_y = spatial_softmax_loss_fn.convert_to_downsampled_coordinates(matches_b)
+                    a_descriptors_detected = spatial_softmax_loss_fn.sample_descriptors(image_a_pred, matches_a_x, matches_a_y)
+                    b_descriptors_detected = spatial_softmax_loss_fn.sample_descriptors(image_a_pred, matches_b_x, matches_b_y)
+                    # a_descriptors is N, num_matches, D
+                    deltas = a_descriptors_detected - b_descriptors_detected
+                    squared_norm_diffs = torch.sum(torch.pow(deltas,2), dim=2)
+                    kerns = 1.0 - squared_norm_diffs
+                    labels = torch.ones_like(kerns)
+                    criterion_detect = torch.nn.BCEWithLogitsLoss(reduction='sum')
+                    loss = criterion_detect(kerns, labels)
+                    
+                    
+                    # non-detection
+                    a_not_detected_x, a_not_detected_y = spatial_softmax_loss_fn.convert_to_downsampled_coordinates(a_not_detected)
+                    a_descriptors_not_detected = spatial_softmax_loss_fn.sample_descriptors(image_a_pred, a_not_detected_x, a_not_detected_y)
+                    kern_images_b_not_detected = spatial_softmax_loss_fn.get_kern_images_only(image_b_pred, a_descriptors_not_detected)
+                    flat_kern_images_b_not_detected = kern_images_b_not_detected.view(-1)
+                    labels = torch.zeros_like(flat_kern_images_b_not_detected)
+                    weights = torch.zeros_like(flat_kern_images_b_not_detected)
+                    criterion_not = torch.nn.BCEWithLogitsLoss(reduction='sum')
+                    loss += criterion_not(flat_kern_images_b_not_detected, labels)*1.0/(60*80)
+                    scaling = 1/100.0 # while I adjust LR effectively
+                    loss = loss*scaling
+                    
+                    detection_loss = loss
+                    spatial_softmax_loss = match_loss = masked_non_match_loss = background_non_match_loss = blind_non_match_loss = Variable(torch.Tensor([10.0]), requires_grad=False)
+                    
+                     
                 else:
                     spatial_softmax_loss = Variable(torch.FloatTensor([0]))
                     loss, match_loss, masked_non_match_loss, \
@@ -378,74 +409,81 @@ class DenseCorrespondenceTraining(object):
                                                                                     background_non_matches_a, background_non_matches_b,
                                                                                     blind_non_matches_a, blind_non_matches_b)
 
+                
                 loss.backward()
+          
                 if train_correspondence:
                     optimizer.step()
 
                 # get detection loss
-                if train_detection: #and loss_current_iteration > 1000:
-                    self.adjust_learning_rate(detection_optimizer, loss_current_iteration)
-                    detection_optimizer.zero_grad()
+#                 if train_detection: #and loss_current_iteration > 1000:
+#                     self.adjust_learning_rate(detection_optimizer, loss_current_iteration)
+#                     detection_optimizer.zero_grad()
 
-                    a_not_detected_x, a_not_detected_y = spatial_softmax_loss_fn.convert_to_downsampled_coordinates(a_not_detected)
-                    a_descriptors_not_detected = spatial_softmax_loss_fn.sample_descriptors(image_a_pred.detach(), a_not_detected_x, a_not_detected_y)
-                    kern_images_b_not_detected = spatial_softmax_loss_fn.get_kern_images_only(image_b_pred.detach(), a_descriptors_not_detected)
+#                     a_not_detected_x, a_not_detected_y = spatial_softmax_loss_fn.convert_to_downsampled_coordinates(a_not_detected)
+#                     a_descriptors_not_detected = spatial_softmax_loss_fn.sample_descriptors(image_a_pred.detach(), a_not_detected_x, a_not_detected_y)
+#                     kern_images_b_not_detected = spatial_softmax_loss_fn.get_kern_images_only(image_b_pred.detach(), a_descriptors_not_detected)
 
-                    def run_detection_get_loss(kern_images, gt):
-                        # normalize
-                        mean = -50.0
-                        std  = 20.0
+#                     def run_detection_get_loss(kern_images, gt):
+#                         # normalize
+#                         mean = -50.0
+#                         std  = 20.0
 
-                        MAX_BATCH = 128
-                        num_batch = min(MAX_BATCH,kern_images.shape[1])
-                        minibatch = kern_images.permute(1,0,2,3)[0:num_batch,:,:,:]
-                        minibatch = (minibatch - mean) / (std + 1e-6)
-                        predicted = detection_net(minibatch)
-                        if gt == "ones":
-                            gt_detections = torch.ones(num_batch).long().cuda()
-                        elif gt == "zeros":
-                            gt_detections = torch.zeros(num_batch).long().cuda()
-                        return detection_criterion(predicted, gt_detections)                        
+#                         MAX_BATCH = 128
+#                         num_batch = min(MAX_BATCH,kern_images.shape[1])
+#                         minibatch = kern_images.permute(1,0,2,3)[0:num_batch,:,:,:]
+#                         minibatch = (minibatch - mean) / (std + 1e-6)
+#                         predicted = detection_net(minibatch)
+#                         if gt == "ones":
+#                             gt_detections = torch.ones(num_batch).long().cuda()
+#                         elif gt == "zeros":
+#                             gt_detections = torch.zeros(num_batch).long().cuda()
+#                         return detection_criterion(predicted, gt_detections)                        
                     
                     
-                    detection_loss  = run_detection_get_loss(kern_images_a.detach(), "ones")*0.5
-                    detection_loss += run_detection_get_loss(kern_images_b.detach(), "ones")*0.5
-                    detection_loss += run_detection_get_loss(kern_images_b_not_detected, "zeros")
+#                     detection_loss  = run_detection_get_loss(kern_images_a.detach(), "ones")*0.5
+#                     detection_loss += run_detection_get_loss(kern_images_b.detach(), "ones")*0.5
+#                     detection_loss += run_detection_get_loss(kern_images_b_not_detected, "zeros")
 
-                    # print "these are max values"
-                    # print torch.max(kern_images_a)
-                    # print torch.max(kern_images_b)
-                    # print torch.max(kern_images_b_not_detected)
-                    # print "these are min values"
-                    # print torch.min(kern_images_a)
-                    # print torch.min(kern_images_b)
-                    # print torch.min(kern_images_b_not_detected)
-                    # print "these are avg values"
-                    # print torch.mean(kern_images_a)
-                    # print torch.mean(kern_images_b)
-                    # print torch.mean(kern_images_b_not_detected)
-                    # print "these are std values"
-                    # print torch.std(kern_images_a)
-                    # print torch.std(kern_images_b)
-                    # print torch.std(kern_images_b_not_detected)
-                    # print kern_images_a.shape, "shape"
+#                     # print "these are max values"
+#                     # print torch.max(kern_images_a)
+#                     # print torch.max(kern_images_b)
+#                     # print torch.max(kern_images_b_not_detected)
+#                     # print "these are min values"
+#                     # print torch.min(kern_images_a)
+#                     # print torch.min(kern_images_b)
+#                     # print torch.min(kern_images_b_not_detected)
+#                     # print "these are avg values"
+#                     # print torch.mean(kern_images_a)
+#                     # print torch.mean(kern_images_b)
+#                     # print torch.mean(kern_images_b_not_detected)
+#                     # print "these are std values"
+#                     # print torch.std(kern_images_a)
+#                     # print torch.std(kern_images_b)
+#                     # print torch.std(kern_images_b_not_detected)
+#                     # print kern_images_a.shape, "shape"
 
 
-                    if loss_current_iteration % 50 == 1:
-                        import matplotlib.pyplot as plt
-                        print "new plots -- in these plots, yellow is 'hot', i.e. yes correspondence"
-                        plt.imshow(kern_images_a[0,0,:,:].detach().cpu().numpy())
-                        plt.show()
-                        plt.imshow(kern_images_b[0,0,:,:].detach().cpu().numpy())
-                        plt.show()
-                        plt.imshow(kern_images_b_not_detected[0,0,:,:].detach().cpu().numpy())
-                        plt.show()
+#                     if loss_current_iteration % 10 == 1:
+#                         import matplotlib.pyplot as plt
+#                         print "new plots -- in these plots, yellow is 'hot', i.e. yes correspondence"
+#                         # print"one"
+#                         # plt.imshow(kern_images_a[0,0,:,:].detach().cpu().numpy(), vmin=-15, vmax=-10)
+#                         # plt.show()
+#                         #print "two"
+#                         plt.imshow(kern_images_a[0,0,:,:].detach().cpu().numpy(), vmin=-15, vmax=-0)
+#                         plt.show()
 
-                    print detection_loss.item()
-                    detection_loss.backward()
-                    detection_optimizer.step()
-                else:
-                    detection_loss = Variable(torch.FloatTensor([0]))
+#                         plt.imshow(kern_images_b[0,0,:,:].detach().cpu().numpy(), vmin=-15, vmax=-0)
+#                         plt.show()
+#                         plt.imshow(kern_images_b_not_detected[0,0,:,:].detach().cpu().numpy(), vmin=-15, vmax=-0)
+#                         plt.show()
+
+#                     print detection_loss.item()
+#                     detection_loss.backward()
+#                     detection_optimizer.step()
+#                 else:
+#                     detection_loss = Variable(torch.FloatTensor([0]))
 
 
                 #if i % 10 == 0:
