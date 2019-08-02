@@ -166,9 +166,15 @@ class DynamicSpartanDataset(SpartanDataset):
 
         return os.path.join(scene_directory, images_dir, img_index + file_extension)
 
-    def get_random_camera_nums_for_image_index(self, idx):
+
+    def get_random_different_camera_nums_for_image_index(self, idx):
         # HACK
         return np.random.permutation([0,1])
+
+    def get_random_camera_nums_for_image_index(self, idx):
+        first = np.random.randint(2) # this will give either 0 or 1
+        second = np.random.randint(2)
+        return first, second
 
     def get_random_image_index(self, scene_name):
         scene_directory = self.get_full_path_for_scene(scene_name)
