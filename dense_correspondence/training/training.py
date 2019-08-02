@@ -263,6 +263,8 @@ class DenseCorrespondenceTraining(object):
             detection_criterion = nn.CrossEntropyLoss()
             detection_optimizer = optim.Adam(detection_net.parameters(), lr=1e-4, weight_decay=1e-4)
             #detection_optimizer = optim.SGD(detection_net.parameters(), lr=0.001, momentum=0.9)
+        #if train_logit_detection:
+        #    dcn.fc = torch.nn.Parameter(nn.Linear(dcn._descriptor_dimension,1).cuda())
 
         optimizer = self._optimizer
         batch_size = self._data_loader.batch_size
@@ -376,10 +378,16 @@ class DenseCorrespondenceTraining(object):
                     b_descriptors_detected = spatial_softmax_loss_fn.sample_descriptors(image_a_pred, matches_b_x, matches_b_y)
                     # a_descriptors is N, num_matches, D
                     deltas = a_descriptors_detected - b_descriptors_detected
-                    squared_norm_diffs = torch.sum(torch.pow(deltas,2), dim=2)
-                    kerns = 1.0 - squared_norm_diffs
+                    #squared_norm_diffs = torch.sum(torch.pow(deltas,2), dim=2)
+                    #kerns = torch.sqrt(torch.Tensor([deltas.shape[-1]])).cuda() - squared_norm_diffs
+                    #kerns = torch.Tensor([deltas.shape[-1]]).cuda() - squared_norm_diffs
+                    #kerns = 1.0 - squared_norm_diffs
+                    
+                    kerns = dcn.fc(deltas**2)
+                    
                     labels = torch.ones_like(kerns)
-                    criterion_detect = torch.nn.BCEWithLogitsLoss(reduction='sum')
+                    #criterion_detect = torch.nn.BCEWithLogitsLoss(reduction='sum')
+                    criterion_detect = torch.nn.BCEWithLogitsLoss()
                     loss = criterion_detect(kerns, labels)
                     
                     
@@ -387,12 +395,20 @@ class DenseCorrespondenceTraining(object):
                     a_not_detected_x, a_not_detected_y = spatial_softmax_loss_fn.convert_to_downsampled_coordinates(a_not_detected)
                     a_descriptors_not_detected = spatial_softmax_loss_fn.sample_descriptors(image_a_pred, a_not_detected_x, a_not_detected_y)
                     kern_images_b_not_detected = spatial_softmax_loss_fn.get_kern_images_only(image_b_pred, a_descriptors_not_detected)
-                    flat_kern_images_b_not_detected = kern_images_b_not_detected.view(-1)
-                    labels = torch.zeros_like(flat_kern_images_b_not_detected)
-                    weights = torch.zeros_like(flat_kern_images_b_not_detected)
-                    criterion_not = torch.nn.BCEWithLogitsLoss(reduction='sum')
-                    loss += criterion_not(flat_kern_images_b_not_detected, labels)*1.0/(60*80)
-                    scaling = 1/100.0 # while I adjust LR effectively
+                    # N, num_matches, H, W
+                    N, nm, H, W = kern_images_b_not_detected.shape
+                    flat_kern_images_b_not_detected = kern_images_b_not_detected.view(N, nm, H*W)
+                    best_match_per_image, _ = torch.max(flat_kern_images_b_not_detected, dim=2)
+
+                    #labels = torch.zeros_like(flat_kern_images_b_not_detected)
+                    labels = torch.zeros_like(best_match_per_image)
+                    #weights = torch.zeros_like(flat_kern_images_b_not_detected)
+                    #criterion_not = torch.nn.BCEWithLogitsLoss(reduction='sum')
+                    #loss += criterion_not(flat_kern_images_b_not_detected, labels)*1.0/(60*80)
+                    criterion_not = torch.nn.BCEWithLogitsLoss()
+                    #loss += criterion_not(flat_kern_images_b_not_detected, labels)
+                    loss += criterion_not(best_match_per_image, labels)
+                    scaling = 1.0/100.0 # while I adjust LR effectively
                     loss = loss*scaling
                     
                     detection_loss = loss

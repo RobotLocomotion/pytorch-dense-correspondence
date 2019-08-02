@@ -551,7 +551,7 @@ class DenseCorrespondenceEvaluation(object):
         for i in match_list:
             uv_a = (uv_a_vec[0][i], uv_a_vec[1][i])
             
-            pd_template = DCE.compute_detection_statistics_true_positive(res_a, res_b, uv_a)
+            pd_template = DCE.compute_detection_statistics_true_positive(res_a, res_b, uv_a, dcn)
             pd_template.set_value('scene_name', scene_name)
             pd_template.set_value('img_a_idx', img_a_data["index"])
             pd_template.set_value('img_b_idx', img_b_data["index"])
@@ -565,7 +565,7 @@ class DenseCorrespondenceEvaluation(object):
         for i in not_detected_list:
             uv_a_not_detected = (uv_a_not_detected_vec[0][i], uv_a_not_detected_vec[1][i])
 
-            pd_template = DCE.compute_detection_statistics_true_negative(res_a, res_b, uv_a_not_detected)
+            pd_template = DCE.compute_detection_statistics_true_negative(res_a, res_b, uv_a_not_detected, dcn)
             pd_template.set_value('scene_name', scene_name)
             pd_template.set_value('img_a_idx', img_a_data["index"])
             pd_template.set_value('img_b_idx', img_b_data["index"])
@@ -576,10 +576,10 @@ class DenseCorrespondenceEvaluation(object):
 
 
     @staticmethod
-    def compute_detection_statistics_true_positive(res_a, res_b, uv_a):
+    def compute_detection_statistics_true_positive(res_a, res_b, uv_a, dcn):
         uv_b_pred, best_match_diff, norm_diffs =\
             DenseCorrespondenceNetwork.find_best_match(uv_a, res_a,
-                                                       res_b)
+                                                       res_b, fc=dcn.fc.cpu())
 
         pd_template = DCNDetectionEvaluationPandaTemplate()
         pd_template.set_value('best_match_diff', best_match_diff)
@@ -587,10 +587,10 @@ class DenseCorrespondenceEvaluation(object):
         return pd_template
 
     @staticmethod
-    def compute_detection_statistics_true_negative(res_a, res_b, uv_a):
+    def compute_detection_statistics_true_negative(res_a, res_b, uv_a, dcn):
         uv_b_pred, best_match_diff, norm_diffs =\
             DenseCorrespondenceNetwork.find_best_match(uv_a, res_a,
-                                                       res_b)
+                                                       res_b, fc=dcn.fc.cpu())
 
         pd_template = DCNDetectionEvaluationPandaTemplate()
         pd_template.set_value('best_match_diff', best_match_diff)

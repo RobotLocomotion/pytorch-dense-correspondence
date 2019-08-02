@@ -60,6 +60,8 @@ class DenseCorrespondenceNetwork(nn.Module):
         self._descriptor_image_stats = None
         self._normalize = normalize
         self._constructed_from_model_folder = False
+        
+        self.fc = nn.Linear(self._descriptor_dimension,1)
 
 
     @property
@@ -489,7 +491,7 @@ class DenseCorrespondenceNetwork(nn.Module):
         return dcn
 
     @staticmethod
-    def find_best_match(pixel_a, res_a, res_b, debug=False):
+    def find_best_match(pixel_a, res_a, res_b, fc=None, debug=False):
         """
         Compute the correspondences between the pixel_a location in image_a
         and image_b
@@ -556,6 +558,17 @@ class DenseCorrespondenceNetwork(nn.Module):
 
             norm_diffs = torch.sqrt(-neg_squared_norm_diffs).cpu().numpy()[0,0,:,:]
             res_b = res_b.cpu().numpy()
+        elif COMPUTE_BEST_MATCH_WITH == "learned_kernel":
+            res_b = torch.from_numpy(res_b)
+            descriptor_at_pixel = torch.from_numpy(descriptor_at_pixel)
+            deltas_squared = (res_b - descriptor_at_pixel)**2
+            kerns = fc(deltas_squared).detach().numpy()
+            norm_diffs = -1.0*kerns # NOTE I INVERT IT HERE
+            best_match_flattened_idx = np.argmin(norm_diffs)
+            best_match_xy = np.unravel_index(best_match_flattened_idx, kerns.shape)
+            best_match_diff = norm_diffs[best_match_xy] # NOTE I INVERT IT HERE
+            best_match_uv = (best_match_xy[1], best_match_xy[0])
+            
         else:
             print "Need to set the COMPUTE_BEST_MATCH_WITH global var"
             print "Can do from any file via:"
