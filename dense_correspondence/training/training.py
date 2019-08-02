@@ -369,7 +369,7 @@ class DenseCorrespondenceTraining(object):
                 if use_spatial_softmax_only and not train_logit_detection:
                     loss, kern_images_a, kern_images_b = spatial_softmax_loss_fn.get_loss(image_a_pred, image_b_pred, matches_a, matches_b, img_a, depth_a.cuda(), depth_b.cuda())
                     spatial_softmax_loss = loss
-                    match_loss = masked_non_match_loss = background_non_match_loss = blind_non_match_loss = Variable(torch.Tensor([10.0]), requires_grad=False)
+                    match_loss = masked_non_match_loss = background_non_match_loss = blind_non_match_loss = detection_loss = Variable(torch.Tensor([10.0]), requires_grad=False)
                 elif train_logit_detection:
                     # detection
                     matches_a_x, matches_a_y = spatial_softmax_loss_fn.convert_to_downsampled_coordinates(matches_a)
