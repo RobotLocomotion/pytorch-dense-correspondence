@@ -294,7 +294,7 @@ class SpatialSoftmaxLoss(object):
                 plt.show()
         self.debug_counter+=1
 
-        loss = l_1 + l_2 + l_3 + l_4 + divergence_loss_a + divergence_loss_b #+ l_5 + l_6
+        loss = l_1 + l_2 + l_3 + l_4 + divergence_loss_a + divergence_loss_b + l_5 + l_6
         
         return loss, kern_image_a, kern_image_b
 
