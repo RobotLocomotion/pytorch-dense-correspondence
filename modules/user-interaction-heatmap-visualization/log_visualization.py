@@ -71,7 +71,7 @@ class LogVisualization(object):
                 self._network_reticle_color[network_name] = label_colors[idx]
 
             if self._dataset is None:
-                self._dataset = dcn.load_training_dataset()
+                self._dataset = dcn.load_training_dataset(dynamic_dataset=True)
 
     
     def _sample_new_reference_descriptor_pixels(self):
@@ -425,9 +425,9 @@ class LogVisualization(object):
             if k == 27:
                 break
             elif k == ord('n'):
-                self._get_new_images(increment=1)
+                self._get_new_images(increment=self._config["frame_skip"])
             elif k == ord('b'):
-                self._get_new_images(increment=-1)
+                self._get_new_images(increment=-self._config["frame_skip"])
             elif k == ord('r'):
                 self._get_new_reference()
                 self._get_new_images(increment=0)
