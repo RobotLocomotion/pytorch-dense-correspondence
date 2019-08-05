@@ -333,7 +333,7 @@ class DenseCorrespondenceNetwork(nn.Module):
         v = min(int(round(uv[1])), self._image_height - 1)
         return [u, v]
 
-    def load_training_dataset(self):
+    def load_training_dataset(self, dynamic_dataset=False):
         """
         Loads the dataset that this was trained on
         :return: a dataset object, loaded with the config as set in the dataset.yaml
@@ -344,7 +344,7 @@ class DenseCorrespondenceNetwork(nn.Module):
         network_params_folder = utils.convert_to_absolute_path(network_params_folder)
         dataset_config_file = os.path.join(network_params_folder, 'dataset.yaml')
         config = utils.getDictFromYamlFilename(dataset_config_file)
-        if "imitation" in config["logs_root_path"]:
+        if ("imitation" in config["logs_root_path"]) or dynamic_dataset:
             return DynamicSpartanDataset(config_expanded=config)
         else:
             return SpartanDataset(config_expanded=config)
