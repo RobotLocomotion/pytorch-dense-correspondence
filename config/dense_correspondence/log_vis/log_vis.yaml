@@ -13,6 +13,7 @@ heatmap_vis_upper_bound: 0.75
 blend_weight_original_image: 0.3
 randomize_images: True
 publish_to_ros: False
+frame_skip: 5
 
 # -------------------------------------------
 num_camera_target: 1
@@ -21,7 +22,8 @@ num_camera_target: 1
 networks:
 #- "imitation/sugar_spatial_3"
 #- "imitation/real_shoe_spatial_3"
-- "imitation/real_many_shoes_spatial_3"
-- "imitation/real_many_shoes_corl_3"
-
+# - "imitation/real_many_shoes_spatial_3"
+# - "imitation/real_many_shoes_corl_3"
+#- "sugar_box_3"
+  - "push_box_spatial_3"
 kernel_variance: 1.0
