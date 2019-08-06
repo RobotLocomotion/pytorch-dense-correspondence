@@ -174,6 +174,10 @@ class DynamicSpartanDataset(SpartanDataset):
     def get_random_camera_nums_for_image_index(self, idx):
         first = np.random.randint(2) # this will give either 0 or 1
         second = np.random.randint(2)
+
+        # MEGAHACK TO TRY ONLY CAM 1
+        #first = second = 1
+
         return first, second
 
     def get_random_image_index(self, scene_name):
@@ -291,15 +295,6 @@ class DynamicSpartanDataset(SpartanDataset):
         image_b_rgb, image_b_depth, image_b_mask, image_b_pose = self.get_rgbd_mask_pose(scene_name, camera_num_b, idx)
 
         
-        a_mask_numpy = np.asarray(image_a_mask)
-        b_mask_numpy = np.asarray(image_b_mask)
-        one_percent_image = 640*480*0.01
-
-        if (a_mask_numpy.sum() < one_percent_image) or (b_mask_numpy.sum() < one_percent_image):
-            print "Too tiny of a mask!"
-            image_a_rgb_tensor = self.rgb_image_to_tensor(image_a_rgb)
-            return self.return_empty_data(image_a_rgb_tensor, image_a_rgb_tensor)
-
 
 
         # THE REST IS THE SAME BUT I JUST NEEED A REFACTOR

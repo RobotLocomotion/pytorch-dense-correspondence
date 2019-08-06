@@ -266,14 +266,16 @@ class SpatialSoftmaxLoss(object):
 
         z_stars_a = get_match_depth(matches_a, depth_a)
         z_stars_b = get_match_depth(matches_b, depth_b)
+        
+        l1_loss = torch.nn.L1Loss()
 
-        l_1 = torch.norm(norm_matches_x_a - expected_x_a, p=1)
-        l_2 = torch.norm(norm_matches_x_b - expected_x_b, p=1)
-        l_3 = torch.norm(norm_matches_y_a - expected_y_a, p=1)
-        l_4 = torch.norm(norm_matches_y_b - expected_y_b, p=1)
+        l_1 = l1_loss(norm_matches_x_a, expected_x_a)
+        l_2 = l1_loss(norm_matches_x_b, expected_x_b)
+        l_3 = l1_loss(norm_matches_y_a, expected_y_a)
+        l_4 = l1_loss(norm_matches_y_b, expected_y_b)
 
-        l_5 = torch.norm(z_stars_a - expected_z_a, p=1)
-        l_6 = torch.norm(z_stars_b - expected_z_b, p=1)
+        l_5 = l1_loss(z_stars_a, expected_z_a)
+        l_6 = l1_loss(z_stars_b, expected_z_b)
 
         ## DEBUG
         

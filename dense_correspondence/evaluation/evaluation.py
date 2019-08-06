@@ -898,7 +898,7 @@ class DenseCorrespondenceEvaluation(object):
                 diff_rgb_a, diff_depth_a, diff_mask_a, diff_pose_a = dataset.get_rgbd_mask_pose(scene_name_a, different_view_a_idx)
                 diff_depth_a = np.asarray(diff_depth_a)
                 diff_mask_a = np.asarray(diff_mask_a)
-                (uv_a_vec, diff_uv_a_vec) = correspondence_finder.batch_find_pixel_correspondences(depth_a, pose_a, diff_depth_a, diff_pose_a,
+                uv_a_vec, diff_uv_a_vec, uv_a_not_detected_vec = correspondence_finder.batch_find_pixel_correspondences(depth_a, pose_a, diff_depth_a, diff_pose_a,
                                                                uv_a=uv_a)
                 if (uv_a_vec is None) or (len(uv_a_vec)==0):
                     logging.info("no matches found, continuing")
@@ -929,7 +929,7 @@ class DenseCorrespondenceEvaluation(object):
                 diff_rgb_b, diff_depth_b, diff_mask_b, diff_pose_b = dataset.get_rgbd_mask_pose(scene_name_b, different_view_b_idx)
                 diff_depth_b = np.asarray(diff_depth_b)
                 diff_mask_b = np.asarray(diff_mask_b)
-                (uv_b_vec, diff_uv_b_vec) = correspondence_finder.batch_find_pixel_correspondences(depth_b, pose_b, diff_depth_b, diff_pose_b,
+                uv_b_vec, diff_uv_b_vec, uv_a_not_detected_vec = correspondence_finder.batch_find_pixel_correspondences(depth_b, pose_b, diff_depth_b, diff_pose_b,
                                                                uv_a=uv_b)
                 if uv_b_vec is None:
                     logging.info("no matches found, continuing")
@@ -1079,7 +1079,7 @@ class DenseCorrespondenceEvaluation(object):
             camera_intrinsics_matrix = camera_intrinsics.K
 
         # find correspondences
-        (uv_a_vec, uv_b_vec) = correspondence_finder.batch_find_pixel_correspondences(depth_a, pose_a, depth_b, pose_b,
+        uv_a_vec, uv_b_vec, uv_a_not_detected_vec = correspondence_finder.batch_find_pixel_correspondences(depth_a, pose_a, depth_b, pose_b,
                                                                device='CPU', img_a_mask=mask_a)
 
         if (uv_a_vec is None) or (len(uv_a_vec)==0):

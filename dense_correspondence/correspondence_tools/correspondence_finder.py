@@ -437,7 +437,7 @@ def get_depth2_vec(img_b_depth, u2_vec, v2_vec, image_width):
 
 def prune_if_unknown_depth(uv_a_vec, depth_vec):
     nonzero_indices = torch.nonzero(depth_vec)
-    if nonzero_indices.dim() == 0:
+    if nonzero_indices.dim() == 0 or len(nonzero_indices) == 0:
         return True, None, None
     nonzero_indices = nonzero_indices.squeeze(1)
     depth_vec = torch.index_select(depth_vec, 0, nonzero_indices)
