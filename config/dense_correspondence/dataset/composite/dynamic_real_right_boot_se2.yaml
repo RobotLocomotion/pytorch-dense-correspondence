@@ -1,0 +1,6 @@
+logs_root_path: imitation/real_right_boot_se2
+
+single_object_scenes_config_files:
+- dynamic_real_right_boot_se2.yaml
+
+multi_object_scenes_config_files: []
