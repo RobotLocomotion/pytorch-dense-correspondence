@@ -350,6 +350,23 @@ def merge_matches(matches_one, matches_two):
     return (concatenated_u, concatenated_v)
 
 
+def hue_and_brightness(image):
+    """
+    image: one PIL image
+    """
+    image_numpy = np.asarray(image)
+
+    seq = iaa.Sequential([
+        iaa.Multiply((0.8, 1.2)), # change brightness, doesn't affect keypoints
+        iaa.AddToHueAndSaturation((-50, 50)),
+    ])
+
+    image_aug = seq(image=image_numpy)
+
+    image_aug_pil = Image.fromarray(image_aug)
+    return image_aug_pil
+
+
 def affine_augmentation(images, uv_pixel_positions):
     """
     images: list of PIL images

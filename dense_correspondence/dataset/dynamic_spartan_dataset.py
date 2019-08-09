@@ -351,6 +351,9 @@ class DynamicSpartanDataset(SpartanDataset):
             [image_a_rgb, image_a_depth, image_a_mask], [uv_a, uv_a_not_detected] = correspondence_augmentation.affine_augmentation([image_a_rgb, image_a_depth, image_a_mask], [uv_a, uv_a_not_detected])
             [image_b_rgb, image_b_depth, image_b_mask], [uv_b] = correspondence_augmentation.affine_augmentation([image_b_rgb, image_b_depth, image_b_mask], [uv_b])
 
+            image_a_rgb = correspondence_augmentation.hue_and_brightness(image_a_rgb)
+            image_b_rgb = correspondence_augmentation.hue_and_brightness(image_b_rgb)
+
 
             uv_a, uv_a_not_detected, uv_b = correspondence_augmentation.joint_prune_out_of_FOV(uv_a, uv_a_not_detected, uv_b)
             if uv_a is None or len(uv_a) == 0:
