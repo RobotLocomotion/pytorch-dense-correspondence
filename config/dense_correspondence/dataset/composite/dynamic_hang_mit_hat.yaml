@@ -1,0 +1,6 @@
+logs_root_path: imitation/hang_hat
+
+single_object_scenes_config_files:
+- dynamic_hang_mit_hat.yaml
+
+multi_object_scenes_config_files: []

@@ -1,0 +1,6 @@
+logs_root_path: imitation/grab_plate
+
+single_object_scenes_config_files:
+- dynamic_grab_plate.yaml
+
+multi_object_scenes_config_files: []
