@@ -229,7 +229,7 @@ class SpatialSoftmaxLoss(object):
                 pdf_samples_shaped = pdf_samples.view(num_matches, H, W)
                 loss_sum += loss(pdf_samples_shaped, one_softmax_activations)
 
-            magic_weight = 0.001
+            magic_weight = 1e-6
             return loss_sum*magic_weight
 
 
