@@ -201,26 +201,49 @@ class DynamicSpartanDataset(SpartanDataset):
         return K
 
     def set_small_image_size(self, H, W):
-        assert H == W
         self.H_small = H
+        self.W_small = W
 
-    def get_simple_image(self, index, gray=False):
+    def get_simple_image(self, index, gray_masked=True):
         object_id = self.get_random_object_id()
         scene_name = self.get_random_single_object_scene_name(object_id)
         idx = self.get_random_image_index(scene_name)
         camera_num_a = 0
         image_a_rgb = self.get_rgb_image_from_scene_name_and_idx_and_cam(scene_name, idx, camera_num_a)
         image_a_rgb_PIL = image_a_rgb
-        img = self.rgb_image_to_tensor(image_a_rgb)
-        if gray:
-            img_gray = torch.zeros(480,480)
-            img_gray = img[0,:,80:-80] + img[1,:,80:-80] + img[2,:,80:-80]
-            img_gray_down = torch.nn.functional.interpolate(img_gray.unsqueeze(0).unsqueeze(0), scale_factor=self.H_small/480.0, mode='bilinear', align_corners=True).squeeze(0).squeeze(0)
-            return img_gray_down
-        else:
-            img = img[:,:,80:-80]
-            img = torch.nn.functional.interpolate(img.unsqueeze(0), scale_factor=self.H_small/480.0, mode='bilinear', align_corners=True).squeeze(0)
-            return img
+        img_original = self.rgb_image_to_tensor(image_a_rgb)
+        
+
+
+        img_gray = img_original * 1.0
+        if gray_masked:
+            mask = self.get_mask_image_from_scene_name_and_idx_and_cam(scene_name, idx, camera_num_a)
+            mask = torch.from_numpy(np.asarray(mask)).float()
+            print mask.shape
+            print img_masked.shape
+            
+            img_gray[0,:,:] *= mask
+            img_gray[1,:,:] *= mask
+            img_gray[2,:,:] *= mask 
+        
+        if   self.W_small  == 240:
+            img_gray = (img_gray[0,:,80:-80] + img_gray[1,:,80:-80] + img_gray[2,:,80:-80])/3.0
+        elif self.W_small  == 320: 
+            img_gray = (img_gray[0,:,:] + img_gray[1,:,:] + img_gray[2,:,:])/3.0
+        img_gray_down = torch.nn.functional.interpolate(img_gray.unsqueeze(0).unsqueeze(0), scale_factor=60.0/480.0, mode='bilinear', align_corners=True).squeeze(0).squeeze(0)
+
+        # import matplotlib.pyplot as plt
+        # plt.imshow(img_gray_down.numpy())
+        # plt.show()
+        
+        
+        if self.W_small   == 240:
+            img = img_original[:,:,80:-80]
+        elif self.W_small == 320:
+            img = img_original[:,:,:]
+        img = torch.nn.functional.interpolate(img.unsqueeze(0), scale_factor=self.H_small/480.0, mode='bilinear', align_corners=True).squeeze(0)
+        
+        return img, img_gray_down
 
 
 
