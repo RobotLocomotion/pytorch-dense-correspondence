@@ -191,6 +191,19 @@ class DynamicSpartanDataset(SpartanDataset):
         image_idxs = state_info_dict.keys() # list of integers
         return random.choice(image_idxs)
 
+    def get_max_image_index(self, scene_name):
+        scene_directory = self.get_full_path_for_scene(scene_name)
+        try:
+            state_info_filename = os.path.join(scene_directory, "states.json")
+            state_info_dict = json.load(file(state_info_filename))
+        except:
+            state_info_filename = os.path.join(scene_directory, "states.yaml")
+            state_info_dict = spartan_utils.getDictFromYamlFilename(state_info_filename)
+        state_info_dict_keys = state_info_dict.keys()
+        state_info_dict_keys = [int(i) for i in state_info_dict_keys]
+        return max(state_info_dict_keys)
+        
+
     def get_default_dynamic_dataset_K_matrix(self):
         K = np.zeros((3,3))
         K[0,0] = 471.09511257614645 # focal x
@@ -204,46 +217,77 @@ class DynamicSpartanDataset(SpartanDataset):
         self.H_small = H
         self.W_small = W
 
-    def get_simple_image(self, index, gray_masked=True):
+    def get_image_reconstruction_pair(self, index):
         object_id = self.get_random_object_id()
         scene_name = self.get_random_single_object_scene_name(object_id)
-        idx = self.get_random_image_index(scene_name)
-        camera_num_a = 0
-        image_a_rgb = self.get_rgb_image_from_scene_name_and_idx_and_cam(scene_name, idx, camera_num_a)
-        image_a_rgb_PIL = image_a_rgb
-        img_original = self.rgb_image_to_tensor(image_a_rgb)
         
+        idx_one = self.get_random_image_index(scene_name)
 
+        image_one_rgb = self.get_rgb_image_from_scene_name_and_idx_and_cam(scene_name, idx_one, self.autoencoder_camera_num)
+        img_one_original = self.rgb_image_to_tensor(image_one_rgb)
 
-        img_gray = img_original * 1.0
-        if gray_masked:
-            mask = self.get_mask_image_from_scene_name_and_idx_and_cam(scene_name, idx, camera_num_a)
-            mask = torch.from_numpy(np.asarray(mask)).float()
-            print mask.shape
-            print img_masked.shape
+        images = [img_one_original]
+
+        if self.use_slow_loss:
+            max_image_idx = self.get_max_image_index(scene_name)
             
-            img_gray[0,:,:] *= mask
-            img_gray[1,:,:] *= mask
-            img_gray[2,:,:] *= mask 
-        
-        if   self.W_small  == 240:
-            img_gray = (img_gray[0,:,80:-80] + img_gray[1,:,80:-80] + img_gray[2,:,80:-80])/3.0
-        elif self.W_small  == 320: 
-            img_gray = (img_gray[0,:,:] + img_gray[1,:,:] + img_gray[2,:,:])/3.0
-        img_gray_down = torch.nn.functional.interpolate(img_gray.unsqueeze(0).unsqueeze(0), scale_factor=60.0/480.0, mode='bilinear', align_corners=True).squeeze(0).squeeze(0)
+            if int(idx_one) <= 2:
+                idx_two   = str(int(idx_one) + 1)
+                idx_three = str(int(idx_one) + 2)
+            else:
+                idx_two   = str(int(idx_one) - 1)
+                idx_three = str(int(idx_one) - 2)
+            
+            image_two_rgb = self.get_rgb_image_from_scene_name_and_idx_and_cam(scene_name, idx_two, self.autoencoder_camera_num)
+            img_two_original = self.rgb_image_to_tensor(image_two_rgb)
+            images.append(img_two_original)
 
-        # import matplotlib.pyplot as plt
-        # plt.imshow(img_gray_down.numpy())
-        # plt.show()
+            image_three_rgb = self.get_rgb_image_from_scene_name_and_idx_and_cam(scene_name, idx_three, self.autoencoder_camera_num)
+            img_three_original = self.rgb_image_to_tensor(image_three_rgb)
+            images.append(img_three_original)
+
+
+        def get_image_recon(img_original):
         
+            img_gray = img_original * 1.0
+            if self.use_masked_decode_target:
+                mask = self.get_mask_image_from_scene_name_and_idx_and_cam(scene_name, idx, self.autoencoder_camera_num)
+                mask = torch.from_numpy(np.asarray(mask)).float()
+                
+                img_gray[0,:,:] *= mask
+                img_gray[1,:,:] *= mask
+                img_gray[2,:,:] *= mask 
+            
+            if   self.W_small  == 240:
+                img_gray = (img_gray[0,:,80:-80] + img_gray[1,:,80:-80] + img_gray[2,:,80:-80])/3.0
+            elif self.W_small  == 320: 
+                img_gray = (img_gray[0,:,:] + img_gray[1,:,:] + img_gray[2,:,:])/3.0
+            img_gray_down = torch.nn.functional.interpolate(img_gray.unsqueeze(0).unsqueeze(0), scale_factor=60.0/480.0, mode='bilinear', align_corners=True).squeeze(0).squeeze(0)
+
+            
+            if self.W_small   == 240:
+                img = img_original[:,:,80:-80]
+            elif self.W_small == 320:
+                img = img_original[:,:,:]
+            img = torch.nn.functional.interpolate(img.unsqueeze(0), scale_factor=self.H_small/480.0, mode='bilinear', align_corners=True).squeeze(0)
+            return img, img_gray_down
         
-        if self.W_small   == 240:
-            img = img_original[:,:,80:-80]
-        elif self.W_small == 320:
-            img = img_original[:,:,:]
-        img = torch.nn.functional.interpolate(img.unsqueeze(0), scale_factor=self.H_small/480.0, mode='bilinear', align_corners=True).squeeze(0)
-        
-        return img, img_gray_down
+
+        img, img_gray_down = get_image_recon(images[0])
+
+        imgs = img.unsqueeze(0)
+        imgs_gray_down = img_gray_down.unsqueeze(0)
+
+        if len(images) > 0:
+            img, img_gray_down = get_image_recon(images[1])
+            imgs = torch.cat((imgs, img.unsqueeze(0)))
+            imgs_gray_down = torch.cat((imgs_gray_down, img_gray_down.unsqueeze(0)))
+
+            img, img_gray_down = get_image_recon(images[2])
+            imgs = torch.cat((imgs, img.unsqueeze(0)))
+            imgs_gray_down = torch.cat((imgs_gray_down, img_gray_down.unsqueeze(0)))
+
+        return imgs, imgs_gray_down
 
 
 
@@ -251,9 +295,13 @@ class DynamicSpartanDataset(SpartanDataset):
         return self.getitem_passthrough(index) 
 
 
-    def set_as_simple_image_loader(self):
-        print "SETTING AS SIMPLE IMAGE LOADER"
-        self.getitem_passthrough = self.get_simple_image
+    def set_as_autoencoder_image_loader(self, use_masked_decode_target, use_slow_loss, camera_num):
+        print "SETTING AS AUTOENCODER IMAGE LOADER"
+        self.use_masked_decode_target = use_masked_decode_target
+        self.use_slow_loss = use_slow_loss
+        self.autoencoder_camera_num = camera_num
+        self.getitem_passthrough = self.get_image_reconstruction_pair
+
         
     def get_within_scene_data(self, scene_name, metadata, for_synthetic_multi_object=False):
         """
