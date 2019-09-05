@@ -1,0 +1,6 @@
+logs_root_path: imitation/logs/push_plate_09_05
+
+single_object_scenes_config_files:
+- dynamic_push_plate_09_05.yaml
+
+multi_object_scenes_config_files: []
