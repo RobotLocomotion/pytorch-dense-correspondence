@@ -227,6 +227,7 @@ class DynamicSpartanDataset(SpartanDataset):
         img_one_original = self.rgb_image_to_tensor(image_one_rgb)
 
         images = [img_one_original]
+        indices = [idx_one]
 
         if self.use_slow_loss:
             max_image_idx = self.get_max_image_index(scene_name)
@@ -241,13 +242,15 @@ class DynamicSpartanDataset(SpartanDataset):
             image_two_rgb = self.get_rgb_image_from_scene_name_and_idx_and_cam(scene_name, idx_two, self.autoencoder_camera_num)
             img_two_original = self.rgb_image_to_tensor(image_two_rgb)
             images.append(img_two_original)
+            indices.append(idx_two)
 
             image_three_rgb = self.get_rgb_image_from_scene_name_and_idx_and_cam(scene_name, idx_three, self.autoencoder_camera_num)
             img_three_original = self.rgb_image_to_tensor(image_three_rgb)
             images.append(img_three_original)
+            indices.append(idx_three)
 
 
-        def get_image_recon(img_original):
+        def get_image_recon(img_original, idx):
         
             img_gray = img_original * 1.0
             if self.use_masked_decode_target:
@@ -273,17 +276,17 @@ class DynamicSpartanDataset(SpartanDataset):
             return img, img_gray_down
         
 
-        img, img_gray_down = get_image_recon(images[0])
+        img, img_gray_down = get_image_recon(images[0], indices[0])
 
         imgs = img.unsqueeze(0)
         imgs_gray_down = img_gray_down.unsqueeze(0)
 
         if len(images) > 0:
-            img, img_gray_down = get_image_recon(images[1])
+            img, img_gray_down = get_image_recon(images[1], indices[1])
             imgs = torch.cat((imgs, img.unsqueeze(0)))
             imgs_gray_down = torch.cat((imgs_gray_down, img_gray_down.unsqueeze(0)))
 
-            img, img_gray_down = get_image_recon(images[2])
+            img, img_gray_down = get_image_recon(images[2], indices[2])
             imgs = torch.cat((imgs, img.unsqueeze(0)))
             imgs_gray_down = torch.cat((imgs_gray_down, img_gray_down.unsqueeze(0)))
 
