@@ -1,0 +1,6 @@
+logs_root_path: imitation/move_to_box_0710
+
+single_object_scenes_config_files:
+- dynamic_sugar_move_to_box_0710_box_in_frame.yaml
+
+multi_object_scenes_config_files: []
