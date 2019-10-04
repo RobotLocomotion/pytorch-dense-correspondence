@@ -179,7 +179,7 @@ class SpatialSoftmaxLoss(object):
         def get_match_depth(matches, depth):
             """
             matches: N, num_matches
-            depth: N, C=1, H, W
+            depth: N, C=1, H, W, in meters at this point
             """
             depth_flattened = depth.view(N, 1, depth.shape[2]*depth.shape[3])          # N, C=1, W*H
             depth_flattened = depth_flattened.permute(0, 2, 1) # N, W*H, C=1
@@ -274,6 +274,7 @@ class SpatialSoftmaxLoss(object):
         l_3 = l1_loss(norm_matches_y_a, expected_y_a)
         l_4 = l1_loss(norm_matches_y_b, expected_y_b)
 
+        
         l_5 = l1_loss(z_stars_a, expected_z_a)
         l_6 = l1_loss(z_stars_b, expected_z_b)
 

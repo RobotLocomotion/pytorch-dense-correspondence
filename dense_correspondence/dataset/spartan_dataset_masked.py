@@ -310,6 +310,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         :return:
         :rtype:
         """
+        #self.logs_root_path = "/home/peteflo/data/pdc/imitation/move_to_box_then_flip_0716/"
         return os.path.join(self.logs_root_path, scene_name, 'processed')
 
 
