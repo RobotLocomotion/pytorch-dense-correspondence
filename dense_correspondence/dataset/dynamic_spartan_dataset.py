@@ -462,7 +462,6 @@ class DynamicSpartanDataset(SpartanDataset):
         image_b_rgb = self.rgb_image_to_tensor(image_b_rgb)
 
 
-
         matches_a = SD.flatten_uv_tensor(uv_a, image_width)
         matches_b = SD.flatten_uv_tensor(uv_b, image_width)
 

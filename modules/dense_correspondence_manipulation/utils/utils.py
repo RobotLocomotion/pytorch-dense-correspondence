@@ -329,6 +329,16 @@ def uv_to_flattened_pixel_locations(uv_tuple, image_width):
     flat_pixel_locations = uv_tuple[1]*image_width + uv_tuple[0]
     return flat_pixel_locations
 
+def flatten_uv_tensor(uv_tensor, image_width):
+    """
+    Flattens a uv_tensor to single dimensional tensor
+    :param uv_tensor:
+    :type uv_tensor:
+    :return:
+    :rtype:
+    """
+    return uv_tensor[1].long() * image_width + uv_tensor[0].long()
+
 def reset_random_seed():
     SEED = 1
     random.seed(SEED)
