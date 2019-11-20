@@ -1,3 +1,5 @@
+
+
 # torch
 import torch
 
@@ -7,16 +9,6 @@ import numpy as np
 from numpy.linalg import inv
 import random
 import warnings
-
-# io
-from PIL import Image
-
-# torchvision
-import sys
-sys.path.insert(0, '../pytorch-segmentation-detection/vision/') # from subrepo
-from torchvision import transforms
-
-import dense_correspondence_manipulation.utils.utils as utils
 
 
 from dense_correspondence_manipulation.utils.constants import *
