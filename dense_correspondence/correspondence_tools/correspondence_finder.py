@@ -1,6 +1,9 @@
-
+from __future__ import print_function
+from __future__ import division
 
 # torch
+from builtins import range
+from past.utils import old_div
 import torch
 
 # system
@@ -75,7 +78,7 @@ def random_sample_from_masked_image(img_mask, num_samples):
     if num_nonzero == 0:
         empty_list = []
         return empty_list
-    rand_inds = random.sample(range(0,num_nonzero), num_samples)
+    rand_inds = random.sample(list(range(0,num_nonzero)), num_samples)
 
     sampled_idx_list = []
     for i, idx in enumerate(idx_tuple):
@@ -237,7 +240,7 @@ def pinhole_projection_world_to_image(world_pos, K, camera_to_world=None):
         world_pos_vec = np.dot(np.linalg.inv(camera_to_world), world_pos_vec)
 
     # scaled position is [X/Z, Y/Z, 1] where X,Y,Z is the position in camera frame
-    scaled_pos = np.array([world_pos_vec[0]/world_pos_vec[2], world_pos_vec[1]/world_pos_vec[2], 1])
+    scaled_pos = np.array([old_div(world_pos_vec[0],world_pos_vec[2]), old_div(world_pos_vec[1],world_pos_vec[2]), 1])
     uv = np.dot(K, scaled_pos)[:2]
     return uv
 
@@ -313,14 +316,14 @@ def create_non_correspondences(uv_b_matches, img_b_shape, num_non_matches_per_ma
         img_b_mask_flat = img_b_mask.view(-1,1).squeeze(1)
         mask_b_indices_flat = torch.nonzero(img_b_mask_flat)
         if len(mask_b_indices_flat) == 0:
-            print "warning, empty mask b"
+            print("warning, empty mask b")
             uv_b_non_matches = get_random_uv_b_non_matches()
         else:
             num_samples = num_matches*num_non_matches_per_match
             rand_numbers_b = torch.rand(num_samples)*len(mask_b_indices_flat)
             rand_indices_b = torch.floor(rand_numbers_b).long()
             randomized_mask_b_indices_flat = torch.index_select(mask_b_indices_flat, 0, rand_indices_b).squeeze(1)
-            uv_b_non_matches = (randomized_mask_b_indices_flat%image_width, randomized_mask_b_indices_flat/image_width)
+            uv_b_non_matches = (randomized_mask_b_indices_flat%image_width, old_div(randomized_mask_b_indices_flat,image_width))
     else:
         uv_b_non_matches = get_random_uv_b_non_matches()
     
@@ -353,7 +356,7 @@ def create_non_correspondences(uv_b_matches, img_b_shape, num_non_matches_per_ma
     need_to_be_perturbed = where(diffs_0_flattened < threshold, ones, need_to_be_perturbed)
     need_to_be_perturbed = where(diffs_1_flattened < threshold, ones, need_to_be_perturbed)
 
-    minimal_perturb        = num_pixels_too_close/2
+    minimal_perturb        = old_div(num_pixels_too_close,2)
     minimal_perturb_vector = (torch.rand(len(need_to_be_perturbed))*2).floor()*(minimal_perturb*2)-minimal_perturb
     std_dev = 10
     random_vector = torch.randn(len(need_to_be_perturbed))*std_dev + minimal_perturb_vector
@@ -517,8 +520,8 @@ def reproject_pixels(depth_vec, u_a_pruned, v_a_pruned, K_a, K_b, img_a_pose, im
     K_b_torch = torch.from_numpy(K_b).type(dtype_float)
     vec2_vec = K_b_torch.mm(point_camera_2_frame_rdf_vec)
 
-    u2_vec = vec2_vec[0]/vec2_vec[2]
-    v2_vec = vec2_vec[1]/vec2_vec[2]
+    u2_vec = old_div(vec2_vec[0],vec2_vec[2])
+    v2_vec = old_div(vec2_vec[1],vec2_vec[2])
     z2_vec = vec2_vec[2]
     return u2_vec, v2_vec, z2_vec
 
@@ -779,7 +782,7 @@ def photometric_check(image_a_rgb, image_b_rgb, matches_a, matches_b):
         invalid_matches_a = torch.index_select(matches_a, 0, invalid_matches)
         invalid_matches_b = torch.index_select(matches_b, 0, invalid_matches)
 
-        print "REJECTED MATCHES"
+        print("REJECTED MATCHES")
 
         plt.imshow(image_a_rgb.permute(1,2,0).numpy())
         uv = utils.flattened_pixel_locations_to_u_v(invalid_matches_a, image_width)
@@ -801,7 +804,7 @@ def photometric_check(image_a_rgb, image_b_rgb, matches_a, matches_b):
     if DEBUG:
         import matplotlib.pyplot as plt
 
-        print "PASSED MATCHES"
+        print("PASSED MATCHES")
 
         plt.imshow(image_a_rgb.permute(1,2,0).numpy())
         uv = utils.flattened_pixel_locations_to_u_v(matches_a, image_width)
