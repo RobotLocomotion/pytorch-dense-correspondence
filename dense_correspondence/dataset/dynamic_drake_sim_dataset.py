@@ -94,8 +94,10 @@ class DynamicDrakeSimDataset(data.Dataset):
     def compute_correspondences(self,
                                 data_a, # dict
                                 data_b, # dict
-                                sample_matches_only_off_mask=True,
-                                verbose=False):
+                                num_non_matches_per_match,
+                                sample_matches_only_off_mask,
+                                verbose=False,
+                                ):
 
         # return data
         return_data = dict()
@@ -140,9 +142,12 @@ class DynamicDrakeSimDataset(data.Dataset):
                                                                     )
 
 
+        uv_a = pdc_utils.uv_tuple_to_tensor(uv_a)
+        uv_b = pdc_utils.uv_tuple_to_tensor(uv_b)
+
         if verbose:
-            print("uv_a[0].shape", uv_a[0].shape)
-            print("uv_b[0].shape", uv_b[0].shape)
+            print("uv_a.shape", uv_a.shape)
+            print("uv_b.shape", uv_b.shape)
 
         # perform photometric check
         matches_a = pdc_utils.flatten_uv_tensor(uv_a, image_width)
@@ -159,10 +164,20 @@ class DynamicDrakeSimDataset(data.Dataset):
 
         matches_a, matches_b = correspondence_finder.photometric_check(rgb_tensor_a, rgb_tensor_b, matches_a, matches_b)
 
-        matches_uv_a = pdc_utils.flattened_pixel_locations_to_uv_tensor(matches_a, image_width)
-        matches_uv_b = pdc_utils.flattened_pixel_locations_to_uv_tensor(matches_b, image_width)
+        print("type(uv_b)", type(uv_b))
+        tensor_mask_b = torch.from_numpy(data_b['mask'])
+        masked_non_matches_uv_b = correspondence_finder.create_non_correspondences(uv_b, data_b['rgb'].shape, num_non_matches_per_match=num_non_matches_per_match, img_b_mask=tensor_mask_b)
 
-        
+        masked_non_matches_uv_b = pdc_utils.uv_tuple_to_tensor(masked_non_matches_uv_b)
+
+
+        # background non-matches
+        background_tensor_mask_b = 1 - tensor_mask_b
+        background_non_matches_uv_b = \
+            correspondence_finder.create_non_correspondences(uv_b, data_b['rgb'].shape, num_non_matches_per_match=num_non_matches_per_match, img_b_mask=background_tensor_mask_b)
+
+        background_non_matches_uv_b = pdc_utils.uv_tuple_to_tensor(background_non_matches_uv_b)
+
 
         # compute non-correspondences
         non_matches_a = None
@@ -175,15 +190,14 @@ class DynamicDrakeSimDataset(data.Dataset):
         metadata = dict()
         return_data = {'data_a': data_a,
                        'data_b': data_b,
-                       'matches_flat_a': matches_a, #
-                       'matches_flat_b': matches_b,
-                       'matches_uv_a': matches_uv_a,
-                       'matches_uv_b': matches_uv_b,
-                       'non_matches_a': non_matches_a,
-                       'non_matches_b': non_matches_b,
-                       'masked_non_matches_a': masked_non_matches_a,
-                       'masked_non_matches_b': masked_non_matches_b,
-                       'metadata': metadata}
+                       'matches_uv_a': uv_a,
+                       'matches_uv_b': uv_b,
+                       'masked_non_matches_uv_a': uv_a,
+                       'masked_non_matches_uv_b': masked_non_matches_uv_b,
+                       'background_non_matches_uv_a': uv_a,
+                       'background_non_matches_uv_b': background_non_matches_uv_b,
+                       'metadata': metadata,
+                       'valid': True}
 
         return True, return_data
 
