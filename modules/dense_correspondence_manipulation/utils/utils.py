@@ -343,7 +343,6 @@ def flattened_pixel_locations_to_uv_tensor(flat_pixel_locations, image_width):
     return uv_tensor
 
 
-
 def uv_to_flattened_pixel_locations(uv_tuple, image_width):
     """
     Converts to a flat tensor
@@ -361,6 +360,29 @@ def flatten_uv_tensor(uv_tensor, image_width):
     """
     return uv_tensor[1].long() * image_width + uv_tensor[0].long()
 
+
+def uv_tuple_to_tensor(uv_tuple):
+    """
+
+    :param uv_tuple: tuple of torch.Tensors shape [N,]
+    :type uv_tuple:
+    :return:
+    :rtype: torch.Tensor of shape [2, N]
+    """
+
+    uv_tensor = torch.stack(uv_tuple, 0)
+    return uv_tensor
+
+def uv_tensor_to_tuple(uv_tensor):
+    """
+    :param uv_tensor: torch.Tensor shape [2, N]
+    :type uv_tensor:
+    :return: tuple of torch.Tensor, each of shape [N,]
+    :rtype:
+    """
+    assert uv_tensor.shape(0) == 2
+
+    return (uv_tensor[0, :], uv_tensor[1,:])
 
 
 def reset_random_seed():
