@@ -15,6 +15,7 @@ import warnings
 
 
 from dense_correspondence_manipulation.utils.constants import *
+import dense_correspondence_manipulation.utils.utils as pdc_utils
 
 # turns out to be faster to do this match generation on the CPU
 # for the general size of params we expect
@@ -842,3 +843,151 @@ def photometric_check(image_a_rgb, image_b_rgb, matches_a, matches_b, PHOTODIFF_
     # print len(matches_b)
     
     return matches_a, matches_b
+
+def compute_correspondence_data(data_a,  # dict
+                                data_b,  # dict
+                                num_non_matches_per_match,
+                                sample_matches_only_off_mask,
+                                rgb_to_tensor_transform,  # torchvision.transforms.Transform
+                                verbose=False,
+                                ):
+    """
+    Computes correspondences and non-correspondences given image data and function
+    for converting rgb image to tensor
+
+    data_a is a dict with keys
+    - 'rgb': rgb image, dtype np.int16
+    - 'depth': depth image with dtype np.int16
+    - 'mask': binary mask image
+    - 'T_world_camera': camera to world transform
+    - 'K': camera matrix
+
+    :param data_a:
+    :type data_a:
+    :param data_b:
+    :type data_b:
+    :param num_non_matches_per_match:
+    :type num_non_matches_per_match:
+    :param sample_matches_only_off_mask:
+    :type sample_matches_only_off_mask:
+    :param rgb_to_tensor_transform:
+    :type rgb_to_tensor_transform:
+    :param verbose:
+    :type verbose:
+    :return:
+    :rtype:
+    """
+
+    def get_empty_return_data():
+        return_data = {'data_a': data_a,
+                       'data_b': data_b,
+                       'valid': True}
+
+        return return_data
+
+    # return data
+    return_data = dict()
+
+    image_width = data_a['rgb'].shape[1]
+    image_height = data_a['rgb'].shape[0]
+
+    img_size = np.size(data_a['mask'])
+    min_mask_size = 0.01*img_size
+
+
+    # skip if not enough pixels in mask
+    if (np.sum(data_a['mask']) < min_mask_size) or (np.sum(data_b['mask']) < min_mask_size):
+        print("not enough pixels in mask, skipping")
+
+        if verbose:
+            mask_a = data_a['mask']
+            mask_b = data_b['mask']
+            print("mask_a fraction:", np.sum(mask_a)/mask_a.size)
+            print("mask_b fraction:", np.sum(mask_b)/mask_b.size)
+        return get_empty_return_data()
+
+    # set the mask for correspondences
+    if sample_matches_only_off_mask:
+        correspondence_mask = np.asarray(data_a['mask'])
+    else:
+        correspondence_mask = None
+
+
+    # uv_a is tuple of FloatTensors . . .
+    uv_a, uv_b = batch_find_pixel_correspondences(img_a_depth=data_a['depth_int16'],
+                                                                img_a_pose=data_a['T_world_camera'],
+                                                                img_b_depth=data_b['depth_int16'],
+                                                                img_b_pose=data_b['T_world_camera'],
+                                                               img_a_mask=correspondence_mask,
+                                                                K_a=data_a['K'],
+                                                                K_b=data_b['K'],
+                                                               matching_type="only_matches", # not sure what this does
+                                                               verbose=True
+                                                                )
+
+
+    uv_a = pdc_utils.uv_tuple_to_tensor(uv_a)
+    uv_b = pdc_utils.uv_tuple_to_tensor(uv_b)
+
+    # check if these are empty if so return empty data
+    if uv_a.size == 0:
+        print("couldn't find any matches, returning")
+        return get_empty_return_data()
+
+    if verbose:
+        print("uv_a.shape", uv_a.shape)
+        print("uv_b.shape", uv_b.shape)
+
+    # perform photometric check
+    matches_a = pdc_utils.flatten_uv_tensor(uv_a, image_width)
+    matches_b = pdc_utils.flatten_uv_tensor(uv_b, image_width)
+
+    if verbose:
+        print("matches_a.shape", matches_a.shape)
+        print("matches_b.shape", matches_b.shape)
+
+    # need to be [D,H,W] torch.FloatTensors that have already
+    # been normalized
+    rgb_tensor_a = rgb_to_tensor_transform(data_a['rgb'])
+    rgb_tensor_b = rgb_to_tensor_transform(data_b['rgb'])
+
+    matches_a, matches_b = photometric_check(rgb_tensor_a, rgb_tensor_b, matches_a, matches_b)
+
+    print("type(uv_b)", type(uv_b))
+    tensor_mask_b = torch.from_numpy(data_b['mask'])
+    masked_non_matches_uv_b = create_non_correspondences(uv_b, data_b['rgb'].shape, num_non_matches_per_match=num_non_matches_per_match, img_b_mask=tensor_mask_b)
+
+    masked_non_matches_uv_b = pdc_utils.uv_tuple_to_tensor(masked_non_matches_uv_b)
+
+
+    # background non-matches
+    background_tensor_mask_b = 1 - tensor_mask_b
+    background_non_matches_uv_b = \
+        create_non_correspondences(uv_b, data_b['rgb'].shape, num_non_matches_per_match=num_non_matches_per_match, img_b_mask=background_tensor_mask_b)
+
+    background_non_matches_uv_b = pdc_utils.uv_tuple_to_tensor(background_non_matches_uv_b)
+
+
+    # compute non-correspondences
+    non_matches_a = None
+    non_matches_b = None
+    masked_non_matches_a = None
+    masked_non_matches_b = None
+
+
+    # data augmentation should happen elsewhere
+    metadata = dict()
+    return_data = {'data_a': data_a,
+                   'data_b': data_b,
+                   'matches_uv_a': uv_a,
+                   'matches_uv_b': uv_b,
+                   'masked_non_matches_uv_a': uv_a,
+                   'masked_non_matches_uv_b': masked_non_matches_uv_b,
+                   'background_non_matches_uv_a': uv_a,
+                   'background_non_matches_uv_b': background_non_matches_uv_b,
+                   'metadata': metadata,
+                   'valid': True}
+
+
+
+    return return_data
