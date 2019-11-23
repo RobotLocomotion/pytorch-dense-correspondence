@@ -494,15 +494,17 @@ def prune_if_occluded(u2_vec, v2_vec, z2_vec, u_a, v_a, depth2_vec):
     return False, u2_vec_non_occluded, v2_vec_non_occluded, z2_vec, u_a_pruned_non_occluded, v_a_pruned_non_occluded, u_a_pruned_occluded, v_a_pruned_occluded
 
 
-def reproject_pixels(depth_vec, u_a_pruned, v_a_pruned, K_a, K_b, img_a_pose, img_b_pose):
+def reproject_pixels(depth_vec, u_a_pruned, v_a_pruned, K_a, K_b, img_a_pose, img_b_pose,
+                     verbose=True):
     if K_a is None and K_b is None:
         K_a = get_default_K_matrix()
         K_b = get_default_K_matrix()
 
     K_a_inv = inv(K_a)
     K_b_inv = inv(K_b)
-    body_to_rdf = get_body_to_rdf()
-    rdf_to_body = inv(body_to_rdf)
+
+    # body_to_rdf = get_body_to_rdf()
+    # rdf_to_body = inv(body_to_rdf)
 
     u_vec = u_a_pruned.type(dtype_float)*depth_vec
     v_vec = v_a_pruned.type(dtype_float)*depth_vec
@@ -613,7 +615,7 @@ def prune_if_outside_FOV(u_a, v_a, u2_vec, v2_vec, z2_vec, image_width, image_he
 # If uv_a is not set, then random correspondences are attempted to be found
 def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b_pose, 
                                         uv_a=None, num_attempts=20, device='CPU', img_a_mask=None, K_a=None, K_b=None,
-                                        matching_type="with_detections"):
+                                        matching_type="with_detections", verbose=False):
     """
     Computes pixel correspondences in batch
 
@@ -676,6 +678,11 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
         
         # Option A: This next line samples from img mask
         uv_a_vec = random_sample_from_masked_image_torch(img_a_mask, num_samples=num_attempts)
+
+        if verbose:
+            print("uv_a_vec.size()", uv_a_vec[0].size())
+            print("uv_a_vec[0]", uv_a_vec[0])
+
         if uv_a_vec[0] is None:
             return None, None, None
         
@@ -692,15 +699,24 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
     # Case 1: depth is zero (for this data, this means no-return)
     empty_flag, u_a_pruned, v_a_pruned = prune_if_unknown_depth(uv_a_vec, depth_vec)
     if empty_flag == True:
+        if verbose:
+            print("EMPTY: Case 1")
         return None, None, None
 
 
     u2_vec, v2_vec, z2_vec = reproject_pixels(depth_vec, u_a_pruned, v_a_pruned, K_a, K_b, img_a_pose, img_b_pose)
 
+    if verbose:
+        print("(u_a, v_a): (%d, %d)" %(u_a_pruned[0], v_a_pruned[0]))
+        print("depth_a:", depth_vec[0])
+        print("(u_b, v_b): (%d, %d)" %(u2_vec[0], v2_vec[0]))
+
     # Prune or flag based on
     # Case 2: the pixels projected into image b are outside FOV
     empty_flag, u_a_pruned, v_a_pruned, u2_vec, v2_vec, z2_vec, u_a_outsideFOV, v_a_outsideFOV = prune_if_outside_FOV(u_a_pruned, v_a_pruned, u2_vec, v2_vec, z2_vec, image_width, image_height)
     if empty_flag == True:
+        if verbose:
+            print("EMPTY: Case 2")
         return None, None, None
 
     depth2_vec = get_depth2_vec(img_b_depth, u2_vec, v2_vec, image_width)
@@ -709,11 +725,15 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
     # Case 3: there is no depth return in image b so we aren't sure if occluded
     empty_flag, u2_vec, v2_vec, z2_vec, u_a_pruned, v_a_pruned, depth2_vec = prune_if_unknown_depth_b(u2_vec, v2_vec, z2_vec, u_a_pruned, v_a_pruned, depth2_vec)
     if empty_flag == True:
+        if verbose:
+            print("EMPTY: Case 3")
         return None, None, None
 
     # Case 4: the pixels in image b are occluded
     empty_flag, u2_vec, v2_vec, z2_vec, u_a_pruned, v_a_pruned, u_a_occluded, v_a_occluded = prune_if_occluded(u2_vec, v2_vec, z2_vec, u_a_pruned, v_a_pruned, depth2_vec)
     if empty_flag == True:
+        if verbose:
+            print("EMPTY: Case 4")
         return None, None, None
     
 
@@ -730,7 +750,7 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
         return uv_a_vec, uv_b_vec, uv_a_not_detected
 
 
-def photometric_check(image_a_rgb, image_b_rgb, matches_a, matches_b):
+def photometric_check(image_a_rgb, image_b_rgb, matches_a, matches_b, PHOTODIFF_THRESH=4.0):
     """
     image_a_rgb: torch.FloatTensor, shape D, H, W
     matches_a: torch.FloatTensor, flat index into image
@@ -757,8 +777,7 @@ def photometric_check(image_a_rgb, image_b_rgb, matches_a, matches_b):
     # print torch.max(photodiff), "is max photodiff"
     # print torch.mean(photodiff), "is mean"
 
-    PHOTODIFF_THRESH = 4.0
-    zeros_vec       = torch.zeros_like(photodiff)   
+    zeros_vec       = torch.zeros_like(photodiff)
     matches_passed = where(photodiff > PHOTODIFF_THRESH, zeros_vec, matches_a.float()).long()
     
     valid_matches = torch.nonzero(matches_passed)
@@ -817,8 +836,6 @@ def photometric_check(image_a_rgb, image_b_rgb, matches_a, matches_b):
         for i in range(8):
             plt.scatter(uv[0][i], uv[1][i])
         plt.show()
-
-
 
     #print "AFTER"
     #print len(matches_a)

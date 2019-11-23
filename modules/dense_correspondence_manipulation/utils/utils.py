@@ -1,6 +1,10 @@
 from __future__ import print_function
+from __future__ import division
 
 # Basic I/O utils
+from builtins import str
+from builtins import object
+from past.utils import old_div
 import yaml
 from yaml import CLoader
 import numpy as np
@@ -320,7 +324,25 @@ def flattened_pixel_locations_to_u_v(flat_pixel_locations, image_width):
     the pixel and the second column is the v coordinate
 
     """
-    return (flat_pixel_locations%image_width, flat_pixel_locations/image_width)
+    return (flat_pixel_locations%image_width, old_div(flat_pixel_locations,image_width))
+
+def flattened_pixel_locations_to_uv_tensor(flat_pixel_locations, image_width):
+    """
+    :param flat_pixel_locations: A torch.LongTensor of shape torch.Shape([n,1]) where each element
+     is a flattened pixel index, i.e. some integer between 0 and 307,200 for a 640x480 image
+
+    :type flat_pixel_locations: torch.LongTensor
+
+    :return torch.LongTensor of shape [2, n]
+    first column is u, second column is v
+
+    """
+    u_coord = flat_pixel_locations % image_width
+    v_coord = flat_pixel_locations // image_width
+    uv_tensor = torch.stack((u_coord, v_coord), 0)
+    return uv_tensor
+
+
 
 def uv_to_flattened_pixel_locations(uv_tuple, image_width):
     """
@@ -338,6 +360,8 @@ def flatten_uv_tensor(uv_tensor, image_width):
     :rtype:
     """
     return uv_tensor[1].long() * image_width + uv_tensor[0].long()
+
+
 
 def reset_random_seed():
     SEED = 1
