@@ -303,7 +303,7 @@ def create_non_correspondences(uv_b_matches, img_b_shape, num_non_matches_per_ma
     image_width  = img_b_shape[1]
     image_height = img_b_shape[0]
 
-    if uv_b_matches == None:
+    if uv_b_matches is None:
         return None
 
     num_matches = len(uv_b_matches[0])
