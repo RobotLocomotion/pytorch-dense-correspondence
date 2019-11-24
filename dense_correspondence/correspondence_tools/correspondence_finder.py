@@ -1074,13 +1074,79 @@ def compute_correspondence_data(data_a,  # dict
     return return_data
 
 
+def resize_uv_data_dict(data,  # dict
+                        N,  # int
+                        verbose=False):
+    """
+    data is dict with keys
+
+    - 'uv_a' shape [2,K]
+    - 'uv_b' shape [2,K]
+    - 'valid' shape [K]
+
+    :param data:
+    :type data:
+    :param N:
+    :type N:
+    :return:
+    :rtype:
+    """
+
+    uv_a = data['uv_a']
+    uv_b = data['uv_b']
+    valid = data['valid']
+
+    assert uv_a.shape == uv_b.shape
+    assert uv_a.shape[1] == valid.shape[0]
+
+    K = uv_a.shape[1]
+
+    uv_a_new = None
+    uv_b_new = None
+    valid_new = None
+
+    if K == N:
+        return data
+    elif K > N:
+        print("downsampling")
+        # randomly select some indices
+        idx = np.random.choice(K, N, replace=False)
+        idx = torch.from_numpy(idx).type(torch.long)
+        uv_a_new = uv_a[:, idx]
+        uv_b_new = uv_b[:, idx]
+        valid_new = valid[idx]
+
+        if verbose:
+            print("idx:\n", idx)
+
+    elif K < N:
+        if verbose:
+            print("padding with zeros")
+
+        pad_size = N - K
+        uv_pad = torch.zeros([2, pad_size], dtype=uv_a.dtype)
+        valid_pad = torch.zeros([pad_size], dtype=valid.dtype)
+        uv_a_new = torch.cat((uv_a, uv_pad), dim=1)
+        uv_b_new = torch.cat((uv_b, uv_pad), dim=1)
+        valid_new = torch.cat((valid, valid_pad))
+    else:
+        raise ValueError("should never reach here")
+
+    return {'uv_a': uv_a_new,
+            'uv_b': uv_b_new,
+            'valid': valid_new}
+
+
 def pad_correspondence_data(data, # output of compute_correspondence_data
                             N_matches,  # int: num matches
                             N_masked_non_matches,  # int: num masked non-matches
                             N_background_non_matches,  # int: num background non-matches
-                            ):
+                            verbose=False):
     """
     Pads the correspondence data to be the right size
+
+    Resizes tensors in fields 'matches', 'masked_non_matches', 'background_non_matches'
+    Modifies the 'data' dict in place
 
     :param data:
     :type data:
@@ -1094,4 +1160,6 @@ def pad_correspondence_data(data, # output of compute_correspondence_data
     :rtype:
     """
 
-    pass
+    for key, N in zip(['matches', 'masked_non_matches', 'background_non_matches'], [N_matches, N_masked_non_matches, N_background_non_matches]):
+        d = data[key]
+        data[key] = resize_uv_data_dict(d, N, verbose=verbose)

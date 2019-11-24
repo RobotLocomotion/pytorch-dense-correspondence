@@ -81,6 +81,16 @@ class DynamicDrakeSimDataset(data.Dataset):
         episode = self._episodes[entry['episode_name']]
         data = self._getitem(episode, entry['idx'], entry['camera_name_a'], entry['camera_name_b'])
 
+        # pad it so can be used in batch with DataLoader
+        N_matches = self._config['dataset']['N_matches']
+        N_masked_non_matches = self._config['dataset']['N_masked_non_matches']
+        N_background_non_matches = self._config['dataset']['N_background_non_matches']
+        correspondence_finder.pad_correspondence_data(data,
+                                                      N_matches=N_matches,
+                                                      N_masked_non_matches=N_masked_non_matches,
+                                                      N_background_non_matches=N_background_non_matches,
+                                                      verbose=False)
+
         return data
 
     def __len__(self):
