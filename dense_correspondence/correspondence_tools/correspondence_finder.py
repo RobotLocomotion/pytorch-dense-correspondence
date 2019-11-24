@@ -666,6 +666,13 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
         dtype_float = torch.cuda.FloatTensor
         dtype_long = torch.cuda.LongTensor
 
+
+    def return_failure():
+        if matching_type == "with_detections":
+            return None, None, None
+        else:
+            return None, None
+
     if uv_a is None:
         uv_a = pytorch_rand_select_pixel(width=image_width,height=image_height, num_samples=num_attempts)
     else:
@@ -685,7 +692,9 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
             print("uv_a_vec[0]", uv_a_vec[0])
 
         if uv_a_vec[0] is None:
-            return None, None, None
+            if verbose:
+                print("FAILURE: uv_a_vec[0] is None")
+            return return_failure()
         
         # Option B: These 4 lines grab ALL from img mask
         # mask_a = img_a_mask.squeeze(0)
@@ -702,10 +711,11 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
     if empty_flag == True:
         if verbose:
             print("EMPTY: Case 1")
-        return None, None, None
+        return return_failure()
 
 
-    u2_vec, v2_vec, z2_vec = reproject_pixels(depth_vec, u_a_pruned, v_a_pruned, K_a, K_b, img_a_pose, img_b_pose)
+    depth_vec_pruned = get_depth_vec(img_a_depth, (u_a_pruned, v_a_pruned), image_width)
+    u2_vec, v2_vec, z2_vec = reproject_pixels(depth_vec_pruned, u_a_pruned, v_a_pruned, K_a, K_b, img_a_pose, img_b_pose)
 
     if verbose:
         print("(u_a, v_a): (%d, %d)" %(u_a_pruned[0], v_a_pruned[0]))
@@ -718,7 +728,7 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
     if empty_flag == True:
         if verbose:
             print("EMPTY: Case 2")
-        return None, None, None
+        return return_failure()
 
     depth2_vec = get_depth2_vec(img_b_depth, u2_vec, v2_vec, image_width)
 
@@ -728,14 +738,14 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
     if empty_flag == True:
         if verbose:
             print("EMPTY: Case 3")
-        return None, None, None
+        return return_failure()
 
     # Case 4: the pixels in image b are occluded
     empty_flag, u2_vec, v2_vec, z2_vec, u_a_pruned, v_a_pruned, u_a_occluded, v_a_occluded = prune_if_occluded(u2_vec, v2_vec, z2_vec, u_a_pruned, v_a_pruned, depth2_vec)
     if empty_flag == True:
         if verbose:
             print("EMPTY: Case 4")
-        return None, None, None
+        return return_failure()
     
 
     uv_b_vec = (u2_vec, v2_vec)
@@ -862,8 +872,6 @@ def compute_correspondence_data(data_a,  # dict
     - 'T_world_camera': camera to world transform
     - 'K': camera matrix
 
-    If couldn't find correspondences, it returns none
-
     :param data_a:
     :type data_a:
     :param data_b:
@@ -880,6 +888,12 @@ def compute_correspondence_data(data_a,  # dict
     :rtype:
     """
 
+    def get_empty_return_data():
+        return_data = {'data_a': data_a,
+                       'data_b': data_b,
+                       'valid': True}
+
+        return return_data
 
     # return data
     return_data = dict()
@@ -900,7 +914,7 @@ def compute_correspondence_data(data_a,  # dict
             mask_b = data_b['mask']
             print("mask_a fraction:", np.sum(mask_a)/mask_a.size)
             print("mask_b fraction:", np.sum(mask_b)/mask_b.size)
-        return None
+        return get_empty_return_data()
 
     # set the mask for correspondences
     if sample_matches_only_off_mask:
@@ -918,8 +932,13 @@ def compute_correspondence_data(data_a,  # dict
                                                                 K_a=data_a['K'],
                                                                 K_b=data_b['K'],
                                                                matching_type="only_matches", # not sure what this does
-                                                               verbose=True
+                                                               verbose=verbose
                                                                 )
+
+    # this means that batch_find_pixel_correspondences failed for some reason
+    if uv_a is None:
+        print("couldn't find any matches")
+        return get_empty_return_data()
 
 
     uv_a = pdc_utils.uv_tuple_to_tensor(uv_a)
@@ -928,7 +947,7 @@ def compute_correspondence_data(data_a,  # dict
     # check if these are empty if so return empty data
     if uv_a.size == 0:
         print("couldn't find any matches, returning")
-        return None
+        return get_empty_return_data()
 
     if verbose:
         print("uv_a.shape", uv_a.shape)
@@ -949,7 +968,6 @@ def compute_correspondence_data(data_a,  # dict
 
     matches_a, matches_b = photometric_check(rgb_tensor_a, rgb_tensor_b, matches_a, matches_b)
 
-    print("type(uv_b)", type(uv_b))
     tensor_mask_b = torch.from_numpy(data_b['mask'])
     masked_non_matches_uv_b = create_non_correspondences(uv_b, data_b['rgb'].shape, num_non_matches_per_match=num_non_matches_per_match, img_b_mask=tensor_mask_b)
 
