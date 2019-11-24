@@ -2,7 +2,6 @@ import random
 import numpy as np
 import logging
 
-
 import torch
 import torch.utils.data as data
 from torch.utils.data import Dataset, DataLoader
@@ -12,6 +11,8 @@ from torchvision import transforms
 from dense_correspondence.correspondence_tools import correspondence_finder
 from dense_correspondence_manipulation.utils import utils as pdc_utils
 import dense_correspondence_manipulation.utils.constants as constants
+from dense_correspondence.dataset.utils import make_dynamic_episode_index
+from dense_correspondence.correspondence_tools.correspondence_finder import compute_correspondence_data
 
 
 class DynamicDrakeSimDataset(data.Dataset):
@@ -27,20 +28,42 @@ class DynamicDrakeSimDataset(data.Dataset):
         self._config = config
         self._episodes = episodes
         self._phase = phase
-        self._initialize_rgb_image_to_tensor()
+        self.initialize()
 
-    def _getitem(self, idx):
+    def _getitem(self,
+                 episode, # EpisodeReader
+                 idx, # int
+                 camera_name_a, # str
+                 camera_name_b, # str
+                 ):
+
+
         # local version
+        data_a = episode.get_image_data(camera_name_a, idx)
+        data_b = episode.get_image_data(camera_name_b, idx)
+
+        sample_matches_only_off_mask = self._config['dataset']['sample_matches_only_off_mask']
+        num_non_matches_per_match = self._config['dataset']['num_non_matches_per_match']
+
+        # if it failed this will be None
+        correspondence_data = \
+            compute_correspondence_data(data_a,
+                                        data_b,
+                                        num_non_matches_per_match=num_non_matches_per_match,
+                                        sample_matches_only_off_mask=sample_matches_only_off_mask,
+                                        rgb_to_tensor_transform=self.rgb_to_tensor_transform)
 
         # returns a dict whose values are tensors
-        return {"rgb_a": image_a_rgb,
-                "rgb_b": image_b_rgb,
-                "matches_a": matches_a,
-                "matches_b": matches_b,
-                "masked_non_matches_a": masked_non_matches_a,
-                "masked_non_matches_b": masked_non_matches_b,
-                "metadata": metadata,
-                }
+        # if it was invalid it returns None
+        return correspondence_data
+
+    def __getitem__(self, item_idx):
+
+        entry = self.index[item_idx]
+        episode = self._episodes[entry['episode_name']]
+        data = self._getitem(episode, entry['idx'], entry['camera_name_a'], entry['camera_name_b'])
+
+        return data
 
     def get_image_mean(self):
         """
@@ -69,6 +92,55 @@ class DynamicDrakeSimDataset(data.Dataset):
         # return self.config["image_normalization"]["std_dev"]
 
         return constants.DEFAULT_IMAGE_STD_DEV
+
+    def initialize(self):
+        """
+        Initialize
+        - setup train/valid splits
+        - setup rgb --> tensor transform
+        :return:
+        :rtype:
+        """
+        # setup train/valid splits
+        self.set_test_train_splits()
+
+        # rgb --> tensor transform
+        self._initialize_rgb_image_to_tensor()
+
+    def set_test_train_splits(self):
+        """
+        Divides episodes into test/train splits
+        :return:
+        :rtype:
+        """
+        episode_names = list(self._episodes.keys())
+        episode_names.sort()  # to make sure train/test splits are deterministic
+
+        n_train = int(len(episode_names) * self._config['train']['train_valid_ratio'])
+        n_valid = len(episode_names) - n_train
+
+        self._train_episode_names = episode_names[0:n_train]
+        self._valid_episode_names = episode_names[n_train:-1]
+
+        self._train_index = self.make_index(self._train_episode_names)
+        self._valid_index = self.make_index(self._valid_episode_names)
+
+    def make_index(self,
+                   episode_names):
+        index = []
+
+        for name in episode_names:
+            episode = self._episodes[name]
+            index.extend(episode.make_index(episode_name=name))
+
+        return index
+
+    @property
+    def index(self):
+        if self._phase == "train":
+            return self._train_index
+        else:
+            return self._valid_index
 
     def _initialize_rgb_image_to_tensor(self):
         """

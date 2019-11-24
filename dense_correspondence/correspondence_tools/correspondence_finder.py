@@ -862,6 +862,8 @@ def compute_correspondence_data(data_a,  # dict
     - 'T_world_camera': camera to world transform
     - 'K': camera matrix
 
+    If couldn't find correspondences, it returns none
+
     :param data_a:
     :type data_a:
     :param data_b:
@@ -878,12 +880,6 @@ def compute_correspondence_data(data_a,  # dict
     :rtype:
     """
 
-    def get_empty_return_data():
-        return_data = {'data_a': data_a,
-                       'data_b': data_b,
-                       'valid': True}
-
-        return return_data
 
     # return data
     return_data = dict()
@@ -904,7 +900,7 @@ def compute_correspondence_data(data_a,  # dict
             mask_b = data_b['mask']
             print("mask_a fraction:", np.sum(mask_a)/mask_a.size)
             print("mask_b fraction:", np.sum(mask_b)/mask_b.size)
-        return get_empty_return_data()
+        return None
 
     # set the mask for correspondences
     if sample_matches_only_off_mask:
@@ -932,7 +928,7 @@ def compute_correspondence_data(data_a,  # dict
     # check if these are empty if so return empty data
     if uv_a.size == 0:
         print("couldn't find any matches, returning")
-        return get_empty_return_data()
+        return None
 
     if verbose:
         print("uv_a.shape", uv_a.shape)
