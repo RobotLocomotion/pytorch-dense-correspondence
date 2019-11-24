@@ -46,17 +46,23 @@ class DynamicDrakeSimDataset(data.Dataset):
         data_a = episode.get_image_data(camera_name_a, idx)
         data_b = episode.get_image_data(camera_name_b, idx)
 
-        sample_matches_only_off_mask = self._config['dataset']['sample_matches_only_off_mask']
-        num_non_matches_per_match = self._config['dataset']['num_non_matches_per_match']
-
         # if it failed this will be None
+        c = self._config['dataset']
         correspondence_data = \
             compute_correspondence_data(data_a,
                                         data_b,
-                                        num_non_matches_per_match=num_non_matches_per_match,
-                                        sample_matches_only_off_mask=sample_matches_only_off_mask,
+                                        N_matches=c['N_matches'],
+                                        N_masked_non_matches=c['N_masked_non_matches'],
+                                        N_background_non_matches=c['N_background_non_matches'],
+                                        sample_matches_only_off_mask=c['sample_matches_only_off_mask'],
                                         rgb_to_tensor_transform=self.rgb_to_tensor_transform,
-                                        verbose=self.verbose)
+                                        device='CPU',
+                                        verbose=self.verbose,
+                                        )
+
+        # add rgb_tensor to data_a/data_b
+        data_a['rgb_tensor'] = self.rgb_to_tensor_transform(data_a['rgb'])
+        data_b['rgb_tensor'] = self.rgb_to_tensor_transform(data_b['rgb'])
 
         # returns a dict whose values are tensors
         # if it was invalid it returns None
