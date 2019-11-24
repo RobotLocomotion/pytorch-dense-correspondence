@@ -1,6 +1,7 @@
 import random
 import numpy as np
 import logging
+import time
 
 import torch
 import torch.utils.data as data
@@ -25,9 +26,13 @@ class DynamicDrakeSimDataset(data.Dataset):
                  episodes, # dict, values of type EpisodeReader
                  phase="train"):
 
+        assert phase in ["train", "valid"]
+
         self._config = config
         self._episodes = episodes
         self._phase = phase
+        self.verbose = False
+        self.debug = False
         self.initialize()
 
     def _getitem(self,
@@ -38,7 +43,6 @@ class DynamicDrakeSimDataset(data.Dataset):
                  ):
 
 
-        # local version
         data_a = episode.get_image_data(camera_name_a, idx)
         data_b = episode.get_image_data(camera_name_b, idx)
 
@@ -51,19 +55,30 @@ class DynamicDrakeSimDataset(data.Dataset):
                                         data_b,
                                         num_non_matches_per_match=num_non_matches_per_match,
                                         sample_matches_only_off_mask=sample_matches_only_off_mask,
-                                        rgb_to_tensor_transform=self.rgb_to_tensor_transform)
+                                        rgb_to_tensor_transform=self.rgb_to_tensor_transform,
+                                        verbose=self.verbose)
 
         # returns a dict whose values are tensors
         # if it was invalid it returns None
         return correspondence_data
 
     def __getitem__(self, item_idx):
+        """
+        For use by a torch DataLoader. Finds entry in index, calls the internal _getitem method
+        :param item_idx:
+        :type item_idx:
+        :return:
+        :rtype:
+        """
 
         entry = self.index[item_idx]
         episode = self._episodes[entry['episode_name']]
         data = self._getitem(episode, entry['idx'], entry['camera_name_a'], entry['camera_name_b'])
 
         return data
+
+    def __len__(self):
+        return len(self.index)
 
     def get_image_mean(self):
         """
