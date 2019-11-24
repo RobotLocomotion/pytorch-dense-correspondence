@@ -13,9 +13,9 @@ train:
 
 dataset:
   sample_matches_only_off_mask: True
-  num_non_matches_per_match: 150
-  fraction_masked_non_matches: 0.5
-  fraction_background_non_matches: 0.5
+  N_matches: 150
+  N_masked_non_matches: 150
+  N_background_non_matches: 150
 
 dense_correspondence_network:
   descriptor_dimension: 3
