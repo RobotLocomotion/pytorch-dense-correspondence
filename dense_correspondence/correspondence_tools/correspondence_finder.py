@@ -1108,7 +1108,6 @@ def resize_uv_data_dict(data,  # dict
     if K == N:
         return data
     elif K > N:
-        print("downsampling")
         # randomly select some indices
         idx = np.random.choice(K, N, replace=False)
         idx = torch.from_numpy(idx).type(torch.long)
@@ -1143,7 +1142,7 @@ def pad_correspondence_data(data, # output of compute_correspondence_data
                             N_background_non_matches,  # int: num background non-matches
                             verbose=False):
     """
-    Pads the correspondence data to be the right size
+    Pads the correspondence data to be the right size. Either adds zeros or subsamples
 
     Resizes tensors in fields 'matches', 'masked_non_matches', 'background_non_matches'
     Modifies the 'data' dict in place
