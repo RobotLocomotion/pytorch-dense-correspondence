@@ -536,7 +536,8 @@ def find_pixelwise_extreme(x, # tensor with shape [B, N, H, W]
 
     indices = torch.stack((tmp % W, tmp // W), dim=-1)
 
-    return vals, indices
+    return {'values': vals,
+            'indices': indices}
 
 
 def reset_random_seed():

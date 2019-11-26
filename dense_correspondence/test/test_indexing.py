@@ -167,9 +167,13 @@ class TestIndexing(unittest.TestCase):
 
             entries.append(batch_entry_list)
 
+        max_dict = pdc_utils.find_pixelwise_extreme(norm_diff_max, 'max', verbose=verbose)
+        values_max = max_dict['values']
+        indices_max = max_dict['indices']
 
-        values_max, indices_max = pdc_utils.find_pixelwise_extreme(norm_diff_max, 'max', verbose=verbose)
-        values_min, indices_min = pdc_utils.find_pixelwise_extreme(norm_diff_min, 'min', verbose=verbose)
+        min_dict = pdc_utils.find_pixelwise_extreme(norm_diff_min, 'min', verbose=verbose)
+        values_min = min_dict['values']
+        indices_min = max_dict['indices']
 
         for b in range(B):
             for n in range(N):
