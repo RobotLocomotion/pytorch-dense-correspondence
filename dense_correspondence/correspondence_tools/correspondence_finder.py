@@ -1010,6 +1010,7 @@ def compute_correspondence_data(data_a,  # dict
     # and it is a tuple of (u,v)
 
     masked_non_matches_uv_b = pdc_utils.uv_tuple_to_tensor((masked_non_matches_tmp[0].flatten(), masked_non_matches_tmp[1].flatten()))
+    masked_non_matches_uv_b = masked_non_matches_uv_b.type(torch.long)
 
     # K = N_matches * num_non_matches_per_match
     # now of shape [2, K]
@@ -1034,6 +1035,9 @@ def compute_correspondence_data(data_a,  # dict
 
 
     background_non_matches_uv_b = pdc_utils.uv_tuple_to_tensor((background_non_matches_tmp[0].flatten(), background_non_matches_tmp[1].flatten()))
+
+    # cast them to long
+    background_non_matches_uv_b = background_non_matches_uv_b.type(torch.long)
 
     if verbose:
         print("\n")
