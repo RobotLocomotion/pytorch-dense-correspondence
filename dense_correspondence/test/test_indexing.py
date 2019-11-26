@@ -211,7 +211,57 @@ class TestIndexing(unittest.TestCase):
                     print("min_value_gt:", min_value_gt)
                     print("min_value", min_value)
 
+    def test_norm_diff(self, verbose=True):
 
+        B = 2
+        D = 3
+        H = 480
+        W = 640
+        N = 150
+        L = 10
+
+        device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
+        des_img_b = torch.zeros([B, D, H, W]).to(device)
+        uv = torch.zeros([B, 2, N], dtype=torch.long).to(device)
+
+        batch_des_a = pdc_utils.index_into_batch_image_tensor(des_img_b,
+                                                              uv).permute([0,2,1])
+
+        expand_batch_des_a = pdc_utils.expand_descriptor_batch(batch_des_a, H, W)
+        expand_des_img_b = pdc_utils.expand_image_batch(des_img_b, N)
+
+        if verbose:
+            print("expand_batch_des_a.shape", expand_batch_des_a.shape)
+            print("expand_des_img_b.shape", expand_des_img_b.shape)
+
+
+        # # [B, N, D, 1, 1]
+        # batch_des_a = batch_des_a.permute([0,2,1]).unsqueeze(-1).unsqueeze(-1)
+        #
+        # if verbose:
+        #     print('batch_des_a.shape', batch_des_a.shape)
+        #
+        # # [B, N, D, H, W]
+        # batch_des_a_expand = batch_des_a.expand(*[-1, -1, -1, H, W])
+        # if verbose:
+        #     print("batch_des_a_expand.shape", batch_des_a_expand.shape)
+        #
+        # # [B, 1, D, H, W]
+        # des_img_b_expand = des_img_b.unsqueeze(1)
+        # if verbose:
+        #     print("des_img_b_expand.shape", des_img_b_expand.shape)
+        #
+        # # [B, N, D, H, W]
+        # des_img_b_expand = des_img_b_expand.expand(*[-1, N, -1, -1, -1])
+        # if verbose:
+        #     print("des_img_b_expand.shape", des_img_b_expand.shape)
+
+
+        norm_diff = (expand_batch_des_a - expand_des_img_b).norm(dim=2)
+
+        if verbose:
+            print("norm_diff.shape", norm_diff.shape)
 
 if __name__ == "__main__":
     unittest.main()

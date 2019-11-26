@@ -539,6 +539,15 @@ def find_pixelwise_extreme(x, # tensor with shape [B, N, H, W]
     return {'values': vals,
             'indices': indices}
 
+def expand_image_batch(img, # [B, D, H, W]
+               N): # [B, N, D, H, W]
+    return img.unsqueeze(1).expand(*[-1, N, -1, -1, -1])
+
+def expand_descriptor_batch(des, # [B, N, D]
+                      H,
+                      W): # [B, N, D, H, W]
+
+    return des.unsqueeze(-1).unsqueeze(-1).expand(*[-1, -1, -1, H, W])
 
 def reset_random_seed():
     SEED = 1
