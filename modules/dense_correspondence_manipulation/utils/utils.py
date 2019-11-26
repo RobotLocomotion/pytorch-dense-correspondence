@@ -520,41 +520,23 @@ def find_pixelwise_extreme(x, # tensor with shape [B, N, H, W]
     H = x.shape[2]
     W = x.shape[3]
 
-    # H = x.shape[-2]
-    # W = x.shape[-1]
 
+    tmp = None
+    vals = None
     if type == "max":
-        # [B, D, H, W]
-        x_flat = x.view(B, N, H*W)
+        # tmp has shape [B, D], values are u_max + v_max * W
+        # vals has shape [B, D]
+        vals, tmp = torch.max(x.view(B, N, H*W), dim=-1)
 
-        if verbose:
-            print("x_flat.shape", x_flat.shape)
-
-        # [B, D]
-        # tmp values are u_max + v_max * W
-        tmp = x_flat.argmax(-1)
-
-        if verbose:
-            print("tmp.shape", tmp.shape)
+    elif type == "min":
+        # tmp has shape [B, D],  values are u_min + v_min * W
+        # vals has shape [B, D]
+        vals, tmp = torch.min(x.view(B, N, H * W), dim=-1)
 
 
-        indices = torch.stack((tmp % W, tmp // W), dim=-1)
+    indices = torch.stack((tmp % W, tmp // W), dim=-1)
 
-        if verbose:
-            b = 0
-            n = 0
-            u = indices[b, n, 0]
-            v = indices[b, n, 1]
-            print("x[b, n, v, u]", x[b, n, v, u])
-
-        if verbose:
-            print("indices.shape", indices.shape)
-
-
-    return indices
-
-
-
+    return vals, indices
 
 
 def reset_random_seed():

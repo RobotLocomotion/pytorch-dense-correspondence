@@ -118,7 +118,7 @@ class TestIndexing(unittest.TestCase):
             self.assertTrue(allclose, "des_valid descriptor doesn't match actual one")
 
 
-    def test_find_pixelwise_extreme(self, verbose=False):
+    def test_find_pixelwise_extreme(self, verbose=True):
 
         np.random.seed(0)
         torch.manual_seed(0)
@@ -132,7 +132,8 @@ class TestIndexing(unittest.TestCase):
         L = 10
 
         img = torch.zeros([B, D, H, W])
-        norm_diff = torch.zeros([B, N, H, W])
+        norm_diff_max = torch.zeros([B, N, H, W])
+        norm_diff_min = torch.zeros_like(norm_diff_max)
 
         entries = []
         for b in range(B):
@@ -141,25 +142,34 @@ class TestIndexing(unittest.TestCase):
                 u = np.random.randint(0, W)
                 v = np.random.randint(0, H)
 
-                norm_diff[b, n, v, u] = 1.0
+                max_value = np.random.rand()
+                min_value = -np.random.rand()
+
+                norm_diff_max[b, n, v, u] = max_value
+                norm_diff_min[b, n, v, u] = min_value
 
                 if b == 0 and n == 0 and verbose:
                     print("this should only print once")
                     print('u:', u)
                     print('v:', v)
+                    print('max_value', max_value)
+                    print("min_value:", min_value)
                     print('\n')
 
                 e = {'b': b,
                      'n': n,
                      'u': u,
-                     'v': v}
+                     'v': v,
+                     'max_value': max_value,
+                     'min_value': min_value}
 
                 batch_entry_list.append(e)
 
             entries.append(batch_entry_list)
 
 
-        indices_max = pdc_utils.find_pixelwise_extreme(norm_diff, 'max', verbose=verbose)
+        values_max, indices_max = pdc_utils.find_pixelwise_extreme(norm_diff_max, 'max', verbose=verbose)
+        values_min, indices_min = pdc_utils.find_pixelwise_extreme(norm_diff_min, 'min', verbose=verbose)
 
         for b in range(B):
             for n in range(N):
@@ -168,20 +178,34 @@ class TestIndexing(unittest.TestCase):
                 u = e['u']
                 v = e['v']
 
-
                 uv_max = indices_max[b, n, :]
-                uv = torch.tensor([u, v], dtype=uv_max.dtype)
+                uv_max_gt = torch.tensor([u, v], dtype=uv_max.dtype)
 
-                passed_max = torch.allclose(uv, uv_max)
+                uv_min = indices_min[b, n, :]
+                uv_min_gt = torch.tensor([u, v], dtype=uv_min.dtype)
+
+                max_value_gt = e['max_value']
+                min_value_gt = e['min_value']
+                max_value = values_max[b,n].item()
+                min_value = values_min[b,n].item()
+
+                passed_max = torch.allclose(uv_max, uv_max_gt) and np.allclose(max_value, max_value_gt)
                 if not passed_max:
-                    print("uv", uv)
                     print("uv_max", uv_max)
-
+                    print("uv_max_gt", uv_max_gt)
+                    print("max_value_gt:", max_value_gt)
+                    print("max_value", max_value)
 
                 self.assertTrue(passed_max, "incorrect max indices found")
 
-
-
+                # print("min_value_gt:", min_value_gt)
+                # print("min_value", min_value)
+                passed_min = torch.allclose(uv_min, uv_min_gt) and np.allclose(min_value, min_value_gt)
+                if not passed_min:
+                    print("uv_min", uv_min)
+                    print("uv_min_gt", uv_min_gt)
+                    print("min_value_gt:", min_value_gt)
+                    print("min_value", min_value)
 
 
 
