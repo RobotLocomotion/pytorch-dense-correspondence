@@ -493,7 +493,6 @@ def extract_valid_descriptors(des,  # [B, D, N]
     assert len(des.shape) == 3
     # shape [num_valid, 2]
     valid_idx = torch.nonzero(valid)
-    print("valid_idx.shape", valid_idx.shape)
     des_valid = des[valid_idx[:,0], :, valid_idx[:,1]]
 
     return {'des': des_valid,
@@ -507,12 +506,56 @@ def index_into_batch_image_tensor_and_extract_valid(img,
                                                     valid,
                                                     ):
     des = index_into_batch_image_tensor(img, uv)
+    return extract_valid_descriptors(des, valid)
 
-    print("des.shape", des.shape)
 
-    des_valid = extract_valid_descriptors(des, valid)
-    print("des_valid.shape", des_valid.shape)
-    return des_valid
+def find_pixelwise_extreme(x, # tensor with shape [B, N, H, W]
+                           type, # str: type in ['min', 'max']
+                           verbose=False,
+                           ): # [B, N, 2] indices, u,v format
+
+    assert len(x.shape) == 4
+    B = x.shape[0]
+    N = x.shape[1]
+    H = x.shape[2]
+    W = x.shape[3]
+
+    # H = x.shape[-2]
+    # W = x.shape[-1]
+
+    if type == "max":
+        # [B, D, H, W]
+        x_flat = x.view(B, N, H*W)
+
+        if verbose:
+            print("x_flat.shape", x_flat.shape)
+
+        # [B, D]
+        # tmp values are u_max + v_max * W
+        tmp = x_flat.argmax(-1)
+
+        if verbose:
+            print("tmp.shape", tmp.shape)
+
+
+        indices = torch.stack((tmp % W, tmp // W), dim=-1)
+
+        if verbose:
+            b = 0
+            n = 0
+            u = indices[b, n, 0]
+            v = indices[b, n, 1]
+            print("x[b, n, v, u]", x[b, n, v, u])
+
+        if verbose:
+            print("indices.shape", indices.shape)
+
+
+    return indices
+
+
+
+
 
 def reset_random_seed():
     SEED = 1
