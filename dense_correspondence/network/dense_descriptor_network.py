@@ -32,6 +32,7 @@ class DenseDescriptorNetwork(nn.Module):
                  model,
                  normalize,
                  ):
+        nn.Module.__init__(self)
         """
 
         :param model: nn.Module. Input must be [B,3,H,W] --> [B, D, H, W]
