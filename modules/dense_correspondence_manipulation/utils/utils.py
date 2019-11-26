@@ -385,6 +385,135 @@ def uv_tensor_to_tuple(uv_tensor):
     return (uv_tensor[0, :], uv_tensor[1,:])
 
 
+def flatten_batch_image_tensor(img, # [B, D, H, W]
+                               ): # [B, D, H*W]
+    # uses view
+    assert len(img.shape) == 4
+    B = img.shape[0]
+    D = img.shape[1]
+    H = img.shape[2]
+    W = img.shape[3]
+    return img.view([B, D, H*W])
+
+def flatten_batch_uv_tensor(uv, # [B, 2, N]
+                            image_width,
+                            ): # [B, N]
+
+    assert len(uv.shape) == 3
+    assert uv.shape[1] == 2
+    B = uv.shape[0]
+    N = uv.shape[2]
+
+    # should be [B, N] shape
+    # with uv_flat[b, n] = uv[b, 0, n] + uv[b, 1, n] * image_width
+    uv_flat = uv[:, 0, :] + uv[:, 1, :] * image_width
+    return uv_flat
+
+def index_into_batch_image_tensor(img, # [B, D, H, W]
+                                  uv, # [B, 2, N]
+                                  verbose=False):
+    B = img.shape[0]
+    D = img.shape[1]
+    H = img.shape[2]
+    W = img.shape[3]
+
+    N = uv.shape[2]
+
+    if verbose:
+        print("B: %d, D: %d H %d, W %d, N %d" %(B,D,H,W,N))
+
+
+    # [B,D,H*W]
+    img_flat = flatten_batch_image_tensor(img)
+
+    # [B, N]
+    uv_flat = flatten_batch_uv_tensor(uv, W)
+    if verbose:
+        print("uv_flat.shape", uv_flat.shape)
+        print("img_flat.shape", img_flat.shape)
+        print("uv[0, :, 0]", uv[0, :, 0]) # correct
+        print("uv_flat[0,0]", uv_flat[0, 0])
+        print("correct", 559 + 117*640) # ok
+
+    # [B, D, N]
+    uv_flat_expand = uv_flat.unsqueeze(1)
+    if verbose:
+         print("uv_flat_expand.shape", uv_flat_expand.shape)
+
+
+    uv_flat_expand = uv_flat_expand.expand(B, D, N).clone()
+
+    # note it should now be that
+    # uv_flat_expand[b,d,n] = uv_flat[b,n] for all d
+    if verbose:
+        b = 0
+        d = 0
+        n = 0
+        print("\n")
+        print("uv_flat[b,n]", uv_flat[b,n])
+        print("uv_flat_expand[b,d,n]", uv_flat_expand[b,d,n])
+        print('\n')
+
+    # replace second dimension with index into descriptor image
+    # for d in range(D):
+    #     uv_flat_expand[:, d, :] = d
+
+    if verbose:
+        print("\n")
+        print("uv_flat_expand.shape", uv_flat_expand.shape)
+        print("uv_flat_expand.dtype", uv_flat_expand.dtype)
+        print("uv_flat_expand[0, :, 0]", uv_flat_expand[0, :, 0])
+        print("uv_flat_expand[0, 0, 0]", uv_flat_expand[0, 0, 0])
+
+        print("\n")
+
+    res = torch.gather(input=img_flat, dim=2, index=uv_flat_expand)
+
+    if verbose:
+        print("res.shape", res.shape)
+        print('res.dtype', res.dtype)
+
+    return res
+
+def extract_valid_descriptors(des,  # [B, D, N]
+                              valid,  # [B, N]
+                              verbose=False,
+                              ): # [M, D], M is num non-zero entries in valid
+    """
+    Extracts descriptors where valid[] is nonzero
+
+    :param des:
+    :type des:
+    :param valid:
+    :type valid:
+    :return:
+    :rtype:
+    """
+
+    assert len(des.shape) == 3
+    # shape [num_valid, 2]
+    valid_idx = torch.nonzero(valid)
+    print("valid_idx.shape", valid_idx.shape)
+    des_valid = des[valid_idx[:,0], :, valid_idx[:,1]]
+
+    return {'des': des_valid,
+            'b_idx': valid_idx[:, 0],
+            'n_idx': valid_idx[:, 1],
+            }
+
+
+def index_into_batch_image_tensor_and_extract_valid(img,
+                                                    uv,
+                                                    valid,
+                                                    ):
+    des = index_into_batch_image_tensor(img, uv)
+
+    print("des.shape", des.shape)
+
+    des_valid = extract_valid_descriptors(des, valid)
+    print("des_valid.shape", des_valid.shape)
+    return des_valid
+
 def reset_random_seed():
     SEED = 1
     random.seed(SEED)
