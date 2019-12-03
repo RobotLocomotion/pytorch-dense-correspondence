@@ -119,7 +119,7 @@ class TestIndexing(unittest.TestCase):
             self.assertTrue(allclose, "des_valid descriptor doesn't match actual one")
 
 
-    def test_find_pixelwise_extreme(self, verbose=True):
+    def test_find_pixelwise_extreme(self, verbose=False):
 
         np.random.seed(0)
         torch.manual_seed(0)
@@ -320,6 +320,14 @@ class TestIndexing(unittest.TestCase):
 
 
     def test_compute_descriptor_heatmap(self, verbose=True):
+        """
+        This is a very simple test. Just does dimension checking.
+        See jupyter notebook for more extensive test
+        :param verbose:
+        :type verbose:
+        :return:
+        :rtype:
+        """
 
         np.random.seed(0)
         torch.manual_seed(0)
@@ -329,7 +337,6 @@ class TestIndexing(unittest.TestCase):
         H = 48
         W = 64
         D = 3
-        L = 5
 
 
         img = torch.zeros([B, H, W, D])
@@ -345,11 +352,10 @@ class TestIndexing(unittest.TestCase):
         if verbose:
             print("heatmap.shape", heatmap.shape)
 
-
-
-
-
-
+        self.assertTrue(heatmap.shape[0], B)
+        self.assertTrue(heatmap.shape[1], N)
+        self.assertTrue(heatmap.shape[2], H)
+        self.assertTrue(heatmap.shape[3], W)
 
 
 
