@@ -4,6 +4,7 @@ import torch
 import numpy as np
 
 import dense_correspondence_manipulation.utils.utils as pdc_utils
+import dense_correspondence.loss_functions.utils as loss_utils
 
 class TestIndexing(unittest.TestCase):
 
@@ -262,6 +263,95 @@ class TestIndexing(unittest.TestCase):
 
         if verbose:
             print("norm_diff.shape", norm_diff.shape)
+
+
+    def test_extract_valid(self, verbose=False):
+        np.random.seed(0)
+        torch.manual_seed(0)
+
+        B = 2
+        N = 10
+        H = 48
+        W = 64
+        L = 5
+
+        x = torch.zeros([B,N,H,W])
+        valid = torch.zeros([B,N], dtype=torch.long)
+
+        entry_list = []
+        for i in range(L):
+            b = np.random.randint(0, B)
+            # n = np.random.randint(0, N)
+            n = i
+            val = np.random.rand() * torch.ones([H, W])
+
+            # n = np.random.randint(0, N)
+            # n = i  # these must be in order . . .
+
+            x[b, n, :, :] = val
+            valid[b, n] = 1
+
+            e = {'b': b,
+                 'val': val,
+                 'n': n}
+
+            entry_list.append(e)
+
+        x_valid = pdc_utils.extract_valid(x, valid)
+
+        if verbose:
+            print("x_valid.shape", x_valid.shape)
+
+        M = x_valid.shape[0]
+        for m in range(M):
+            val = x_valid[m, :, :]
+
+            counter = 0
+            for e in entry_list:
+                if torch.allclose(val, e['val']):
+                    counter += 1
+                    print("\n")
+                    print("m", m)
+                    print("b", e['b'])
+                    print("n", e['n'])
+
+
+            self.assertTrue(counter, 1)
+
+
+    def test_compute_descriptor_heatmap(self, verbose=True):
+
+        np.random.seed(0)
+        torch.manual_seed(0)
+
+        B = 2
+        N = 10
+        H = 48
+        W = 64
+        D = 3
+        L = 5
+
+
+        img = torch.zeros([B, H, W, D])
+        sigma = 1
+        des = torch.zeros([B, N, D])
+        type = 'exp'
+
+        heatmap = loss_utils.compute_heatmap_from_descriptors(des,
+                                                              img,
+                                                              sigma,
+                                                              type)
+
+        if verbose:
+            print("heatmap.shape", heatmap.shape)
+
+
+
+
+
+
+
+
 
 if __name__ == "__main__":
     unittest.main()

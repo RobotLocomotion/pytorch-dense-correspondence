@@ -411,7 +411,8 @@ def flatten_batch_uv_tensor(uv, # [B, 2, N]
 
 def index_into_batch_image_tensor(img, # [B, D, H, W]
                                   uv, # [B, 2, N]
-                                  verbose=False):
+                                  verbose=False,
+                                  ): # # [B, D, N]
     B = img.shape[0]
     D = img.shape[1]
     H = img.shape[2]
@@ -445,6 +446,7 @@ def index_into_batch_image_tensor(img, # [B, D, H, W]
 
     # note it should now be that
     # uv_flat_expand[b,d,n] = uv_flat[b,n] for all d
+
     if verbose:
         b = 0
         d = 0
@@ -500,6 +502,21 @@ def extract_valid_descriptors(des,  # [B, D, N]
             'n_idx': valid_idx[:, 1],
             }
 
+
+def extract_valid(x, # [B, N, *]
+                  valid, # [B, N] with {0,1} values
+                  ): # [M, *], M is num-nonzero entries in valid
+
+    assert x.shape[0] == valid.shape[0]
+    assert x.shape[1] == valid.shape[1]
+
+    # shape [M, 2], where M = num_valid
+    valid_idx = torch.nonzero(valid)
+
+    # [M, *] remaining dimensions same as x
+    x_valid = x[valid_idx[:, 0], valid_idx[:, 1]]
+
+    return x_valid
 
 def index_into_batch_image_tensor_and_extract_valid(img,
                                                     uv,
