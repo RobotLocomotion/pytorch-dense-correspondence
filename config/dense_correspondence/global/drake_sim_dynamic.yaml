@@ -3,10 +3,10 @@ train:
   n_epoch: 1000
   lr: 0.0001
   adam_beta1: 0.9
-  batch_size: 32
+  batch_size: 1
   num_workers: 12
   train_valid_ratio: 0.9
-  log_per_iter: 100
+  log_per_iter: 10
   ckp_per_iter: 5000
   resume_epoch: -1
   resume_iter: -1
@@ -15,30 +15,14 @@ dataset:
   sample_matches_only_off_mask: True
   N_matches: 150
   N_masked_non_matches: 150
-  N_background_non_matches: 150
+  N_background_non_matches: 100
 
-dense_correspondence_network:
+network:
   descriptor_dimension: 3
-  image_width: 640
-  image_height: 480
-  normalize: False
-  backbone:
-    model_class: "Resnet"         # options: {Resnet, Unet}
-    # If Resnet
-    resnet_name: "Resnet34_8s"  # options: {Resnet34_8s, Resnet101_8s, etc.}
-    # If Unet
-    # currently no options supported
   compute_best_match_with: "min_l2"
 
 loss_function:
-  M_masked: 0.5 # margin for masked non-match descriptor distance
-  M_background: 0.5 # margin for background
-  M_pixel: 50 # Clamp for pixel distance
-  match_loss_weight: 1.0
-  non_match_loss_weight: 1.0
-  use_l2_pixel_loss_on_masked_non_matches: False
-  use_l2_pixel_loss_on_background_non_matches: False
-  scale_by_hard_negatives: True
-  scale_by_hard_negatives_DIFFERENT_OBJECT: True
-  alpha_triplet: 0.1
+ type: "heatmap_l2"
+ sigma: 5.0
+ heatmap_type: "exp" # ['exp', 'softmax']
 

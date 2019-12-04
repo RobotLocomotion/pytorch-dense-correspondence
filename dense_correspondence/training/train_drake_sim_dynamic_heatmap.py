@@ -17,6 +17,8 @@ from dense_correspondence.dataset.dynamic_drake_sim_dataset import DynamicDrakeS
 from dense_correspondence.network.dense_descriptor_network import fcn_resnet, DenseDescriptorNetwork
 from dense_correspondence_manipulation.utils.utils import AverageMeter
 import dense_correspondence_manipulation.utils.utils as pdc_utils
+import dense_correspondence.loss_functions.utils as loss_utils
+
 import dense_correspondence.loss_functions.loss_functions as loss_functions
 
 # compute pixel match error
@@ -36,7 +38,11 @@ def train_dense_descriptors(config,
                             train_dir,
                             multi_episode_dict=None,
                             verbose=False,
+                            seed=1,
                             ):
+
+    pdc_utils.reset_random_seed(seed)
+
     tensorboard_dir = os.path.join(train_dir, "tensorboard")
     if not os.path.exists(tensorboard_dir):
         os.makedirs(tensorboard_dir)
@@ -44,7 +50,7 @@ def train_dense_descriptors(config,
     writer = SummaryWriter(log_dir=tensorboard_dir)
 
     # save the config
-    # save_yaml(config, os.path.join(train_dir, "config.yaml")
+    pdc_utils.saveToYaml(config, os.path.join(train_dir, "config.yaml"))
 
     # make train/test dataloaders
     datasets = {}
@@ -68,8 +74,7 @@ def train_dense_descriptors(config,
     """
     Build model
     """
-    descriptor_dim = 3
-    non_match_margin = 0.5
+    descriptor_dim = config['network']['descriptor_dimension']
     fcn_model = fcn_resnet("fcn_resnet101", descriptor_dim, pretrained=True)
     # fcn_model = fcn_resnet("fcn_resnet50", descriptor_dim, pretrained=True)
     model = DenseDescriptorNetwork(fcn_model, normalize=False)
@@ -80,7 +85,6 @@ def train_dense_descriptors(config,
     scheduler = ReduceLROnPlateau(optimizer, 'min', factor=0.9, patience=10, verbose=True)
 
     # loss criterion
-
     if use_gpu:
         model.cuda()
 
@@ -90,10 +94,13 @@ def train_dense_descriptors(config,
 
     # mse_loss
     mse_loss = torch.nn.MSELoss()
+    sigma = config['loss_function']['sigma']
+    heatmap_type = config['loss_function']['heatmap_type']
 
     # const
     best_valid_loss = np.inf
     global_iteration = 0
+    counters = {'train': 0, 'valid': 0}
     st_epoch = 0
     epoch_counter_external = 0
 
@@ -106,6 +113,8 @@ def train_dense_descriptors(config,
             for phase in phases:
                 model.train(phase == 'train')
 
+
+
                 # bar = ProgressBar(max_value=data_n_batches[phase])
                 loader = dataloaders[phase]
                 meter_loss = AverageMeter()
@@ -113,6 +122,7 @@ def train_dense_descriptors(config,
                 for i, data in enumerate(loader):
 
                     global_iteration += 1
+                    counters[phase] += 1
 
                     with torch.set_grad_enabled(phase == 'train'):
 
@@ -120,10 +130,15 @@ def train_dense_descriptors(config,
                             print("\n\n------global iteration %d-------" %(global_iteration))
 
                         # compute the descriptor images
+                        # [B, 3, H, W]
                         rgb_tensor_a = data['data_a']['rgb_tensor'].to(device)
                         rgb_tensor_b = data['data_b']['rgb_tensor'].to(device)
+
+                        B, _, H, W = rgb_tensor_a.shape
+
                         out_a = model.forward(rgb_tensor_a)
                         out_b = model.forward(rgb_tensor_b)
+
 
                         if verbose:
                             print("camera_name_a", data['data_a']['camera_name'])
@@ -133,49 +148,52 @@ def train_dense_descriptors(config,
                         des_img_b = out_b['descriptor_image']
 
                         # compute the loss
+                        # [B,2,N]
                         uv_a = data['matches']['uv_a'].to(device)
                         uv_b = data['matches']['uv_b'].to(device)
                         valid = data['matches']['valid'].to(device)
 
-                        des_a = pdc_utils.index_into_batch_image_tensor_and_extract_valid(des_img_a, uv_a, valid)['des']
-                        # print("des_a.shape", des_a.shape)
-                        # print("valid.shape", valid.shape)
-                        # num_valid = torch.nonzero(valid).shape[0]
-                        # print("num_valid", num_valid)
-                        # raise ValueError("TEST")
+                        _, _, N = uv_a.shape
 
-                        des_b = pdc_utils.index_into_batch_image_tensor_and_extract_valid(des_img_b, uv_b, valid)['des']
+                        # [B,N,D]
+                        des_a = pdc_utils.index_into_batch_image_tensor(des_img_a, uv_a).permute([0,2,1])
 
 
-                        # compute an L2 match loss
-                        match_loss = mse_loss(des_a, des_b)
+                        if verbose:
+                            print("des_a.shape", des_a.shape)
+                            print("des_img_b.shape", des_img_b.shape)
 
 
-                        # # masked non-match loss
-                        mnm_uv_a = data['masked_non_matches']['uv_a'].to(device)
-                        mnm_uv_b = data['masked_non_matches']['uv_b'].to(device)
-                        mnm_valid = data['masked_non_matches']['valid'].to(device)
+                        # this is the heatmap that an individual descriptor from rgb_a
+                        # will induce given descriptor image b (des_img_b)
+                        # [B,N,H,W]
+                        heatmap_pred = loss_utils.compute_heatmap_from_descriptors(des_a,
+                                                                                   des_img_b,
+                                                                                   sigma=sigma,
+                                                                                   type=heatmap_type)
+                        # [M, H, W]
+                        heatmap_pred_valid = pdc_utils.extract_valid(heatmap_pred, valid=valid)
 
-                        mnm_des_a = pdc_utils.index_into_batch_image_tensor_and_extract_valid(des_img_a, mnm_uv_a, mnm_valid)['des']
+                        # compute ground truth heatmap
+                        # [M, 2]
+                        uv_b_valid = pdc_utils.extract_valid(uv_b.permute([0,2,1]), valid)
 
-                        mnm_des_b = pdc_utils.index_into_batch_image_tensor_and_extract_valid(des_img_b, mnm_uv_b, mnm_valid)['des']
+                        # [M, H, W]
+                        heatmap_gt = loss_utils.create_heatmap(uv_b_valid,
+                                                               H=H,
+                                                               W=W,
+                                                               sigma=sigma,
+                                                               type=heatmap_type)
 
-                        mnm_loss_dict = loss_functions.non_match_loss(mnm_des_a, mnm_des_b, non_match_margin)
-                        masked_non_match_loss = mnm_loss_dict['loss']
+                        # if verbose:
+                        #     print("heatmap_gt.shape", heatmap_gt.shape)
+                        #     print("heatmap_pred_valid.shape", heatmap_pred_valid.shape)
+                        #     print("heatmap_gt.device", heatmap_gt.device)
+                        #     print("uv_b_valid.device", uv_b_valid.device)
 
-                        # background non-match-loss
-                        bnm_uv_a = data['background_non_matches']['uv_a'].to(device)
-                        bnm_uv_b = data['background_non_matches']['uv_b'].to(device)
-                        bnm_valid = data['background_non_matches']['valid'].to(device)
-
-                        bnm_des_a = pdc_utils.index_into_batch_image_tensor_and_extract_valid(des_img_a, bnm_uv_a, bnm_valid)['des']
-                        bnm_des_b = pdc_utils.index_into_batch_image_tensor_and_extract_valid(des_img_b, bnm_uv_b, bnm_valid)['des']
-
-                        bnm_loss_dict = loss_functions.non_match_loss(bnm_des_a, bnm_des_b, non_match_margin)
-                        background_non_match_loss = bnm_loss_dict['loss']
-
-                        loss = match_loss + 0.5*masked_non_match_loss + 0.5*background_non_match_loss
-
+                        # compute an L2 heatmap loss
+                        heatmap_l2_loss = mse_loss(heatmap_pred_valid, heatmap_gt)
+                        loss = heatmap_l2_loss
 
                         if COMPUTE_PIXEL_MATCH_ERROR:
 
@@ -204,66 +222,6 @@ def train_dense_descriptors(config,
                             avg_pixel_error = torch.mean(pixel_error_valid)
                             median_pixel_error = torch.median(pixel_error_valid)
 
-                        if COMPUTE_PIXEL_MATCH_ERROR:
-                            raise ValueError("This needs to be checked. Use the one from train_drake_sim_dynamic_heatmap.py")
-
-                            # compute best match
-                            # read dimensions
-                            B = rgb_tensor_a.shape[0]
-                            D = rgb_tensor_a.shape[1]
-                            H = rgb_tensor_a.shape[2]
-                            W = rgb_tensor_a.shape[3]
-                            N = uv_a.shape[2]
-
-                            # [B, D, N]
-                            batch_des_a = pdc_utils.index_into_batch_image_tensor(des_img_a, uv_a)
-
-                            # [B, N, D]
-                            batch_des_a = batch_des_a.permute([0, 2, 1])
-
-                            # [B, N , D, H, W]
-                            expand_batch_des_a = pdc_utils.expand_descriptor_batch(batch_des_a, H, W)
-                            expand_des_img_b = pdc_utils.expand_image_batch(des_img_b, N)
-
-                            # [B, N, H, W]
-                            norm_diff = (expand_batch_des_a - expand_des_img_b).norm(p=2, dim=2)
-
-                            # if verbose:
-                            #     print("norm_diff.shape", norm_diff.shape)
-
-
-                            best_match_dict = pdc_utils.find_pixelwise_extreme(norm_diff,
-                                                                               type="min")
-
-                            # [B, 2, N]
-                            best_match_uv_b = best_match_dict['indices'].permute([0,2,1])
-
-                            # if verbose:
-                            #     print("best_match_uv_b.shape", best_match_uv_b.shape)
-
-                            # compute distance to GT
-                            # [B, N]
-                            # requires allocating [B, N, D, H, W]
-                            # NOTE: This is where bug was previously
-                            pixel_error = (uv_b - best_match_uv_b).type(torch.float).norm(p=2, dim=1)
-
-                            # if verbose:
-                            #     print("pixel_error.shape", pixel_error.shape)
-
-                            # get extract valid ones
-                            # [M]
-                            valid_pixel_error = pixel_error.flatten()[valid.flatten() > 0]
-
-                            # if verbose:
-                            #     print("valid_pixel_error.shape", valid_pixel_error.shape)
-
-                            pixel_error_mean = torch.mean(valid_pixel_error)
-                            pixel_error_median = torch.median(valid_pixel_error)
-
-                            if verbose:
-                                print("pixel_error_mean:", pixel_error_mean.item())
-                                print("pixel_error_median:", pixel_error_median.item())
-
 
                     # compute loss, add it to meter_loss
                     meter_loss.update(loss.item())
@@ -278,6 +236,7 @@ def train_dense_descriptors(config,
                         log = '%s [%d/%d][%d/%d] LR: %.6f' % (
                             phase, epoch, config['train']['n_epoch'], i, data_n_batches[phase],
                             get_lr(optimizer))
+
                         # log += ', rmse: %.6f (%.6f)' % (
                         #     np.sqrt(loss_mse.item()), meter_loss_rmse.avg)
 
@@ -286,19 +245,21 @@ def train_dense_descriptors(config,
                         # log data to tensorboard
                         # only do it once we have reached 500 iterations
                         if global_iteration > 200:
-                            writer.add_scalar("Params/learning rate", get_lr(optimizer), global_iteration)
-                            writer.add_scalar("Loss/train", loss.item(), global_iteration)
+                            if phase == "train":
+                                writer.add_scalar("Params/learning rate", get_lr(optimizer), counters[phase])
 
+                            writer.add_scalar("Loss/%s" %(phase), loss.item(), counters[phase])
 
-                            writer.add_scalar("Match_Loss/%s" %(phase), match_loss.item(), global_iteration)
-                            writer.add_scalar("Masked_non_match_loss/%s" %(phase), masked_non_match_loss.item(), global_iteration)
-                            writer.add_scalar("Background_non_match_loss/%s" %(phase), background_non_match_loss.item(), global_iteration)
+                            # writer.add_scalar("Match_Loss/%s" %(phase), match_loss.item(), global_iteration)
+                            # writer.add_scalar("Masked_non_match_loss/%s" %(phase), masked_non_match_loss.item(), global_iteration)
+                            # writer.add_scalar("Background_non_match_loss/%s" %(phase), background_non_match_loss.item(), global_iteration)
 
                             if COMPUTE_PIXEL_MATCH_ERROR:
-                                writer.add_scalar("pixel_match_error/mean/%s" %(phase), pixel_error_mean.item(), global_iteration)
-                                writer.add_scalar("pixel_match_error/median/%s" %(phase), pixel_error_median.item(), global_iteration)
+                                writer.add_scalar("pixel_match_error/mean/%s" % (phase), avg_pixel_error.item(),
+                                                  counters[phase])
+                                writer.add_scalar("pixel_match_error/median/%s" % (phase), median_pixel_error.item(),
+                                                  counters[phase])
 
-                            # writer.add_scalar("RMSE average loss/train", meter_loss_rmse.avg, global_iteration)
 
                     if phase == 'train' and i % config['train']['ckp_per_iter'] == 0:
                         save_model(model, '%s/net_dy_epoch_%d_iter_%d' % (train_dir, epoch, i))
