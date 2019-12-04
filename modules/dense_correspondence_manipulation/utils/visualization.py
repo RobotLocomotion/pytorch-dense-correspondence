@@ -2,6 +2,7 @@ import sys
 import os
 import cv2
 import numpy as np
+from PIL import Image
 import copy
 
 
@@ -55,4 +56,21 @@ def draw_reticle(img, u, v, label_color):
     cv2.line(img, (u + 1, v), (u + 3, v), white, 1)
     cv2.line(img, (u, v - 1), (u, v - 3), white, 1)
     cv2.line(img, (u - 1, v), (u - 3, v), white, 1)
+
+def colormap_from_heatmap(h, # numpy array [H, W]
+                          normalize=False, # whether or not to normalize to [0,1]
+                          ): # np.ndarray [H, W, 3] 'rgb' ordering
+
+    h_255 = None
+    if normalize:
+        h_255 = np.uint8(255 * h / np.max(h))
+    else:
+        h_255 = np.uint8(255 * h)
+
+    colormap = cv2.applyColorMap(h_255, cv2.COLORMAP_JET)
+    colormap_rgb = np.zeros_like(colormap)
+    colormap_rgb[:, :, 0] = colormap[:, :, 2]
+    colormap_rgb[:, :, 2] = colormap[:, :, 0]
+    return colormap_rgb
+
 

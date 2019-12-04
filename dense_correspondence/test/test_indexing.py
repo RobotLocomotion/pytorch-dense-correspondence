@@ -5,6 +5,7 @@ import numpy as np
 
 import dense_correspondence_manipulation.utils.utils as pdc_utils
 import dense_correspondence.loss_functions.utils as loss_utils
+from dense_correspondence.network.predict import get_integral_preds_2d
 
 class TestIndexing(unittest.TestCase):
 
@@ -339,7 +340,7 @@ class TestIndexing(unittest.TestCase):
         D = 3
 
 
-        img = torch.zeros([B, H, W, D])
+        img = torch.zeros([B, D, H, W])
         sigma = 1
         des = torch.zeros([B, N, D])
         type = 'exp'
@@ -356,6 +357,56 @@ class TestIndexing(unittest.TestCase):
         self.assertTrue(heatmap.shape[1], N)
         self.assertTrue(heatmap.shape[2], H)
         self.assertTrue(heatmap.shape[3], W)
+
+
+    def test_heatmap_integral_pred_2d(self, verbose=False):
+
+        # device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+        device = 'cpu'
+
+        np.random.seed(0)
+        torch.manual_seed(0)
+
+        H = 480
+        W = 640
+        N = 5
+
+        sigma = 1.0
+        types = ['exp', 'softmax']
+
+        L = 10
+        tol = 0.03 # tolerance in pixels
+
+        uv_input = torch.zeros([N, 2], dtype=torch.long).to(device)
+
+        for i in range(N):
+            u = np.random.randint(0, W)
+            v = np.random.randint(0, H)
+            uv_input[i, 0] = u
+            uv_input[i, 1] = v
+
+
+        heatmaps = dict()
+        preds = dict()
+        for type in types:
+            heatmaps[type] = loss_utils.create_heatmap(uv_input, H=H, W=W, sigma=sigma, type=type)
+            preds[type] = get_integral_preds_2d(heatmaps[type])
+
+            print("preds.shape", preds[type].shape)
+
+
+        for type in types:
+
+            # size N
+            diff = uv_input.type(torch.float) - preds[type]
+
+            max_diff = torch.max(diff)
+            self.assertTrue(max_diff < tol)
+
+            if verbose:
+                print("\n")
+                print("type:", type)
+                print("max_diff", max_diff)
 
 
 

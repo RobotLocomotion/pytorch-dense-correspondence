@@ -566,8 +566,7 @@ def expand_descriptor_batch(des, # [B, N, D]
 
     return des.unsqueeze(-1).unsqueeze(-1).expand(*[-1, -1, -1, H, W])
 
-def reset_random_seed():
-    SEED = 1
+def reset_random_seed(SEED=1):
     random.seed(SEED)
     np.random.seed(SEED)
     torch.manual_seed(SEED)
