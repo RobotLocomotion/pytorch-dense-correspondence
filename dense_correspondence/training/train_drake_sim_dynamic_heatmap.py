@@ -1,3 +1,5 @@
+from future.utils import iteritems
+
 import os
 import random
 import numpy as np
@@ -82,7 +84,11 @@ def train_dense_descriptors(config,
     # setup optimizer
     params = model.parameters()
     optimizer = optim.Adam(params, lr=config['train']['lr'], betas=(config['train']['adam_beta1'], 0.999))
-    scheduler = ReduceLROnPlateau(optimizer, 'min', factor=0.9, patience=10, verbose=True)
+    scheduler = ReduceLROnPlateau(optimizer,
+                                  'min',
+                                  patience=config['train']['lr_scheduler_patience'],
+                                  factor=config['train']['lr_scheduler_factor'],
+                                  verbose=True)
 
     # loss criterion
     if use_gpu:
@@ -94,15 +100,24 @@ def train_dense_descriptors(config,
 
     # mse_loss
     mse_loss = torch.nn.MSELoss()
-    sigma = config['loss_function']['sigma']
     heatmap_type = config['loss_function']['heatmap_type']
 
     # const
-    best_valid_loss = np.inf
+    best_valid_pixel_error = np.inf
     global_iteration = 0
     counters = {'train': 0, 'valid': 0}
     st_epoch = 0
     epoch_counter_external = 0
+
+    # setup some values to be assigned later
+    sigma = None
+    image_diagonal_pixels = None
+
+    # setup meter losses
+    meter_loss = {'heatmap_loss': AverageMeter(),
+                  'best_match_pixel_error': AverageMeter(),
+                  }
+
 
     try:
         for epoch in range(st_epoch, config['train']['n_epoch']):
@@ -113,11 +128,12 @@ def train_dense_descriptors(config,
             for phase in phases:
                 model.train(phase == 'train')
 
-
-
                 # bar = ProgressBar(max_value=data_n_batches[phase])
                 loader = dataloaders[phase]
-                meter_loss = AverageMeter()
+
+                # reset the meter_loss
+                for _, meter in iteritems(meter_loss):
+                    meter.reset()
 
                 for i, data in enumerate(loader):
 
@@ -136,9 +152,12 @@ def train_dense_descriptors(config,
 
                         B, _, H, W = rgb_tensor_a.shape
 
+                        # compute sigma for heatmap loss
+                        image_diagonal_pixels = np.sqrt(H**2 + W**2)
+                        sigma = image_diagonal_pixels * config['loss_function']['sigma_fraction']
+
                         out_a = model.forward(rgb_tensor_a)
                         out_b = model.forward(rgb_tensor_b)
-
 
                         if verbose:
                             print("camera_name_a", data['data_a']['camera_name'])
@@ -219,12 +238,17 @@ def train_dense_descriptors(config,
                             # [M, 2]
                             pixel_error_valid = pdc_utils.extract_valid(pixel_error, valid)
 
+                            # as a percentage of image diagonal
                             avg_pixel_error = torch.mean(pixel_error_valid)
+                            avg_pixel_error_percent = avg_pixel_error.item() * 100/image_diagonal_pixels
+
                             median_pixel_error = torch.median(pixel_error_valid)
+                            median_pixel_error_percent = median_pixel_error*100/image_diagonal_pixels
 
 
-                    # compute loss, add it to meter_loss
-                    meter_loss.update(loss.item())
+                    # update meter losses
+                    meter_loss['heatmap_loss'].update(loss.item())
+                    meter_loss['best_match_pixel_error'].update(avg_pixel_error_percent.item())
 
 
                     if phase == 'train':
@@ -237,8 +261,8 @@ def train_dense_descriptors(config,
                             phase, epoch, config['train']['n_epoch'], i, data_n_batches[phase],
                             get_lr(optimizer))
 
-                        # log += ', rmse: %.6f (%.6f)' % (
-                        #     np.sqrt(loss_mse.item()), meter_loss_rmse.avg)
+                        log += ', pixel_error: %.6f' % (avg_pixel_error.item())
+                        log += ', meter_avg_pixel_error: %.6f' % (meter_loss['best_match_pixel_error'].avg)
 
                         print(log)
 
@@ -250,14 +274,15 @@ def train_dense_descriptors(config,
 
                             writer.add_scalar("Loss/%s" %(phase), loss.item(), counters[phase])
 
-                            # writer.add_scalar("Match_Loss/%s" %(phase), match_loss.item(), global_iteration)
-                            # writer.add_scalar("Masked_non_match_loss/%s" %(phase), masked_non_match_loss.item(), global_iteration)
-                            # writer.add_scalar("Background_non_match_loss/%s" %(phase), background_non_match_loss.item(), global_iteration)
-
                             if COMPUTE_PIXEL_MATCH_ERROR:
                                 writer.add_scalar("pixel_match_error/mean/%s" % (phase), avg_pixel_error.item(),
                                                   counters[phase])
                                 writer.add_scalar("pixel_match_error/median/%s" % (phase), median_pixel_error.item(),
+                                                  counters[phase])
+
+                                writer.add_scalar("pixel_match_error_percent/mean/%s" % (phase), avg_pixel_error_percent.item(),
+                                                  counters[phase])
+                                writer.add_scalar("pixel_match_error_percent/median/%s" % (phase), median_pixel_error_percent.item(),
                                                   counters[phase])
 
 
@@ -265,25 +290,14 @@ def train_dense_descriptors(config,
                         save_model(model, '%s/net_dy_epoch_%d_iter_%d' % (train_dir, epoch, i))
 
 
-                #
-                # log = '%s [%d/%d] Loss: %.6f, Best valid: %.6f' % (
-                #     phase, epoch, config['train']['n_epoch'], meter_loss_rmse.avg, best_valid_loss)
-                # print(log)
+                writer.add_scalar("avg_pixel_error/%s" %(phase), meter_loss['best_match_pixel_error'].avg, epoch)
 
                 if phase == 'valid':
-                    pass
-                    # writer.add_scalar("Loss/valid", loss.item(), global_iteration)
-                    # writer.add_scalar("Match_Loss/valid", match_loss.item(), global_iteration)
-                    # writer.add_scalar("Masked_non_match_loss/valid", masked_non_match_loss.item(), global_iteration)
-                    # writer.add_scalar("Background_non_match_loss/valid", background_non_match_loss.item(),
-                    #                   global_iteration)
 
-
-                    # scheduler.step(meter_loss_rmse.avg)
-                    # writer.add_scalar("RMSE average loss/valid", meter_loss_rmse.avg, global_iteration)
-                    # if meter_loss_rmse.avg < best_valid_loss:
-                    #     best_valid_loss = meter_loss_rmse.avg
-                    #     save_model(model_dy, '%s/net_best_dy' % (train_dir))
+                    # scheduler.step(meter_loss['heatmap_loss'].avg)
+                    if meter_loss['best_match_pixel_error'].avg < best_valid_pixel_error:
+                        best_valid_pixel_error = meter_loss['best_match_pixel_error'].avg
+                        save_model(model, '%s/net_best_dy' % (train_dir))
 
                 writer.flush() # flush SummaryWriter events to disk
 

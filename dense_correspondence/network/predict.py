@@ -35,5 +35,22 @@ def get_integral_preds_2d(heatmaps, # [N, H, W]
 
     return pred
 
+def get_argmax_l2(des, # [N, D]
+                  des_img, # [N, D, H, W]
+                  ):
+
+    N, D, H, W = des_img.shape
+
+    # [B, N, D, H, W]
+    expand_batch_des_a = pdc_utils.expand_descriptor_batch(des.unsqueeze(0), H, W)
+    expand_des_img_b = pdc_utils.expand_image_batch(des_img.unsqueeze(0), N)
+
+    # [B, N, H, W]
+    norm_diff = (expand_batch_des_a - expand_des_img_b).norm(p=2, dim=2)
+
+    best_match_dict = pdc_utils.find_pixelwise_extreme(norm_diff, type="min")
+
+    best_match_dict['best_match_dict']['indices'].squeeze(0)
+
 
 
