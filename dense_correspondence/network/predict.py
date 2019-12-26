@@ -1,4 +1,5 @@
 import torch
+import dense_correspondence_manipulation.utils.utils as pdc_utils
 
 def get_integral_preds_2d(heatmaps, # [N, H, W]
                           verbose=False,
@@ -35,22 +36,40 @@ def get_integral_preds_2d(heatmaps, # [N, H, W]
 
     return pred
 
-def get_argmax_l2(des, # [N, D]
-                  des_img, # [N, D, H, W]
+def get_argmax_l2(des, # [B, N, D] or [N,D]
+                  des_img, # [B, D, H, W]
                   ):
 
-    N, D, H, W = des_img.shape
+    B, D, H, W = des_img.shape
+    N = des.shape[0]
+
+    # [B, N, D]
+    des_unsqueeze = None
+    if len(des.shape) == 2:
+        des_unsqueeze = des.unsqueeze(0).expand(*[B, -1, -1])
+    elif len(des.shape) == 3:
+        B2, _, D2 = des.shape
+        assert B2 == B
+        assert D2 == D
+        des_unsqueeze = des
+    else:
+        raise ValueError("dimension mismatch")
 
     # [B, N, D, H, W]
-    expand_batch_des_a = pdc_utils.expand_descriptor_batch(des.unsqueeze(0), H, W)
-    expand_des_img_b = pdc_utils.expand_image_batch(des_img.unsqueeze(0), N)
+    expand_batch_des_a = pdc_utils.expand_descriptor_batch(des_unsqueeze, H, W)
+
+    # [B, N, D, H, W]
+    expand_des_img_b = pdc_utils.expand_image_batch(des_img, N)
+
+    # print("expand_batch_des_a.shape", expand_batch_des_a.shape)
+    # print("expand_des_img_b.shape", expand_des_img_b.shape)
 
     # [B, N, H, W]
     norm_diff = (expand_batch_des_a - expand_des_img_b).norm(p=2, dim=2)
 
     best_match_dict = pdc_utils.find_pixelwise_extreme(norm_diff, type="min")
 
-    best_match_dict['best_match_dict']['indices'].squeeze(0)
+    return best_match_dict
 
 
 

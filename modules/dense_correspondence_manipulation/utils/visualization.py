@@ -57,6 +57,18 @@ def draw_reticle(img, u, v, label_color):
     cv2.line(img, (u, v - 1), (u, v - 3), white, 1)
     cv2.line(img, (u - 1, v), (u - 3, v), white, 1)
 
+def draw_reticles(img,
+                  u_vec,
+                  v_vec,
+                  label_color,
+                  ):
+    # draws multiple reticles
+    n = len(u_vec)
+    for i in range(n):
+        u = u_vec[i]
+        v = v_vec[i]
+        draw_reticle(img, u, v, label_color)
+
 def colormap_from_heatmap(h, # numpy array [H, W]
                           normalize=False, # whether or not to normalize to [0,1]
                           ): # np.ndarray [H, W, 3] 'rgb' ordering
