@@ -3,6 +3,7 @@ from future.utils import iteritems
 import os
 import random
 import numpy as np
+import time
 
 # from progressbar import ProgressBar
 
@@ -20,6 +21,7 @@ from dense_correspondence.network.dense_descriptor_network import fcn_resnet, De
 from dense_correspondence_manipulation.utils.utils import AverageMeter
 import dense_correspondence_manipulation.utils.utils as pdc_utils
 import dense_correspondence.loss_functions.utils as loss_utils
+from dense_correspondence.network import predict
 
 import dense_correspondence.loss_functions.loss_functions as loss_functions
 
@@ -117,6 +119,8 @@ def train_dense_descriptors(config,
     meter_loss = {'heatmap_loss': AverageMeter(),
                   'best_match_pixel_error': AverageMeter(),
                   }
+
+    last_log_time = time.time()
 
 
     try:
@@ -217,14 +221,16 @@ def train_dense_descriptors(config,
                         if COMPUTE_PIXEL_MATCH_ERROR:
 
                             # [B, N, D, H, W]
-                            expand_batch_des_a = pdc_utils.expand_descriptor_batch(des_a, H, W)
-                            expand_des_img_b = pdc_utils.expand_image_batch(des_img_b, N)
+                            # expand_batch_des_a = pdc_utils.expand_descriptor_batch(des_a, H, W)
+                            # expand_des_img_b = pdc_utils.expand_image_batch(des_img_b, N)
+                            #
+                            # # [B, N, H, W]
+                            # norm_diff = (expand_batch_des_a - expand_des_img_b).norm(p=2, dim=2)
+                            #
+                            #
+                            # best_match_dict = pdc_utils.find_pixelwise_extreme(norm_diff, type="min")
 
-                            # [B, N, H, W]
-                            norm_diff = (expand_batch_des_a - expand_des_img_b).norm(p=2, dim=2)
-
-
-                            best_match_dict = pdc_utils.find_pixelwise_extreme(norm_diff, type="min")
+                            best_match_dict = predict.get_argmax_l2(des_a, des_img_b)
 
 
                             # [B, N, 2]
@@ -248,7 +254,7 @@ def train_dense_descriptors(config,
 
                     # update meter losses
                     meter_loss['heatmap_loss'].update(loss.item())
-                    meter_loss['best_match_pixel_error'].update(avg_pixel_error_percent.item())
+                    meter_loss['best_match_pixel_error'].update(avg_pixel_error.item())
 
 
                     if phase == 'train':

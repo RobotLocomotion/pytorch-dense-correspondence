@@ -2,6 +2,8 @@ train:
   random_seed: 42
   n_epoch: 1000
   lr: 0.0001
+  lr_scheduler_patience: 10
+  lr_scheduler_factor: 0.9
   adam_beta1: 0.9
   batch_size: 1
   num_workers: 12
@@ -23,6 +25,7 @@ network:
 
 loss_function:
  type: "heatmap_l2"
- sigma: 5.0
+# sigma_fraction: 0.005 # fraction of image diagonal for heatmap variance
+ sigma_fraction: 0.00625 # fraction of image diagonal for heatmap variance
  heatmap_type: "exp" # ['exp', 'softmax']
 
