@@ -11,6 +11,7 @@ from torchvision import transforms
 # pdc
 from dense_correspondence.correspondence_tools import correspondence_finder
 from dense_correspondence_manipulation.utils import utils as pdc_utils
+from dense_correspondence_manipulation.utils import torch_utils
 import dense_correspondence_manipulation.utils.constants as constants
 from dense_correspondence.dataset.utils import make_dynamic_episode_index
 from dense_correspondence.correspondence_tools.correspondence_finder import compute_correspondence_data
@@ -96,33 +97,6 @@ class DynamicDrakeSimDataset(data.Dataset):
     def __len__(self):
         return len(self.index)
 
-    def get_image_mean(self):
-        """
-        Returns dataset image_mean
-        :return: list
-        :rtype:
-        """
-
-        # if "image_normalization" not in self.config:
-        #     return constants.DEFAULT_IMAGE_MEAN
-
-        # return self.config["image_normalization"]["mean"]
-
-        return constants.DEFAULT_IMAGE_MEAN
-
-    def get_image_std_dev(self):
-        """
-        Returns dataset image std_dev
-        :return: list
-        :rtype:
-        """
-
-        # if "image_normalization" not in self.config:
-        #     return constants.DEFAULT_IMAGE_STD_DEV
-
-        # return self.config["image_normalization"]["std_dev"]
-
-        return constants.DEFAULT_IMAGE_STD_DEV
 
     def initialize(self):
         """
@@ -177,10 +151,9 @@ class DynamicDrakeSimDataset(data.Dataset):
         """
         Sets up the RGB PIL.Image --> torch.FloatTensor transform
         :return: None
-        :rtype:
+        :rtype:r
         """
-        norm_transform = transforms.Normalize(self.get_image_mean(), self.get_image_std_dev())
-        self._rgb_image_to_tensor = transforms.Compose([transforms.ToTensor(), norm_transform])
+        self._rgb_image_to_tensor = torch_utils.make_default_image_to_tensor_transform()
 
     @property
     def rgb_to_tensor_transform(self):
