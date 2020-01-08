@@ -159,6 +159,10 @@ class DynamicDrakeSimDataset(data.Dataset):
     def rgb_to_tensor_transform(self):
         return self._rgb_image_to_tensor
 
+    @rgb_to_tensor_transform.setter
+    def rgb_to_tensor_transform(self, val):
+        self._rgb_image_to_tensor = val
+
     def rgb_image_to_tensor(self, img):
         """
         Transforms a PIL.Image or numpy.ndarray to a torch.FloatTensor.

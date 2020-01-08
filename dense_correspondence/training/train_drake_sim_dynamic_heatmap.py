@@ -20,10 +20,9 @@ from dense_correspondence.dataset.dynamic_drake_sim_dataset import DynamicDrakeS
 from dense_correspondence.network.dense_descriptor_network import fcn_resnet, DenseDescriptorNetwork
 from dense_correspondence_manipulation.utils.utils import AverageMeter
 import dense_correspondence_manipulation.utils.utils as pdc_utils
+from dense_correspondence_manipulation.utils import torch_utils
 import dense_correspondence.loss_functions.utils as loss_utils
 from dense_correspondence.network import predict
-
-import dense_correspondence.loss_functions.loss_functions as loss_functions
 
 # compute pixel match error
 COMPUTE_PIXEL_MATCH_ERROR = True
@@ -42,10 +41,9 @@ def train_dense_descriptors(config,
                             train_dir,
                             multi_episode_dict=None,
                             verbose=False,
-                            seed=1,
                             ):
 
-    pdc_utils.reset_random_seed(seed)
+    pdc_utils.reset_random_seed(config['train']['random_seed'])
 
     tensorboard_dir = os.path.join(train_dir, "tensorboard")
     if not os.path.exists(tensorboard_dir):
@@ -64,6 +62,13 @@ def train_dense_descriptors(config,
         print("Loading data for %s" % phase)
         datasets[phase] = DynamicDrakeSimDataset(config,
                                                  multi_episode_dict)
+
+        # optionally use the deprecated image_to_tensor transform from DenseObjectNets
+        # paper
+        if ("normalization" in config['dataset']) and (config['dataset']['normalization'] == "DON"):
+            DON_image_to_tensor = torch_utils.get_deprecated_image_to_tensor_transform()
+            datasets[phase].rgb_to_tensor_transform(DON_image_to_tensor)
+
 
         dataloaders[phase] = DataLoader(
             datasets[phase], batch_size=config['train']['batch_size'],
