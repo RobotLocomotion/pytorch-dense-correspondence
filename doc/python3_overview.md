@@ -9,8 +9,9 @@ transform between the two images. The smallest unit of a dataset is what we call
 
 ### EpisodeReader
 An episode is a sub-unit of a dataset. So far we support two types of episodes.
-- **static scene moving camera**: This is the type of data used in the original DenseObjectNets paper.
-- **dynamic scene, multiple cameras**: This is the type of data used in the SSCVPL paper.
+- **static scene moving camera**: This is the type of data used in the original DenseObjectNets paper. 
+[EpisodeReader](..//dense_correspondence/dataset/spartan_episode_reader.py), note this one is still a work in progress.
+- **dynamic scene, multiple cameras**: This is the type of data used in the SSCVPL paper. [EpisodeReader](https://github.com/RobotLocomotion/key_dynam/blob/lm-pdc-rebase-2/dataset/drake_sim_episode_reader.py)
 
 We support using your own data storage format. All that is required is that you be able to return
 
@@ -43,6 +44,9 @@ See the code for more detail on these output types.
 ### Visualizing your dataset
 It is useful to visualize the result of computing matches and non-matches on your dataset. You can see 
 [this](https://github.com/RobotLocomotion/key_dynam/blob/lm-pdc-rebase-2/notebooks/pdc_drake_sim_dataset_test.ipynb) notebook for an example of how to do this.
+
+### Creating dataset using drake simulator
+This is implemented in the `key_dynam` repo. Check out [this](https://github.com/RobotLocomotion/key_dynam/blob/lm-pdc-rebase-2/experiments/05/collect_episodes.py) script.
 
 
 ## Training
