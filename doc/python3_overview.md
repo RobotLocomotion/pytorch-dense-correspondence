@@ -52,3 +52,4 @@ loss is detailed in the [Integral Human Pose Regression](https://arxiv.org/abs/1
 also use the spatial expectation loss.
 
 ## Visualizing Results
+See [this](../dense_correspondence/evaluation/visualize_learned_correspondences.ipynb) notebook for a simple example of visualizing learned correspondences. A more involved (and older) example can be found at.
