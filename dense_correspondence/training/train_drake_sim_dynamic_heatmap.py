@@ -84,8 +84,11 @@ def train_dense_descriptors(config,
     Build model
     """
     descriptor_dim = config['network']['descriptor_dimension']
-    fcn_model = fcn_resnet("fcn_resnet101", descriptor_dim, pretrained=True)
+    pretrained = config['network']['pretrained']
+    backbone = config['network']['backbone']
+    # fcn_model = fcn_resnet("fcn_resnet101", descriptor_dim, pretrained=pretrained)
     # fcn_model = fcn_resnet("fcn_resnet50", descriptor_dim, pretrained=True)
+    fcn_model = fcn_resnet(backbone, descriptor_dim, pretrained=pretrained)
     model = DenseDescriptorNetwork(fcn_model, normalize=False)
 
     # setup optimizer
@@ -224,16 +227,6 @@ def train_dense_descriptors(config,
                         loss = heatmap_l2_loss
 
                         if COMPUTE_PIXEL_MATCH_ERROR:
-
-                            # [B, N, D, H, W]
-                            # expand_batch_des_a = pdc_utils.expand_descriptor_batch(des_a, H, W)
-                            # expand_des_img_b = pdc_utils.expand_image_batch(des_img_b, N)
-                            #
-                            # # [B, N, H, W]
-                            # norm_diff = (expand_batch_des_a - expand_des_img_b).norm(p=2, dim=2)
-                            #
-                            #
-                            # best_match_dict = pdc_utils.find_pixelwise_extreme(norm_diff, type="min")
 
                             best_match_dict = predict.get_argmax_l2(des_a, des_img_b)
 

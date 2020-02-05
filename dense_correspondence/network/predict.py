@@ -41,19 +41,18 @@ def get_argmax_l2(des, # [B, N, D] or [N,D]
                   ):
 
     B, D, H, W = des_img.shape
-    N = des.shape[0]
 
     # [B, N, D]
     des_unsqueeze = None
-    if len(des.shape) == 2:
+    if len(des.shape) == 2: #[N, D] case
         des_unsqueeze = des.unsqueeze(0).expand(*[B, -1, -1])
     elif len(des.shape) == 3:
-        B2, _, D2 = des.shape
-        assert B2 == B
-        assert D2 == D
         des_unsqueeze = des
     else:
         raise ValueError("dimension mismatch")
+
+    B2, N, D2 = des_unsqueeze.shape
+    assert (B2 == B) and (D2 == D), "dimension mismatch"
 
     # [B, N, D, H, W]
     expand_batch_des_a = pdc_utils.expand_descriptor_batch(des_unsqueeze, H, W)
@@ -61,10 +60,6 @@ def get_argmax_l2(des, # [B, N, D] or [N,D]
     # [B, N, D, H, W]
     expand_des_img_b = pdc_utils.expand_image_batch(des_img, N)
 
-    # print("expand_batch_des_a.shape", expand_batch_des_a.shape)
-    # print("expand_des_img_b.shape", expand_des_img_b.shape)
-
-    # [B, N, H, W]
     norm_diff = (expand_batch_des_a - expand_des_img_b).norm(p=2, dim=2)
 
     best_match_dict = pdc_utils.find_pixelwise_extreme(norm_diff, type="min")
