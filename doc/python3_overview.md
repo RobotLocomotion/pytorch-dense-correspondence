@@ -44,6 +44,9 @@ See the code for more detail on these output types.
 It is useful to visualize the result of computing matches and non-matches on your dataset. You can see 
 [this](https://github.com/RobotLocomotion/key_dynam/blob/lm-pdc-rebase-2/notebooks/pdc_drake_sim_dataset_test.ipynb) notebook for an example of how to do this.
 
+### Creating dataset using drake simulator
+This is implemented in the `key_dynam` repo. Check out [this](https://github.com/RobotLocomotion/key_dynam/blob/lm-pdc-rebase-2/experiments/05/collect_episodes.py) script.
+
 
 ## Training
 Currently the training only supports using the heatmap loss. An example can be found in 
