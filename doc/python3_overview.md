@@ -42,8 +42,9 @@ date). The unit of data returned by the `__getitem__` method is a `dict` of the 
 See the code for more detail on these output types. 
 
 ### Visualizing your dataset
-It is useful to visualize the result of computing matches and non-matches on your dataset. You can see 
-[this](https://github.com/RobotLocomotion/key_dynam/blob/lm-pdc-rebase-2/notebooks/pdc_drake_sim_dataset_test.ipynb) notebook for an example of how to do this.
+It is useful to visualize the result of computing matches and non-matches on your dataset. Two examples of this are
+- With real data from DenseObjectNets paper [here](../dense_correspondence/dataset/simple_dataset_test_episode_reader.ipynb)
+- With simulated data from Drake. [here](https://github.com/RobotLocomotion/key_dynam/blob/lm-pdc-rebase-2/notebooks/pdc_drake_sim_dataset_test.ipynb).
 
 ### Creating dataset using drake simulator
 This is implemented in the `key_dynam` repo. Check out [this](https://github.com/RobotLocomotion/key_dynam/blob/lm-pdc-rebase-2/experiments/05/collect_episodes.py) script.
