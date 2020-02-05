@@ -5,7 +5,7 @@ train:
   lr_scheduler_patience: 10
   lr_scheduler_factor: 0.9
   adam_beta1: 0.9
-  batch_size: 1
+  batch_size: 2
   num_workers: 12
   train_valid_ratio: 0.9
   log_per_iter: 10
@@ -15,7 +15,7 @@ train:
 
 dataset:
   sample_matches_only_off_mask: True
-  N_matches: 150
+  N_matches: 50
   N_masked_non_matches: 150
   N_background_non_matches: 100
   normalization: "ImageNet" # ["ImageNet", "DON"]
@@ -23,10 +23,11 @@ dataset:
 network:
   descriptor_dimension: 3
   compute_best_match_with: "min_l2"
+  backbone: "fcn_resnet50"
+  pretrained: False
 
 loss_function:
  type: "heatmap_l2"
-# sigma_fraction: 0.005 # fraction of image diagonal for heatmap variance
  sigma_fraction: 0.00625 # fraction of image diagonal for heatmap variance
  heatmap_type: "exp" # ['exp', 'softmax']
 
