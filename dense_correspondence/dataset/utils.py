@@ -1,4 +1,7 @@
-from torch.utils.data.dataloader import default_collate
+import numpy as np
+from PIL import Image
+
+
 
 def make_dynamic_episode_index(episode_names,  # list of str
                                episode_dict,  # dict with values EpisodeReader
@@ -51,4 +54,25 @@ def collate_fn_filter_none_type(data_samples):
 
     return default_collate(filtered_data_samples)
 
+def camera_K_matrix_from_dict(camera_info,
+                              ): # np.array 3 x 3
+    K = np.array(camera_info['camera_matrix']['data'])
+    K = K.reshape([3,3])
+    return K
+
+def load_rgb_image_from_file(filename):
+    rgb_PIL = Image.open(filename).convert('RGB')
+    rgb_numpy = np.array(rgb_PIL)
+    return rgb_PIL, rgb_numpy
+
+
+def load_depth_int16_from_file(filename):
+    depth_PIL = Image.open(filename) # should have int16 dtype
+    depth_np = np.array(depth_PIL)
+    return depth_PIL, depth_np
+
+def load_mask_image_from_file(filename):
+    mask_PIL = Image.open(filename)
+    mask_np = np.array(mask_PIL)
+    return mask_PIL, mask_np
 

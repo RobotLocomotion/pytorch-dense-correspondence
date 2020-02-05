@@ -129,7 +129,7 @@ class SpartanEpisodeReader(EpisodeReader):
     def get_mask_image(self,
                        camera_name,
                        idx): # np.array, dtype=?
-        filename = self.get_image_filename("mask")
+        filename = self.get_image_filename(idx, "mask")
         _, mask = dataset_utils.load_mask_image_from_file(filename)
         return mask
 
@@ -154,7 +154,7 @@ class SpartanEpisodeReader(EpisodeReader):
         return {'rgb': rgb,
                 'depth_int16': depth_int16,
                 'mask': mask,
-                'T_W_C': T_W_C,
+                'T_world_camera': T_W_C,
                 'K': K}
 
 

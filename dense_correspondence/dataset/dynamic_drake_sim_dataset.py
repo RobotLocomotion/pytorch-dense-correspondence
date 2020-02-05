@@ -41,8 +41,8 @@ class DynamicDrakeSimDataset(data.Dataset):
                  idx, # int
                  camera_name_a, # str
                  camera_name_b, # str
-                 idx_a = None,
-                 idx_b = None,
+                 idx_a=None,
+                 idx_b=None,
                  ):
 
 
@@ -89,7 +89,10 @@ class DynamicDrakeSimDataset(data.Dataset):
         entry = self.index[item_idx]
         episode = self._episodes[entry['episode_name']]
         idx = entry['idx_a']
-        data = self._getitem(episode, idx, entry['camera_name_a'], entry['camera_name_b'])
+        data = self._getitem(episode, idx,
+                             entry['camera_name_a'], entry['camera_name_b'],
+                             idx_a=entry['idx_a'],
+                             idx_b=entry['idx_b'])
 
         # pad it so can be used in batch with DataLoader
         N_matches = self._config['dataset']['N_matches']
