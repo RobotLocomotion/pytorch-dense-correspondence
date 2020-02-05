@@ -41,11 +41,19 @@ class DynamicDrakeSimDataset(data.Dataset):
                  idx, # int
                  camera_name_a, # str
                  camera_name_b, # str
+                 idx_a = None,
+                 idx_b = None,
                  ):
 
 
-        data_a = episode.get_image_data(camera_name_a, idx)
-        data_b = episode.get_image_data(camera_name_b, idx)
+        if idx_a is None:
+            idx_a = idx
+
+        if idx_b is None:
+            idx_b = idx
+
+        data_a = episode.get_image_data(camera_name_a, idx_a)
+        data_b = episode.get_image_data(camera_name_b, idx_b)
 
         # if it failed this will be None
         c = self._config['dataset']
@@ -80,7 +88,8 @@ class DynamicDrakeSimDataset(data.Dataset):
 
         entry = self.index[item_idx]
         episode = self._episodes[entry['episode_name']]
-        data = self._getitem(episode, entry['idx'], entry['camera_name_a'], entry['camera_name_b'])
+        idx = entry['idx_a']
+        data = self._getitem(episode, idx, entry['camera_name_a'], entry['camera_name_b'])
 
         # pad it so can be used in batch with DataLoader
         N_matches = self._config['dataset']['N_matches']
@@ -147,6 +156,24 @@ class DynamicDrakeSimDataset(data.Dataset):
         else:
             return self._valid_index
 
+    @property
+    def episode_names(self):
+        if self._phase == "train":
+            return self._train_episode_names
+        elif self._phase == "valid":
+            return self._valid_episode_names
+        else:
+            raise ValueError("unknown phase")
+
+    @property
+    def episodes(self):
+        """
+        Return the dict containing all the episodes
+        :return:
+        :rtype:
+        """
+        return self._episodes
+
     def _initialize_rgb_image_to_tensor(self):
         """
         Sets up the RGB PIL.Image --> torch.FloatTensor transform
@@ -162,6 +189,10 @@ class DynamicDrakeSimDataset(data.Dataset):
     @rgb_to_tensor_transform.setter
     def rgb_to_tensor_transform(self, val):
         self._rgb_image_to_tensor = val
+
+    @property
+    def config(self):
+        return self._config
 
     def rgb_image_to_tensor(self, img):
         """

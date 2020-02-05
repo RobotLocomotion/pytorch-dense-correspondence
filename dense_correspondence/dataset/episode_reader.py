@@ -11,11 +11,6 @@ class EpisodeReader(object):
 
     @property
     def length(self):
-        """
-        The length of the trajectory
-        :return:
-        :rtype:
-        """
         raise NotImplementedError
 
     @property
@@ -69,4 +64,21 @@ class EpisodeReader(object):
         :rtype:
         """
 
+        raise NotImplementedError
+
+    def make_index(self):
+        """
+        Makes the index for training, will be a list of dicts.
+        A single entry is of the form. Wh
+
+        entry = {'episode_name': episode_name,
+                 'camera_name_a': camera_name_a,
+                 'idx_a': idx_a,
+                 'camera_name_b': camera_name_b,
+                 'idx_b': idx_b
+                 }
+
+        :return: list[dict]
+        :rtype:
+        """
         raise NotImplementedError
