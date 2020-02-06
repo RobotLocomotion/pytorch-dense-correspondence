@@ -1,6 +1,18 @@
 # Python3 and Pytorch 1.2 update
 This document outlines the basic structure of how to load a dataset and train a model.
 
+## Environment Setup
+My code setup for this project is
+
+```
+code/
+  pdc/
+  key_dynam/
+```
+
+where `pdc` is this repo and `key_dynam` is [this](https://github.com/RobotLocomotion/key_dynam/tree/lm-pdc-rebase-2) branch. I use the docker build in `key_dynam` which has the right dependencies and then have both codebases accessible inside there. You need to be careful to appropriately source things and put them on the `PYTHONPATH` so that you can import them.
+
+
 
 
 ## Dataset
