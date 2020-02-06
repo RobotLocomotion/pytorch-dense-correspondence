@@ -68,5 +68,11 @@ Currently the training only supports using the heatmap loss. An example can be f
 loss is detailed in the [Integral Human Pose Regression](https://arxiv.org/abs/1711.08229) paper. In the future we should
 also use the spatial expectation loss.
 
+See [train_heatmap.py](../dense_correspondence/experiments/heatmap/train_heatmap.py) for a script that trains on the caterpillar data from the original DenseObjectNets paper.
+
+```
+
+```
+
 ## Visualizing Results
 See [this](../dense_correspondence/evaluation/visualize_learned_correspondences.ipynb) notebook for a simple example of visualizing learned correspondences. A more involved (and older) example can be found at.
