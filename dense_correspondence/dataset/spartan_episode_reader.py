@@ -1,10 +1,12 @@
 import os
 import copy
+import random
 
 from dense_correspondence.dataset.episode_reader import EpisodeReader
 import dense_correspondence.dataset.utils as dataset_utils
 from dense_correspondence_manipulation.utils.utils import getDictFromYamlFilename
 import dense_correspondence_manipulation.utils.utils as utils
+
 
 class SpartanEpisodeReader(EpisodeReader):
     DEFAULT_CAMERA_NAME = "camera_0"
@@ -16,14 +18,16 @@ class SpartanEpisodeReader(EpisodeReader):
 
     def __init__(self,
                  config,
-                 root_dir, # str: fullpath to 'processed' dir
-                 name="",
+                 root_dir,  # str: fullpath to 'processed' dir
+                 name="",  # str
+                 metadata=None,  # dict: optional metadata, e.g. object type etc.
                  ):
         EpisodeReader.__init__(self)
         self._config = config
         self._root_dir = root_dir
         self._name = name
         self._camera_name = SpartanEpisodeReader.DEFAULT_CAMERA_NAME
+        self._metadata = metadata
 
         # load camera_info
         self.camera_matrix_dict = dict()
@@ -70,7 +74,7 @@ class SpartanEpisodeReader(EpisodeReader):
 
         if type == "rgb":
             return self.get_rgb_image(camera_name,
-                                  idx)
+                                      idx)
         elif type == "depth_int16":
             return self.get_depth_image_int16(camera_name, idx)
         elif type == "mask":
@@ -103,10 +107,9 @@ class SpartanEpisodeReader(EpisodeReader):
 
         return os.path.join(images_dir, img_index + file_extension)
 
-
     def get_rgb_image(self,
                       camera_name,
-                      idx): # np.array dtype uint8?
+                      idx):  # np.array dtype uint8?
 
         filename = self.get_image_filename(idx, "rgb")
         _, rgb_np = dataset_utils.load_rgb_image_from_file(filename)
@@ -114,7 +117,7 @@ class SpartanEpisodeReader(EpisodeReader):
 
     def get_depth_image_int16(self,
                               camera_name,
-                              idx): # np.array, dtype = ?
+                              idx):  # np.array, dtype = ?
 
         filename = self.get_image_filename(idx, "depth_int16")
         _, depth_int16 = dataset_utils.load_depth_int16_from_file(filename)
@@ -122,13 +125,12 @@ class SpartanEpisodeReader(EpisodeReader):
 
     def get_depth_image_float32(self,
                                 camera_name,
-                                idx): # np.array, dtype=?
+                                idx):  # np.array, dtype=?
         raise NotImplementedError
-
 
     def get_mask_image(self,
                        camera_name,
-                       idx): # np.array, dtype=?
+                       idx):  # np.array, dtype=?
         filename = self.get_image_filename(idx, "mask")
         _, mask = dataset_utils.load_mask_image_from_file(filename)
         return mask
@@ -157,13 +159,62 @@ class SpartanEpisodeReader(EpisodeReader):
                 'T_world_camera': T_W_C,
                 'K': K}
 
+    def get_image_dimensions(self,
+                             camera_name,  # str: not needed
+                             ):
+
+        camera_info = getDictFromYamlFilename(self.camera_info_file)
+        W = camera_info["image_width"]
+        H = camera_info["image_height"]
+
+        return W, H
+
+    def make_index(self,
+                   episode_name=None):
+        """
+        Makes the index for training, will be a list of dicts.
+        A single entry is of the form. Wh
+
+        entry = {'episode_name': episode_name,
+                 'camera_name_a': camera_name_a,
+                 'idx_a': idx_a,
+                 'camera_name_b': camera_name_b,
+                 'idx_b': idx_b
+                 }
+
+        :return: list[dict]
+        :rtype:
+        """
+        if episode_name is None:
+            episode_name = self._name
+
+        index = []
+        for idx_a in self.indices:
+            for idx_b in self.indices:
+                data = {'episode_name': episode_name,
+                        'camera_name_a': self._camera_name,
+                        'camera_name_b': self._camera_name,
+                        'idx_a': idx_a,
+                        'idx_b': idx_b}
+                index.append(data)
+
+        # randomly shuffle this index
+        random.shuffle(index)
+        return index
+
+    @staticmethod
+    def load_dataset(config,  # dict, e.g. caterpillar_9_epsiodes.yaml
+                     episodes_root,  # str: root of where all the logs are stored
+                     ):
+
+        multi_episode_dict = dict()
+        for episode_name in config['episodes']:
+            episode_processed_dir = os.path.join(episodes_root, episode_name, "processed")
+            episode = SpartanEpisodeReader(config,
+                                           episode_processed_dir,
+                                           name=episode_name, )
+
+            multi_episode_dict[episode_name] = episode
 
 
-
-
-
-
-
-
-
-
+        return multi_episode_dict

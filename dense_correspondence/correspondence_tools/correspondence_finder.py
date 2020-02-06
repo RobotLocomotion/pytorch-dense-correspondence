@@ -903,6 +903,7 @@ def compute_correspondence_data(data_a,  # dict
     """
 
     def make_empty_return_data():
+        print("making empty return data")
         matches = make_empty_index_and_flag_tensors(N_matches)
         masked_non_matches = make_empty_index_and_flag_tensors(N_masked_non_matches)
         background_non_matches = make_empty_index_and_flag_tensors(N_background_non_matches)
@@ -912,8 +913,10 @@ def compute_correspondence_data(data_a,  # dict
                        'matches': matches,
                        'masked_non_matches': masked_non_matches,
                        'background_non_matches': background_non_matches,
-                       'metadata': None,
+                       'metadata': [],
                        'valid': False}
+
+        return return_data
 
     # return data
     return_data = dict()
@@ -990,6 +993,11 @@ def compute_correspondence_data(data_a,  # dict
     rgb_tensor_b = rgb_to_tensor_transform(data_b['rgb'])
 
     matches_a, matches_b = photometric_check(rgb_tensor_a, rgb_tensor_b, matches_a, matches_b)
+
+    # check that matches_a and matches_b are non-empty
+    if matches_a is None: # means that all matches failed the photometric check
+        return make_empty_return_data()
+
     uv_a = pdc_utils.flattened_pixel_locations_to_uv_tensor(matches_a, image_width)
     uv_b = pdc_utils.flattened_pixel_locations_to_uv_tensor(matches_b, image_width)
 

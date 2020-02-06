@@ -66,7 +66,9 @@ class EpisodeReader(object):
 
         raise NotImplementedError
 
-    def make_index(self):
+    def make_index(self,
+                   episode_name=None,
+                   ):
         """
         Makes the index for training, will be a list of dicts.
         A single entry is of the form. Wh
@@ -81,4 +83,17 @@ class EpisodeReader(object):
         :return: list[dict]
         :rtype:
         """
+        raise NotImplementedError
+
+    def get_image_dimensions(self,
+                             camera_name, # str: not needed
+                             ): # (int, int): Width and Height
+        """
+        Get width and heigh of image corresponding to this camera
+        :param camera_name:
+        :type camera_name:
+        :return:
+        :rtype:
+        """
+
         raise NotImplementedError
