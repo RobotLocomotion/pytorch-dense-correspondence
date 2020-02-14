@@ -74,6 +74,8 @@ def fcn_resnet(model_name,  # str [fcn_resnet50, fcn_resnet101]
                                     num_classes=num_classes, aux_loss=None)
 
     if pretrained:
+        # can only load pretrained models with num_classes=21 since this is what
+        # is in Pascal VOC
         model_pretrained = model_construction_func(pretrained=True, progress=True,
                                     num_classes=21, aux_loss=None)
 

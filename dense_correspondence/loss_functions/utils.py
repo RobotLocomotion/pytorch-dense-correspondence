@@ -69,7 +69,7 @@ def compute_heatmap_from_descriptors(des,  # [B, N, D]
         heatmap = torch.exp(neg_squared_norm_diff)
     elif type == "softmax":
         heatmap = torch.exp(neg_squared_norm_diff)
-        heatmap = heatmap / torch.sum(heatmap)
+        heatmap = heatmap / (torch.sum(heatmap) + 1e-8)
 
     return heatmap
 

@@ -6,6 +6,7 @@ from builtins import str
 from builtins import object
 from past.utils import old_div
 import yaml
+import json
 from yaml import CLoader
 import numpy as np
 import os
@@ -29,6 +30,13 @@ def getDictFromYamlFilename(filename):
     Read data from a YAML files
     """
     return yaml.load(open(filename), Loader=CLoader)
+
+def load_json(filename):
+    data = None
+    with open(filename) as json_file:
+        data = json.load(json_file)
+
+    return data
 
 def saveToYaml(data, filename, flush=False):
     """

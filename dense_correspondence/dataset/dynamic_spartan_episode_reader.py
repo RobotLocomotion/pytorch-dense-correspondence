@@ -2,6 +2,7 @@ import os
 import copy
 import random
 import numpy as np
+import itertools
 
 from dense_correspondence.dataset.episode_reader import EpisodeReader
 import dense_correspondence.dataset.utils as dataset_utils
@@ -238,7 +239,11 @@ class DynamicSpartanEpisodeReader(EpisodeReader):
         camera_names = self.camera_names
 
         for key in keys:
-            for camera_name_a, camera_name_b in zip(camera_names, camera_names):
+            for camera_name_a, camera_name_b in itertools.product(camera_names, camera_names):
+                # don't include ones that are the same camera (at least for now . . . )
+                if camera_name_a == camera_name_b:
+                    continue
+
                 data = {'episode_name': episode_name,
                         'camera_name_a': camera_name_a,
                         'camera_name_b': camera_name_b,

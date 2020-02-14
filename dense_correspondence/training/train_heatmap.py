@@ -27,6 +27,8 @@ from dense_correspondence.network import predict
 # compute pixel match error
 COMPUTE_PIXEL_MATCH_ERROR = True
 
+COMPUTE_SPATIAL_LOSS = True
+
 def get_lr(optimizer):
     for param_group in optimizer.param_groups:
         return param_group['lr']
@@ -61,7 +63,11 @@ def train_dense_descriptors(config,
     for phase in ['train', 'valid']:
         print("Loading data for %s" % phase)
         datasets[phase] = DynamicDrakeSimDataset(config,
-                                                 multi_episode_dict)
+                                                 multi_episode_dict,
+                                                 phase=phase)
+
+        print("len(multi_episode_dict)", len(multi_episode_dict))
+        print("len(datasets[phase])", len(datasets[phase]))
 
         # optionally use the deprecated image_to_tensor transform from DenseObjectNets
         # paper
@@ -110,7 +116,8 @@ def train_dense_descriptors(config,
 
     # mse_loss
     mse_loss = torch.nn.MSELoss()
-    heatmap_type = config['loss_function']['heatmap_type']
+    l1_loss = torch.nn.L1Loss()
+    heatmap_type = config['loss_function']['heatmap']['heatmap_type']
 
     # const
     best_valid_pixel_error = np.inf
@@ -121,12 +128,16 @@ def train_dense_descriptors(config,
 
     # setup some values to be assigned later
     sigma = None
+    sigma_descriptor_heatmap = config['network']['sigma_descriptor_heatmap']
     image_diagonal_pixels = None
 
     # setup meter losses
     meter_loss = {'heatmap_loss': AverageMeter(),
                   'best_match_pixel_error': AverageMeter(),
                   }
+
+
+    loss_container = dict() # store the most recent losses
 
     last_log_time = time.time()
 
@@ -152,6 +163,8 @@ def train_dense_descriptors(config,
                     global_iteration += 1
                     counters[phase] += 1
 
+                    loss_container = dict()  # store the most recent losses
+
                     with torch.set_grad_enabled(phase == 'train'):
 
                         if verbose:
@@ -166,7 +179,7 @@ def train_dense_descriptors(config,
 
                         # compute sigma for heatmap loss
                         image_diagonal_pixels = np.sqrt(H**2 + W**2)
-                        sigma = image_diagonal_pixels * config['loss_function']['sigma_fraction']
+                        sigma = image_diagonal_pixels * config['loss_function']['heatmap']['sigma_fraction']
 
 
                         # compute descriptor images
@@ -187,6 +200,11 @@ def train_dense_descriptors(config,
                         # [B, D, H, W]
                         des_img_a = des_img_stack[:B]
                         des_img_b = des_img_stack[B:]
+
+                        # note: It is possible that H_out != H
+                        # if we aren't doing the heatmaps at full resolution
+                        # in that case it is necessary to downsample the indexing appropriately
+                        _, _, H_out, W_out = des_img_stack.shape
 
                         if verbose:
                             print("camera_name_a", data['data_a']['camera_name'])
@@ -224,6 +242,9 @@ def train_dense_descriptors(config,
                         # [M, 2]
                         uv_b_valid = pdc_utils.extract_valid(uv_b.permute([0,2,1]), valid)
 
+                        # check whether any of the matches we found were valid
+                        found_valid_matches = (len(uv_b_valid) > 0)
+
                         # [M, H, W]
                         heatmap_gt = loss_utils.create_heatmap(uv_b_valid,
                                                                H=H,
@@ -239,12 +260,53 @@ def train_dense_descriptors(config,
 
                         # compute an L2 heatmap loss
                         heatmap_l2_loss = mse_loss(heatmap_pred_valid, heatmap_gt)
-                        loss = heatmap_l2_loss
+
+                        loss_container['heatmap'] = heatmap_l2_loss
+
+
+                        # compute spatial expectation prediction
+                        # [M, 2] in uv ordering
+                        spatial_expectation_loss = 0
+                        if found_valid_matches and COMPUTE_SPATIAL_LOSS:
+                            # this is L1 loss in pixel space
+                            # scale it by image diagonal
+
+                            # [M, 2] in uv ordering
+                            # note: this step is pretty computationally expensive . . .
+                            uv_b_spatial_pred = predict.get_integral_preds_2d(heatmap_pred_valid, verbose=False)
+
+
+                            # note we multiply by 2 since l1_loss is dividing by the total number of elements in
+                            # uv_b_valid (which is 2*M) and we just want the average L1 pixel_error, which means
+                            # we should just divide by M
+                            spatial_expectation_loss = 2*l1_loss(uv_b_valid.type(torch.float), uv_b_spatial_pred)
+                            spatial_expectation_loss_scaled = spatial_expectation_loss/image_diagonal_pixels
+
+                            loss_container['spatial_expectation'] = spatial_expectation_loss_scaled
+
+                            # mean of the L2
+                            # print("uv_b_valid.shape", uv_b_valid.shape)
+                            # print("uv_b_spatial_pred.shape", uv_b_spatial_pred.shape)
+                            pixel_diff_spatial = (uv_b_valid).type(torch.float) - uv_b_spatial_pred
+                            spatial_expectation_pixel_error = torch.mean(torch.norm(pixel_diff_spatial, dim=1))
+                            spatial_expectation_pixel_error_percent = spatial_expectation_pixel_error * 100/image_diagonal_pixels
+
+
+
+
+
+                        loss = 0
+                        if config['loss_function']['heatmap']['enabled']:
+                            weight = config['loss_function']['heatmap']['weight']
+                            loss += weight * heatmap_l2_loss
+
+                        if config['loss_function']['spatial_expectation']['enabled']:
+                            weight = config['loss_function']['spatial_expectation']['weight']
+                            loss += weight * spatial_expectation_loss_scaled
 
                         if COMPUTE_PIXEL_MATCH_ERROR:
 
                             best_match_dict = predict.get_argmax_l2(des_a, des_img_b)
-
 
                             # [B, N, 2]
                             uv_b_pred = best_match_dict['indices']
@@ -257,12 +319,14 @@ def train_dense_descriptors(config,
                             # [M, 2]
                             pixel_error_valid = pdc_utils.extract_valid(pixel_error, valid)
 
-                            # as a percentage of image diagonal
-                            avg_pixel_error = torch.mean(pixel_error_valid)
-                            avg_pixel_error_percent = avg_pixel_error.item() * 100/image_diagonal_pixels
+                            # need to make sure this isn't empty
+                            if len(pixel_error_valid) > 0:
+                                # as a percentage of image diagonal
+                                avg_pixel_error = torch.mean(pixel_error_valid)
+                                avg_pixel_error_percent = avg_pixel_error.item() * 100/image_diagonal_pixels
 
-                            median_pixel_error = torch.median(pixel_error_valid)
-                            median_pixel_error_percent = median_pixel_error*100/image_diagonal_pixels
+                                median_pixel_error = torch.median(pixel_error_valid)
+                                median_pixel_error_percent = median_pixel_error*100/image_diagonal_pixels
 
 
                     # update meter losses
@@ -280,10 +344,18 @@ def train_dense_descriptors(config,
                             phase, epoch, config['train']['n_epoch'], i, data_n_batches[phase],
                             get_lr(optimizer))
 
-                        log += ', pixel_error: %.6f' % (avg_pixel_error.item())
-                        log += ', meter_avg_pixel_error: %.6f' % (meter_loss['best_match_pixel_error'].avg)
+                        log += ', pixel_error: %.1f' % (avg_pixel_error.item())
+                        # log += ', meter_avg_pixel_error: %.6f' % (meter_loss['best_match_pixel_error'].avg)
+                        log += ', spatial_pixel_error: %.1f' % (spatial_expectation_pixel_error.item())
+                        log += ', spatial_expectation_loss: %.1f' %(spatial_expectation_loss.item())
+
+                        # print how log it took to do 10 steps
+                        elapsed = time.time() - last_log_time
+                        last_log_time = time.time()
+                        log += ", elapsed: %.2f" %(elapsed)
 
                         print(log)
+
 
                         # log data to tensorboard
                         # only do it once we have reached 500 iterations
@@ -292,6 +364,14 @@ def train_dense_descriptors(config,
                                 writer.add_scalar("Params/learning rate", get_lr(optimizer), counters[phase])
 
                             writer.add_scalar("Loss/%s" %(phase), loss.item(), counters[phase])
+
+                            for loss_type, loss_obj in loss_container.items():
+                                plot_name = "Loss/%s/%s" %(loss_type, phase)
+                                writer.add_scalar(plot_name, loss_obj.item(), counters[phase])
+
+                            writer.add_scalar("spatial_pixel_match_error/%s" %(phase), spatial_expectation_pixel_error.item(), counters[phase])
+                            writer.add_scalar("spatial_pixel_match_error_percent/%s" % (phase),
+                                              spatial_expectation_pixel_error_percent.item(), counters[phase])
 
                             if COMPUTE_PIXEL_MATCH_ERROR:
                                 writer.add_scalar("pixel_match_error/mean/%s" % (phase), avg_pixel_error.item(),
@@ -303,6 +383,7 @@ def train_dense_descriptors(config,
                                                   counters[phase])
                                 writer.add_scalar("pixel_match_error_percent/median/%s" % (phase), median_pixel_error_percent.item(),
                                                   counters[phase])
+
 
 
                     if phase == 'train' and i % config['train']['ckp_per_iter'] == 0:

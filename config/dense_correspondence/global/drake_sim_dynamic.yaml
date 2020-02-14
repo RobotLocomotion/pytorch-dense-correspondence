@@ -23,11 +23,18 @@ dataset:
 network:
   descriptor_dimension: 3
   compute_best_match_with: "min_l2"
+  sigma_descriptor_heatmap: 5 # the sigma used to create heatmap from descriptor image
   backbone: "fcn_resnet50"
   pretrained: False
 
 loss_function:
- type: "heatmap_l2"
- sigma_fraction: 0.00625 # fraction of image diagonal for heatmap variance
- heatmap_type: "exp" # ['exp', 'softmax']
+  heatmap:
+    enabled: True
+    weight: 1.0
+    type: "heatmap_l2"
+    sigma_fraction: 0.00625
+    heatmap_type: "exp" # ['exp', 'softmax']
+  spatial_expectation:
+    enabled: True
+    weight: 1.0
 
