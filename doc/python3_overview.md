@@ -63,16 +63,13 @@ This is implemented in the `key_dynam` repo. Check out [this](https://github.com
 
 
 ## Training
-Currently the training only supports using the heatmap loss. An example can be found in 
-[`train_drake_sim_dynamic_heatmap.py`](../dense_correspondence/training/train_drake_sim_dynamic_heatmap.py). The heatmap
-loss is detailed in the [Integral Human Pose Regression](https://arxiv.org/abs/1711.08229) paper. In the future we should
-also use the spatial expectation loss.
 
-See [train_heatmap.py](../dense_correspondence/experiments/heatmap/train_heatmap.py) for a script that trains on the caterpillar data from the original DenseObjectNets paper.
+We support two losses, **heatmap** and **spatial expectation**, which are detailed in the [Integral Human Pose Regression](https://arxiv.org/abs/1711.08229) paper. An example training script can be found in 
+[`train_heatmap.py`](../dense_correspondence/training/train_drake_sim_dynamic_heatmap.py).
 
-```
+- For an example training on the caterpillar data from the original DON paper see [`train_heatmap.py`](../dense_correspondence/experiments/heatmap/train_heatmap.py)
+- For an example of training with dynamic scene data from SSCVPL paper see [`train_dynamic_heatmap.py`](../dense_correspondence/experiments/heatmap/train_dynamic_heatmap.py)
 
-```
 
 ## Visualizing Results
-See [this](../dense_correspondence/evaluation/visualize_learned_correspondences.ipynb) notebook for a simple example of visualizing learned correspondences. A more involved (and older) example can be found at.
+See [this](../dense_correspondence/evaluation/visualize_learned_correspondences.ipynb) notebook for a simple example of visualizing learned correspondences. 
