@@ -28,6 +28,8 @@ from dense_correspondence.network import predict
 COMPUTE_PIXEL_MATCH_ERROR = True
 
 COMPUTE_SPATIAL_LOSS = True
+COMPUTE_HEATMAP_LOSS = True
+MIN_NUM_MATCHES = 10 # require at least 10 matches to run a batch
 
 def get_lr(optimizer):
     for param_group in optimizer.param_groups:
@@ -67,7 +69,7 @@ def train_dense_descriptors(config,
                                                  phase=phase)
 
         print("len(multi_episode_dict)", len(multi_episode_dict))
-        print("len(datasets[phase])", len(datasets[phase]))
+        print("len(datasets[%s])" %(phase), len(datasets[phase]))
 
         # optionally use the deprecated image_to_tensor transform from DenseObjectNets
         # paper
@@ -217,17 +219,28 @@ def train_dense_descriptors(config,
                         uv_b = data['matches']['uv_b'].to(device)
                         valid = data['matches']['valid'].to(device)
 
+                        # this means we have empty data so we should just skip
+                        # this iteration of the loop
+                        is_empty = (torch.sum(valid) < MIN_NUM_MATCHES)
+                        num_valid_matches = torch.sum(valid)
+                        if num_valid_matches < MIN_NUM_MATCHES:
+                            print("num valid matches (%d) was less than required minimum number (%d), skipping this batch")
+                            continue
+
                         _, _, N = uv_a.shape
 
                         # [B,N,D]
                         des_a = pdc_utils.index_into_batch_image_tensor(des_img_a, uv_a).permute([0,2,1])
-
 
                         if verbose:
                             print("des_a.shape", des_a.shape)
                             print("des_img_b.shape", des_img_b.shape)
 
 
+
+                        """
+                        Compute the L2 heatmap loss
+                        """
                         # this is the heatmap that an individual descriptor from rgb_a
                         # will induce given descriptor image b (des_img_b)
                         # [B,N,H,W]
@@ -238,36 +251,29 @@ def train_dense_descriptors(config,
                         # [M, H, W]
                         heatmap_pred_valid = pdc_utils.extract_valid(heatmap_pred, valid=valid)
 
-                        # compute ground truth heatmap
                         # [M, 2]
-                        uv_b_valid = pdc_utils.extract_valid(uv_b.permute([0,2,1]), valid)
+                        uv_b_valid = pdc_utils.extract_valid(uv_b.permute([0, 2, 1]), valid)
 
-                        # check whether any of the matches we found were valid
-                        found_valid_matches = (len(uv_b_valid) > 0)
+                        # compute L2 heatmap loss
+                        heatmap_l2_loss = None
+                        if COMPUTE_HEATMAP_LOSS:
+                            # [M, H, W]
+                            heatmap_gt = loss_utils.create_heatmap(uv_b_valid,
+                                                                   H=H,
+                                                                   W=W,
+                                                                   sigma=sigma,
+                                                                   type=heatmap_type)
 
-                        # [M, H, W]
-                        heatmap_gt = loss_utils.create_heatmap(uv_b_valid,
-                                                               H=H,
-                                                               W=W,
-                                                               sigma=sigma,
-                                                               type=heatmap_type)
-
-                        # if verbose:
-                        #     print("heatmap_gt.shape", heatmap_gt.shape)
-                        #     print("heatmap_pred_valid.shape", heatmap_pred_valid.shape)
-                        #     print("heatmap_gt.device", heatmap_gt.device)
-                        #     print("uv_b_valid.device", uv_b_valid.device)
-
-                        # compute an L2 heatmap loss
-                        heatmap_l2_loss = mse_loss(heatmap_pred_valid, heatmap_gt)
-
-                        loss_container['heatmap'] = heatmap_l2_loss
+                            # compute an L2 heatmap loss
+                            heatmap_l2_loss = mse_loss(heatmap_pred_valid, heatmap_gt)
+                            loss_container['heatmap'] = heatmap_l2_loss
 
 
                         # compute spatial expectation prediction
                         # [M, 2] in uv ordering
-                        spatial_expectation_loss = 0
-                        if found_valid_matches and COMPUTE_SPATIAL_LOSS:
+                        spatial_expectation_loss = None
+                        spatial_expectation_loss_scaled = None
+                        if COMPUTE_SPATIAL_LOSS:
                             # this is L1 loss in pixel space
                             # scale it by image diagonal
 
@@ -276,35 +282,42 @@ def train_dense_descriptors(config,
                             uv_b_spatial_pred = predict.get_integral_preds_2d(heatmap_pred_valid, verbose=False)
 
 
-                            # note we multiply by 2 since l1_loss is dividing by the total number of elements in
-                            # uv_b_valid (which is 2*M) and we just want the average L1 pixel_error, which means
-                            # we should just divide by M
+                            # note we multiply by 2 since nn.L1Loss is dividing by the total
+                            # number of elements in uv_b_valid (namely 2*M) since it is using
+                            # reduction='mean'. To get L1 metric in pixel space we just multiply
+                            # the result by 2
                             spatial_expectation_loss = 2*l1_loss(uv_b_valid.type(torch.float), uv_b_spatial_pred)
+
+                            # scale by the image diagonal to keep it invariant to the size of the
+                            # output image
                             spatial_expectation_loss_scaled = spatial_expectation_loss/image_diagonal_pixels
 
                             loss_container['spatial_expectation'] = spatial_expectation_loss_scaled
 
-                            # mean of the L2
-                            # print("uv_b_valid.shape", uv_b_valid.shape)
-                            # print("uv_b_spatial_pred.shape", uv_b_spatial_pred.shape)
+                            # compute L2 pixel error between uv_b_valid and uv_b_spatial_pred
+                            # ultimately this is the number we care about. This is just L2 norm
+                            # vs. L1 norm
                             pixel_diff_spatial = (uv_b_valid).type(torch.float) - uv_b_spatial_pred
                             spatial_expectation_pixel_error = torch.mean(torch.norm(pixel_diff_spatial, dim=1))
                             spatial_expectation_pixel_error_percent = spatial_expectation_pixel_error * 100/image_diagonal_pixels
 
 
 
-
-
+                        # sum up the loss functions
                         loss = 0
-                        if config['loss_function']['heatmap']['enabled']:
+                        if config['loss_function']['heatmap']['enabled'] and (heatmap_l2_loss is not None):
                             weight = config['loss_function']['heatmap']['weight']
                             loss += weight * heatmap_l2_loss
 
-                        if config['loss_function']['spatial_expectation']['enabled']:
+                        if config['loss_function']['spatial_expectation']['enabled'] and (spatial_expectation_loss_scaled is not None):
                             weight = config['loss_function']['spatial_expectation']['weight']
                             loss += weight * spatial_expectation_loss_scaled
 
                         if COMPUTE_PIXEL_MATCH_ERROR:
+                            """
+                            Computes pixel match error if we use the argmax way of finding
+                            the best match
+                            """
 
                             best_match_dict = predict.get_argmax_l2(des_a, des_img_b)
 
@@ -369,9 +382,10 @@ def train_dense_descriptors(config,
                                 plot_name = "Loss/%s/%s" %(loss_type, phase)
                                 writer.add_scalar(plot_name, loss_obj.item(), counters[phase])
 
-                            writer.add_scalar("spatial_pixel_match_error/%s" %(phase), spatial_expectation_pixel_error.item(), counters[phase])
-                            writer.add_scalar("spatial_pixel_match_error_percent/%s" % (phase),
-                                              spatial_expectation_pixel_error_percent.item(), counters[phase])
+                            if COMPUTE_SPATIAL_LOSS:
+                                writer.add_scalar("spatial_pixel_match_error/%s" %(phase), spatial_expectation_pixel_error.item(), counters[phase])
+                                writer.add_scalar("spatial_pixel_match_error_percent/%s" % (phase),
+                                                  spatial_expectation_pixel_error_percent.item(), counters[phase])
 
                             if COMPUTE_PIXEL_MATCH_ERROR:
                                 writer.add_scalar("pixel_match_error/mean/%s" % (phase), avg_pixel_error.item(),

@@ -874,7 +874,7 @@ def compute_correspondence_data(data_a,  # dict
                                 rgb_to_tensor_transform,  # torchvision.transforms.Transform
                                 device='CPU',
                                 verbose=False,
-                                ):
+                                ): # dict
     """
     Computes correspondences and non-correspondences given image data and function
     for converting rgb image to tensor
@@ -1059,7 +1059,9 @@ def compute_correspondence_data(data_a,  # dict
     assert uv_a.shape == uv_b.shape
     matches_data = {'uv_a': uv_a,
                     'uv_b': uv_b,
-                    'valid': torch.ones(uv_a.shape[1])}
+                    'valid': torch.ones(uv_a.shape[1]), # could convert this to bool
+                    # 'valid': torch.full_like(uv_a, 1, dtype=torch.bool)
+                    }
 
 
     assert masked_non_matches_uv_a.shape == masked_non_matches_uv_b.shape

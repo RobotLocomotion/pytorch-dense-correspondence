@@ -25,13 +25,17 @@ class DynamicDrakeSimDataset(data.Dataset):
     def __init__(self,
                  config, # dict
                  episodes, # dict, values of type EpisodeReader
-                 phase="train"):
+                 phase="train",
+                 epoch_size=None, # optional epoch size
+                 ):
+
 
         assert phase in ["train", "valid"]
 
         self._config = config
         self._episodes = episodes
         self._phase = phase
+        self._epoch_size = epoch_size
         self.verbose = False
         self.debug = False
         self.initialize()
@@ -86,6 +90,9 @@ class DynamicDrakeSimDataset(data.Dataset):
         :rtype:
         """
 
+        # if epoch_size != None, then we need to randomize item_idx
+        item_idx = random.randint(0, len(self.index)-1)
+
         entry = self.index[item_idx]
         episode = self._episodes[entry['episode_name']]
         idx = entry['idx_a']
@@ -109,7 +116,10 @@ class DynamicDrakeSimDataset(data.Dataset):
         return data
 
     def __len__(self):
-        return len(self.index)
+        if self._epoch_size is not None:
+            return self._epoch_size
+        else:
+            return len(self.index)
 
 
     def initialize(self):
@@ -139,7 +149,7 @@ class DynamicDrakeSimDataset(data.Dataset):
         n_valid = len(episode_names) - n_train
 
         self._train_episode_names = episode_names[0:n_train]
-        self._valid_episode_names = episode_names[n_train:-1]
+        self._valid_episode_names = episode_names[n_train:]
 
         self._train_index = self.make_index(self._train_episode_names)
         self._valid_index = self.make_index(self._valid_episode_names)

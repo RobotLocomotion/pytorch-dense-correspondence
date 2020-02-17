@@ -39,10 +39,17 @@ class DynamicSpartanEpisodeReader(EpisodeReader):
         self._indices.sort()
         self._initialize_camera_data()
 
-
     @property
     def config(self):
         return self._config
+
+    @property
+    def length(self):
+        return len(self._indices)
+
+    @property
+    def episode_name(self):
+        return self._name
 
     def images_dir(self, camera_name):
         """
@@ -202,7 +209,10 @@ class DynamicSpartanEpisodeReader(EpisodeReader):
                 'depth_int16': depth_int16,
                 'mask': mask,
                 'T_world_camera': T_W_C,
-                'K': K}
+                'K': K,
+                'camera_name': camera_name,
+                'idx': idx,
+                'episode_name': self.episode_name}
 
     def get_image_dimensions(self,
                              camera_name,  # str: not needed

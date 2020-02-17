@@ -54,6 +54,10 @@ class SpartanEpisodeReader(EpisodeReader):
     def camera_names(self):
         return [self._camera_name]
 
+    @property
+    def episode_name(self):
+        return self._name
+
     def camera_K_matrix(self,
                         camera_name=None,
                         ):
@@ -157,7 +161,11 @@ class SpartanEpisodeReader(EpisodeReader):
                 'depth_int16': depth_int16,
                 'mask': mask,
                 'T_world_camera': T_W_C,
-                'K': K}
+                'K': K,
+                'camera_name': camera_name,
+                'idx': idx,
+                'episode_name': self.episode_name,
+                }
 
     def get_image_dimensions(self,
                              camera_name,  # str: not needed

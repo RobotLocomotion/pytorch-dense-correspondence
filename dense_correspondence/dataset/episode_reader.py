@@ -22,6 +22,10 @@ class EpisodeReader(object):
         """
         raise NotImplementedError
 
+    @property
+    def episode_name(self):
+        raise NotImplementedError
+
     def camera_pose(self,
                     camera_name,  # str
                     idx=None,  # not needed in this dataset
@@ -54,6 +58,8 @@ class EpisodeReader(object):
                 'depth_int16': depth_int16, # millimeters
                 'K': K,
                 'T_world_camera': T_W_C,
+                'episode_name': episode_name,
+                'idx': idx
                 }
 
         :param camera_name:
