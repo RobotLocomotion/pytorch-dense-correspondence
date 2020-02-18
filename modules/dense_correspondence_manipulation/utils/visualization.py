@@ -48,6 +48,10 @@ def draw_reticle(img, u, v, label_color):
     :return:
     :rtype:
     """
+    # cast to int
+    u = int(u)
+    v = int(v)
+
     white = (255, 255, 255)
     cv2.circle(img, (u, v), 10, label_color, 1)
     cv2.circle(img, (u, v), 11, white, 1)

@@ -91,7 +91,8 @@ class DynamicDrakeSimDataset(data.Dataset):
         """
 
         # if epoch_size != None, then we need to randomize item_idx
-        item_idx = random.randint(0, len(self.index)-1)
+        if self._epoch_size is not None:
+            item_idx = random.randint(0, len(self.index)-1)
 
         entry = self.index[item_idx]
         episode = self._episodes[entry['episode_name']]

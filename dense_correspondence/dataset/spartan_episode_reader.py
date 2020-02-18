@@ -139,9 +139,10 @@ class SpartanEpisodeReader(EpisodeReader):
         _, mask = dataset_utils.load_mask_image_from_file(filename)
         return mask
 
-    def get_camera_pose(self,
-                        camera_name,
-                        idx):
+
+    def camera_pose(self,
+                    camera_name,
+                    idx):
 
         pose_dict = self._pose_data[idx]['camera_to_world']
         T_W_C = utils.homogenous_transform_from_dict(pose_dict)
@@ -154,7 +155,7 @@ class SpartanEpisodeReader(EpisodeReader):
         rgb = self.get_rgb_image(camera_name, idx)
         depth_int16 = self.get_depth_image_int16(camera_name, idx)
         mask = self.get_mask_image(camera_name, idx)
-        T_W_C = self.get_camera_pose(camera_name, idx)
+        T_W_C = self.camera_pose(camera_name, idx)
         K = self.camera_matrix_dict[camera_name]
 
         return {'rgb': rgb,

@@ -77,16 +77,23 @@ def get_spatial_expectation(des, # [B, N, D] or [N, D]
                             return_heatmap=False,
                             ): # [B, N, 2] or [N, 2] in uv ordering
 
-    assert len(des.shape) == (len(des_img.shape) - 1)
-    has_batch_dim = (len(des.shape) == 3)
+
+    has_batch_dim = (len(des_img.shape) == 4)
 
     if not has_batch_dim:
-        # expand so that B = 1
-        des = des.unsqueeze(0)
         des_img = des_img.unsqueeze(0)
 
-    _, N, _ = des.shape
     B, D, H, W = des_img.shape
+
+    # [B, N, D]
+    if len(des.shape) == 2:  # [N, D] case
+        des = des.unsqueeze(0).expand(*[B, -1, -1])
+    elif len(des.shape) != 3:
+        raise ValueError("dimension mismatch")
+
+    B2, N, D2 = des.shape
+    assert (B2 == B) and (D2 == D), "dimension mismatch"
+
 
     # [B, N, H, W]
     heatmap = compute_heatmap_from_descriptors(des, des_img, sigma, type)

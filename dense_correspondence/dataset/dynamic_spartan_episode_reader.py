@@ -1,5 +1,6 @@
 import os
 import copy
+import h5py
 import random
 import numpy as np
 import itertools
@@ -22,12 +23,13 @@ class DynamicSpartanEpisodeReader(EpisodeReader):
                  root_dir,  # str: fullpath to 'processed' dir
                  name="",  # str
                  metadata=None,  # dict: optional metadata, e.g. object type etc.
+                 descriptor_keypoints_file=None, #(optional): hdf5 file that stores descriptors
                  ):
         EpisodeReader.__init__(self)
         self._config = config
         self._root_dir = root_dir
         self._name = name
-
+        self._descriptor_keypoints_file = descriptor_keypoints_file
 
         self._metadata = metadata
 
@@ -49,6 +51,10 @@ class DynamicSpartanEpisodeReader(EpisodeReader):
 
     @property
     def episode_name(self):
+        return self._name
+
+    @property
+    def name(self):
         return self._name
 
     def images_dir(self, camera_name):
@@ -122,7 +128,7 @@ class DynamicSpartanEpisodeReader(EpisodeReader):
     def get_image(self,
                   camera_name,  # str
                   idx,  # int
-                  type,  # string ["rgb", "depth", "depth_float32", "depth_int16", "mask", "label"]
+                  type,  # string ["rgb", "depth", "depth_float32", "depth_int16", "mask", "label", "descriptor_keypoints"]
                   ):
 
         if type == "rgb":
@@ -132,7 +138,10 @@ class DynamicSpartanEpisodeReader(EpisodeReader):
             return self.get_depth_image_int16(camera_name, idx)
         elif type == "mask":
             return self.get_mask_image(camera_name, idx)
-        raise NotImplementedError
+        elif type == "descriptor_keypoints":
+            return self.get_descriptor_keypoints(camera_name, idx)
+        else:
+            raise NotImplementedError
 
     def get_image_filename(self, camera_name, img_index, image_type):
         """
@@ -156,7 +165,6 @@ class DynamicSpartanEpisodeReader(EpisodeReader):
             filename = os.path.join(images_dir, 'image_masks', mask_filename)
         else:
             raise ValueError("unsupported image type")
-
 
         return filename
 
@@ -188,11 +196,29 @@ class DynamicSpartanEpisodeReader(EpisodeReader):
         _, mask = dataset_utils.load_mask_image_from_file(filename)
         return mask
 
-    def get_camera_pose(self,
-                        camera_name,
-                        idx=None, # optional for this class
-                        ):
+    def get_descriptor_keypoints(self,
+                                 camera_name,
+                                 idx): # np.array[N, 2] where N is num keypoints
 
+        if self._descriptor_keypoints_file is None:
+            raise ValueError("descriptor keypoints file is None")
+
+        with h5py.File(self._descriptor_keypoints_file, 'r') as h5_file:
+            key = self.get_image_key(camera_name, idx, "descriptor_keypoints")
+            data = np.array(h5_file.get(key))
+
+        return data
+
+    # def get_camera_pose(self,
+    #                     camera_name,
+    #                     idx=None, # optional for this class
+    #                     ):
+    #
+    #     return np.copy(self.camera_info[camera_name]['T_world_camera'])
+
+    def camera_pose(self,
+                    camera_name,
+                    idx):
         return np.copy(self.camera_info[camera_name]['T_world_camera'])
 
     def get_image_data(self,
@@ -202,18 +228,22 @@ class DynamicSpartanEpisodeReader(EpisodeReader):
         rgb = self.get_rgb_image(camera_name, idx)
         depth_int16 = self.get_depth_image_int16(camera_name, idx)
         mask = self.get_mask_image(camera_name, idx)
-        T_W_C = self.get_camera_pose(camera_name, idx)
+        T_W_C = self.camera_pose(camera_name, idx)
         K = self.camera_info[camera_name]['K']
+
+        descriptor_keypoints = []
+        if self._descriptor_keypoints_file is not None:
+            descriptor_keypoints = self.get_descriptor_keypoints(camera_name, idx)
 
         return {'rgb': rgb,
                 'depth_int16': depth_int16,
                 'mask': mask,
                 'T_world_camera': T_W_C,
                 'K': K,
+                'descriptor_keypoints': descriptor_keypoints,
                 'camera_name': camera_name,
                 'idx': idx,
                 'episode_name': self.episode_name}
-
     def get_image_dimensions(self,
                              camera_name,  # str: not needed
                              ):
@@ -268,16 +298,20 @@ class DynamicSpartanEpisodeReader(EpisodeReader):
     @staticmethod
     def load_dataset(config,  # dict, e.g. caterpillar_9_epsiodes.yaml
                      episodes_root,  # str: root of where all the logs are stored
-                     ):
+                     max_num_episodes=None):
 
         multi_episode_dict = dict()
-        for episode_name in config['episodes']:
+        for counter, episode_name in enumerate(config['episodes']):
+
+            # this is for debugging purposes
+            if (max_num_episodes is not None) and counter >= max_num_episodes:
+                break
+
             episode_processed_dir = os.path.join(episodes_root, episode_name, "processed")
             episode = DynamicSpartanEpisodeReader(config,
                                            episode_processed_dir,
-                                           name=episode_name, )
+                                           name=episode_name,)
 
             multi_episode_dict[episode_name] = episode
-
 
         return multi_episode_dict
