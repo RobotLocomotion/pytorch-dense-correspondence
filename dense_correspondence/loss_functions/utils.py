@@ -33,7 +33,7 @@ def create_heatmap(uv_input, # [N, 2] tensor
         heatmap = torch.exp(exp_arg)
     elif type == "softmax":
         heatmap = torch.exp(exp_arg)
-        heatmap = heatmap/torch.sum(heatmap)
+        heatmap = heatmap / (torch.sum(heatmap) + 1e-8)
     else:
         raise ValueError("unknown type: %s" %(type))
 
