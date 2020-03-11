@@ -47,6 +47,10 @@ class EpisodeReader(abc.ABC):
                   idx,  # int
                   type,  # string ["rgb", "depth", "depth_float32", "depth_int16", "mask", "label"]
                   ):
+        """
+        For a depth_int16 or depth_float32 a value of 0 indicates a pixel where no valid
+        depth value exists. It should not be used in any computations.
+        """
         return
         # raise NotImplementedError
 

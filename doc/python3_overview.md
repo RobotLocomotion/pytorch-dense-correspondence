@@ -64,12 +64,16 @@ This is implemented in the `key_dynam` repo. Check out [this](https://github.com
 
 ## Training
 
-We support two losses, **heatmap** and **spatial expectation**, which are detailed in the [Integral Human Pose Regression](https://arxiv.org/abs/1711.08229) paper. An example training script can be found in 
+We support two losses, **heatmap** and **spatial expectation** (both 2D and 3D), which are detailed in the [Integral Human Pose Regression](https://arxiv.org/abs/1711.08229) paper. An example training script can be found in 
 [`train_heatmap.py`](../dense_correspondence/training/train_drake_sim_dynamic_heatmap.py).
 
 - For an example training on the caterpillar data from the original DON paper see [`train_heatmap.py`](../dense_correspondence/experiments/heatmap/train_heatmap.py)
 - For an example of training with dynamic scene data from SSCVPL paper see [`train_dynamic_heatmap.py`](../dense_correspondence/experiments/heatmap/train_dynamic_heatmap.py)
+- For an example of training with 3D loss see [`train_integral_heatmap_3d.py`](../dense_correspondence/experiments/heatmap/train_integral_heatmap_3d.py)
+
 
 
 ## Visualizing Results
-See [this](../dense_correspondence/evaluation/visualize_learned_correspondences.ipynb) notebook for a simple example of visualizing learned correspondences. 
+- See [this](../dense_correspondence/evaluation/visualize_learned_correspondences.ipynb) notebook for a simple example of visualizing learned correspondences. 
+
+- Interactive heatmap tool: See [`heatmap_visualization.py`](../dense_correspondence/experiments/heatmap/heatmap_visualization.py).

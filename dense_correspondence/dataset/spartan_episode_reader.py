@@ -100,6 +100,9 @@ class SpartanEpisodeReader(EpisodeReader):
         elif image_type == "depth_int16":
             images_dir = os.path.join(self._root_dir, 'rendered_images')
             file_extension = "_depth.png"
+        elif image_type == "raw_depth_int16":
+            images_dir = os.path.join(self._root_dir, 'images')
+            file_extension = "_depth.png"
         elif image_type == "mask":
             images_dir = os.path.join(self._root_dir, 'image_masks')
             file_extension = "_mask.png"
@@ -131,6 +134,14 @@ class SpartanEpisodeReader(EpisodeReader):
                                 camera_name,
                                 idx):  # np.array, dtype=?
         raise NotImplementedError
+
+    def get_raw_depth_image_int16(self,
+                                  camera_name,
+                                  idx):
+        filename = self.get_image_filename(idx, "raw_depth_int16")
+        _, depth_int16 = dataset_utils.load_depth_int16_from_file(filename)
+        return depth_int16
+
 
     def get_mask_image(self,
                        camera_name,

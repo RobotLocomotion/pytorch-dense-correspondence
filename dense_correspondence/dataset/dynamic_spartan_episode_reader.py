@@ -31,6 +31,9 @@ class DynamicSpartanEpisodeReader(EpisodeReader):
         self._name = name
         self._descriptor_keypoints_file = descriptor_keypoints_file
 
+        if self._descriptor_keypoints_file is not None:
+            assert os.path.isfile(self._descriptor_keypoints_file)
+
         self._metadata = metadata
 
         # load camera_info

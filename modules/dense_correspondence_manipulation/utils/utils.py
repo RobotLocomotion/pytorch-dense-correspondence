@@ -29,7 +29,10 @@ def getDictFromYamlFilename(filename):
     """
     Read data from a YAML files
     """
-    return yaml.load(open(filename), Loader=CLoader)
+    data = None
+    with open(filename) as yaml_file:
+        data = yaml.load(yaml_file, Loader=CLoader)
+    return data
 
 def load_json(filename):
     data = None
@@ -417,6 +420,7 @@ def flatten_batch_uv_tensor(uv, # [B, 2, N]
     uv_flat = uv[:, 0, :] + uv[:, 1, :] * image_width
     return uv_flat
 
+
 def index_into_batch_image_tensor(img, # [B, D, H, W]
                                   uv, # [B, 2, N]
                                   verbose=False,
@@ -635,6 +639,53 @@ def get_unique_string():
 
     string = get_current_YYYY_MM_DD_hh_mm_ss() + "_" + str(random.randint(0,1000))
     return string
+
+def pinhole_unprojection(uv,  # [N, 2] uv pixel coordinates
+                         z,  # [N] depth values (meters) (all valid
+                         K,  # [3, 3] camera matrix
+                         ):
+    """
+    This can be tested by visualizing a pointcloud using the
+    simple_dataset_test_episode_reader.ipynb script
+    """
+
+    uv_s = np.array([z*uv[:, 0], z*uv[:, 1], z])
+    # uv_s = np.stack((uv*z, z)).transpose() # [3, N] array with one row being z * [u, v, 1]
+    K_inv = np.linalg.inv(K)
+    pts = np.matmul(K_inv, uv_s) # [3, 3] x [3, N], is [3, N]
+    return pts.transpose() # return [N, 3]
+
+
+def project_image_to_pointcloud(depth_image_meters, # [W, H] in meters
+                                K, # [3,3] camera matrix,
+                                rgb=None, # optional
+                                ):
+    """
+    Projects RGBD image to colorized pointcloud
+    :param depth_image:
+    :type depth_image:
+    :param K:
+    :type K:
+    :param rgb:
+    :type rgb:
+    :return:
+    :rtype:
+    """
+
+    color = None
+    valid = depth_image_meters > 0
+    depth_valid = depth_image_meters[valid]
+
+    idx = np.where(depth_image_meters > 0)
+    uv = np.stack((idx[1], idx[0]), axis=-1)  # [N, 2]
+    pts = pinhole_unprojection(uv, depth_valid, K)
+    if rgb is not None:
+        color = rgb[valid]
+
+    return {'pts': pts, # [N, 3]
+            'color': color, # [N, 3]
+            }
+
 
 class CameraIntrinsics(object):
     """

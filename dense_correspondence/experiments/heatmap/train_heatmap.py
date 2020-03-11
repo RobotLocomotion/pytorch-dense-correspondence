@@ -8,9 +8,6 @@ import cv2
 # torch
 import torch
 
-
-
-
 # pdc
 from dense_correspondence.dataset.dynamic_drake_sim_dataset import DynamicDrakeSimDataset
 from dense_correspondence.correspondence_tools.correspondence_finder import reproject_pixels
@@ -27,7 +24,8 @@ from dense_correspondence.training.train_heatmap import train_dense_descriptors
 
 
 DATASET_NAME = "caterpillar_9"
-MODEL_NAME = pdc_utils.get_current_YYYY_MM_DD_hh_mm_ss() + "_resnet50_" + "_dataset_" + DATASET_NAME
+# MODEL_NAME = pdc_utils.get_current_YYYY_MM_DD_hh_mm_ss() + "_resnet50_" + "_dataset_" + DATASET_NAME
+MODEL_NAME = pdc_utils.get_current_YYYY_MM_DD_hh_mm_ss() + "_compute_3D_loss"
 
 
 DATA_ROOT = os.path.join(os.getenv("DATA_ROOT"), "pdc")

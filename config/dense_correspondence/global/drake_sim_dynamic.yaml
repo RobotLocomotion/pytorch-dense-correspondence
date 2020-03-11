@@ -37,4 +37,7 @@ loss_function:
   spatial_expectation:
     enabled: True
     weight: 1.0
+  depth_3d:
+    enabled: True
+    weight: 1.0
 

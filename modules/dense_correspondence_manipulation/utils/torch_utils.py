@@ -42,6 +42,22 @@ def random_sample_from_masked_image_torch(img_mask, num_samples, without_replace
     return uv_tensor
 
 
+def pinhole_unprojection(p,  # [B, N, 3] 3D points in camera frame (meters)
+                         K,  # [B, 3, 3] # camera matrix
+                         ): # [N, 2] uv pixels
+    """
+    Project points from camera frame to pixel space
+    """
+    raise NotImplementedError
+
+def pinhole_projection(uv, # [B, N, 2] uv pixel coordinates
+                       z, # [B, N] depth values (meters)
+                       K, # [B, 3, 3] camera matrix
+                       ):
+    raise NotImplementedError
+
+
+
 
 
 

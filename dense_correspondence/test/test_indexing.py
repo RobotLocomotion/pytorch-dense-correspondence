@@ -1,14 +1,18 @@
 import unittest
+import os
 
 import torch
 import numpy as np
 
 import dense_correspondence_manipulation.utils.utils as pdc_utils
+from dense_correspondence_manipulation.utils.utils import getDenseCorrespondenceSourceDir, getDictFromYamlFilename, reset_random_seed
+from dense_correspondence.dataset.spartan_episode_reader import SpartanEpisodeReader
 import dense_correspondence.loss_functions.utils as loss_utils
-from dense_correspondence.network.predict import get_integral_preds_2d
+from dense_correspondence.network.predict import get_integral_preds_3d, get_integral_preds_2d
+# key_dynam
+from key_dynam.utils.torch_utils import random_sample_from_masked_image_torch
 
 class TestIndexing(unittest.TestCase):
-
 
 
     def test_indexing(self, verbose=False):
@@ -407,6 +411,82 @@ class TestIndexing(unittest.TestCase):
                 print("\n")
                 print("type:", type)
                 print("max_diff", max_diff)
+
+    def test_heatmap_integral_pred_3d(self, verbose=True):
+
+        reset_random_seed(SEED=1)
+
+        device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
+        # Load Data
+        dataset_processed_dir = os.path.join(getDenseCorrespondenceSourceDir(), 'dense_correspondence/test/data/2018-04-16-14-25-19/processed')
+
+        config_file = os.path.join(getDenseCorrespondenceSourceDir(),
+                                   'config/dense_correspondence/global/drake_sim_dynamic.yaml')
+        config = getDictFromYamlFilename(config_file)
+        episode = SpartanEpisodeReader(config, dataset_processed_dir)
+
+        idx = episode.indices[0]
+        camera_name = episode.camera_names[0]
+        data = episode.get_image_data(camera_name, idx)
+
+
+        depth_img_rendered = torch.Tensor(data['depth_int16'].astype(np.int32)).to(device)
+        depth_img_raw = torch.Tensor(episode.get_raw_depth_image_int16(camera_name, idx)).to(device)
+
+        # run the test for both types of depth images
+        for depth_img, depth_img_type in zip([depth_img_rendered, depth_img_raw], ["rendered", "raw"]):
+            reset_random_seed(SEED=1)
+
+            sigma = 1.0
+            types = ['exp']
+
+            tol = 0.03# tolerance in pixels
+            z_tol = 10 # tolerance in mm
+
+            mask = torch.Tensor(data['mask'])
+
+            N = 5
+            H, W = mask.shape
+
+            # [N, H, W]
+            depth_img_expand = depth_img.unsqueeze(0).expand([N, -1, -1])
+
+            # [N, 2] in u,v ordering
+            uv_input = random_sample_from_masked_image_torch(mask, N).to(device)
+            valid_idx = depth_img[uv_input[:,1], uv_input[:, 0]] > 0
+            uv_input = uv_input[valid_idx, :]
+
+
+            heatmaps = dict()
+            preds = dict()
+            for type in types:
+                heatmaps[type] = loss_utils.create_heatmap(uv_input, H=H, W=W, sigma=sigma, type=type).to(device)
+                preds[type] = get_integral_preds_3d(heatmaps[type], depth_img_expand)
+
+            for type in types:
+
+                # size N
+                diff_uv = torch.abs(uv_input.type(torch.float) - preds[type]['uv'])
+
+                max_diff = torch.max(diff_uv)
+                self.assertTrue(max_diff < tol)
+
+                depth_values = depth_img[uv_input[:, 1], uv_input[:, 0]]
+
+                diff_z = torch.abs(depth_values - preds[type]['z'])
+                max_diff_z = torch.max(diff_z).item()
+
+
+                self.assertTrue(max_diff_z < z_tol)
+
+                if verbose:
+                    print("\n")
+                    print("depth_img_type:", depth_img_type)
+                    print("type:", type)
+                    print("max_diff", max_diff)
+                    print("max_diff_z", max_diff_z)
+
 
 
 
