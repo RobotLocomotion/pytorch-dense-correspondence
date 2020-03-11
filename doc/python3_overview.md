@@ -69,7 +69,8 @@ We support two losses, **heatmap** and **spatial expectation** (both 2D and 3D),
 
 - For an example training on the caterpillar data from the original DON paper see [`train_heatmap.py`](../dense_correspondence/experiments/heatmap/train_heatmap.py)
 - For an example of training with dynamic scene data from SSCVPL paper see [`train_dynamic_heatmap.py`](../dense_correspondence/experiments/heatmap/train_dynamic_heatmap.py)
-- For an example of training with 3D loss see [`train_integral_heatmap_3d.py`](../dense_correspondence/experiments/heatmap/train_integral_heatmap_3d.py)
+- For an example of training with 3D loss on DON data see [`train_integral_heatmap_3d.py`](../dense_correspondence/experiments/heatmap/train_integral_heatmap_3d.py)
+- For an example of training with 3D loss on imitation learning data see [`train_dynamic_integral_heatmap_3d.py`](../dense_correspondence/experiments/heatmap/train_dynamic_integral_heatmap_3d.py)
 
 
 
