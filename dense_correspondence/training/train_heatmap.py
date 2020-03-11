@@ -172,6 +172,15 @@ def train_dense_descriptors(config,
                         if verbose:
                             print("\n\n------global iteration %d-------" %(global_iteration))
 
+                        # this means we have empty data so we should just skip
+                        # this iteration of the loop
+                        num_valid_matches = torch.sum(valid)
+                        if num_valid_matches < MIN_NUM_MATCHES:
+                            print(
+                                    "num valid matches (%d) was less than required minimum number (%d), skipping this batch" % (
+                            num_valid_matches, MIN_NUM_MATCHES))
+                            continue
+
                         # compute the descriptor images
                         # [B, 3, H, W]
                         rgb_tensor_a = data['data_a']['rgb_tensor'].to(device)
@@ -219,13 +228,7 @@ def train_dense_descriptors(config,
                         uv_b = data['matches']['uv_b'].to(device)
                         valid = data['matches']['valid'].to(device)
 
-                        # this means we have empty data so we should just skip
-                        # this iteration of the loop
-                        is_empty = (torch.sum(valid) < MIN_NUM_MATCHES)
-                        num_valid_matches = torch.sum(valid)
-                        if num_valid_matches < MIN_NUM_MATCHES:
-                            print("num valid matches (%d) was less than required minimum number (%d), skipping this batch")
-                            continue
+
 
                         _, _, N = uv_a.shape
 

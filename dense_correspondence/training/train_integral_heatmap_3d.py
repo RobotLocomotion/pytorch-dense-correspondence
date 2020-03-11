@@ -4,6 +4,7 @@ import os
 import random
 import numpy as np
 import time
+import gc
 
 # from progressbar import ProgressBar
 
@@ -27,7 +28,7 @@ from dense_correspondence_manipulation.utils import torch_utils
 from dense_correspondence_manipulation.utils import constants
 
 # compute pixel match error
-COMPUTE_PIXEL_MATCH_ERROR = True
+COMPUTE_PIXEL_MATCH_ERROR = False
 
 COMPUTE_SPATIAL_LOSS = True
 COMPUTE_HEATMAP_LOSS = True
@@ -97,8 +98,6 @@ def train_dense_descriptors(config,
     descriptor_dim = config['network']['descriptor_dimension']
     pretrained = config['network']['pretrained']
     backbone = config['network']['backbone']
-    # fcn_model = fcn_resnet("fcn_resnet101", descriptor_dim, pretrained=pretrained)
-    # fcn_model = fcn_resnet("fcn_resnet50", descriptor_dim, pretrained=True)
     fcn_model = fcn_resnet(backbone, descriptor_dim, pretrained=pretrained)
     model = DenseDescriptorNetwork(fcn_model, normalize=False)
 
@@ -138,7 +137,7 @@ def train_dense_descriptors(config,
 
     # setup meter losses
     meter_loss = {'heatmap_loss': AverageMeter(),
-                  'best_match_pixel_error': AverageMeter(),
+                  'spatial_correspondence_pixel_error': AverageMeter(),
                   }
 
 
@@ -165,6 +164,9 @@ def train_dense_descriptors(config,
 
                 for i, data in enumerate(loader):
 
+                    # force garbage collection
+                    # gc.collect()
+
                     global_iteration += 1
                     counters[phase] += 1
 
@@ -174,6 +176,19 @@ def train_dense_descriptors(config,
 
                         if verbose:
                             print("\n\n------global iteration %d-------" %(global_iteration))
+
+                        # Check if we have enough matches to even warrant running a batch forwards
+                        uv_a = data['matches']['uv_a'].to(device)
+                        uv_b = data['matches']['uv_b'].to(device)
+                        valid = data['matches']['valid'].to(device)
+
+                        # this means we have empty data so we should just skip
+                        # this iteration of the loop
+                        num_valid_matches = torch.sum(valid)
+                        if num_valid_matches < MIN_NUM_MATCHES:
+                            print(
+                                "num valid matches (%d) was less than required minimum number (%d), skipping this batch" %(num_valid_matches, MIN_NUM_MATCHES))
+                            continue
 
                         # compute the descriptor images
                         # [B, 3, H, W]
@@ -186,12 +201,11 @@ def train_dense_descriptors(config,
                         image_diagonal_pixels = np.sqrt(H**2 + W**2)
                         sigma = image_diagonal_pixels * config['loss_function']['heatmap']['sigma_fraction']
 
+                        ###### FORWARD PASS THROUGH NETWORK #################
                         # concatenate rgb_tensor_a and rgb_tensor_b into a single tensor
                         # that we pass through the network
-
                         # [2*B, 3, H, W]
                         rgb_tensor_stack = torch.cat([rgb_tensor_a, rgb_tensor_b])
-
                         out = model.forward(rgb_tensor_stack)
                         des_img_stack = out['descriptor_image']
 
@@ -208,20 +222,6 @@ def train_dense_descriptors(config,
                             print("camera_name_a", data['data_a']['camera_name'])
                             print("camera_name_b", data['data_b']['camera_name'])
 
-
-                        # compute the loss
-                        # [B,2,N]
-                        uv_a = data['matches']['uv_a'].to(device)
-                        uv_b = data['matches']['uv_b'].to(device)
-                        valid = data['matches']['valid'].to(device)
-
-                        # this means we have empty data so we should just skip
-                        # this iteration of the loop
-                        is_empty = (torch.sum(valid) < MIN_NUM_MATCHES)
-                        num_valid_matches = torch.sum(valid)
-                        if num_valid_matches < MIN_NUM_MATCHES:
-                            print("num valid matches (%d) was less than required minimum number (%d), skipping this batch")
-                            continue
 
                         _, _, N = uv_a.shape
 
@@ -297,6 +297,8 @@ def train_dense_descriptors(config,
                             pixel_diff_spatial = (uv_b_valid).type(torch.float) - uv_b_spatial_pred
                             spatial_expectation_pixel_error = torch.mean(torch.norm(pixel_diff_spatial, dim=1))
                             spatial_expectation_pixel_error_percent = spatial_expectation_pixel_error * 100/image_diagonal_pixels
+
+                            meter_loss['spatial_correspondence_pixel_error'] = spatial_expectation_pixel_error.item()
 
                             if COMPUTE_3D_LOSS:
                                 # [B, H, W]
@@ -397,7 +399,7 @@ def train_dense_descriptors(config,
 
                     # update meter losses
                     meter_loss['heatmap_loss'].update(loss.item())
-                    meter_loss['best_match_pixel_error'].update(avg_pixel_error.item())
+                    # meter_loss['best_match_pixel_error'].update(avg_pixel_error.item())
 
 
                     if phase == 'train':
@@ -410,7 +412,7 @@ def train_dense_descriptors(config,
                             phase, epoch, config['train']['n_epoch'], i, data_n_batches[phase],
                             get_lr(optimizer))
 
-                        log += ', pixel_error: %.1f' % (avg_pixel_error.item())
+                        # log += ', pixel_error: %.1f' % (avg_pixel_error.item())
                         # log += ', meter_avg_pixel_error: %.6f' % (meter_loss['best_match_pixel_error'].avg)
                         log += ', spatial_pixel_error: %.1f' % (spatial_expectation_pixel_error.item())
                         log += ', spatial_expectation_loss: %.1f' %(spatial_expectation_loss.item())
@@ -467,8 +469,8 @@ def train_dense_descriptors(config,
                 if phase == 'valid':
 
                     # scheduler.step(meter_loss['heatmap_loss'].avg)
-                    if meter_loss['best_match_pixel_error'].avg < best_valid_pixel_error:
-                        best_valid_pixel_error = meter_loss['best_match_pixel_error'].avg
+                    if meter_loss['spatial_correspondence_pixel_error'].avg < best_valid_pixel_error:
+                        best_valid_pixel_error = meter_loss['spatial_correspondence_pixel_error'].avg
                         save_model(model, '%s/net_best_dy' % (train_dir))
 
                 writer.flush() # flush SummaryWriter events to disk

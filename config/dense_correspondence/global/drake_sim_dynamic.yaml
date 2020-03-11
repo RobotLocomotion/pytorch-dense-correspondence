@@ -9,7 +9,7 @@ train:
   num_workers: 12
   train_valid_ratio: 0.9
   log_per_iter: 10
-  ckp_per_iter: 1000
+  ckp_per_iter: 5000
   resume_epoch: -1
   resume_iter: -1
 

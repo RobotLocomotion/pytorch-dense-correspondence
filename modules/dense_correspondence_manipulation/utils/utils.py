@@ -5,6 +5,8 @@ from __future__ import division
 from builtins import str
 from builtins import object
 from past.utils import old_div
+
+
 import yaml
 import json
 from yaml import CLoader
@@ -16,9 +18,11 @@ import socket
 import getpass
 import fnmatch
 import random
-import torch
 import datetime
+import gc
+
 from PIL import Image
+import torch
 
 
 
@@ -686,6 +690,11 @@ def project_image_to_pointcloud(depth_image_meters, # [W, H] in meters
             'color': color, # [N, 3]
             }
 
+
+def memReport():
+    for obj in gc.get_objects():
+        if torch.is_tensor(obj):
+            print(type(obj), obj.size())
 
 class CameraIntrinsics(object):
     """
