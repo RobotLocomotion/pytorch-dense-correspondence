@@ -464,7 +464,8 @@ def train_dense_descriptors(config,
                         save_model(model, '%s/net_dy_epoch_%d_iter_%d' % (train_dir, epoch, i))
 
 
-                writer.add_scalar("avg_pixel_error/%s" %(phase), meter_loss['best_match_pixel_error'].avg, epoch)
+                # This error'd out
+                # writer.add_scalar("avg_pixel_error/%s" %(phase), meter_loss['best_match_pixel_error'].avg, epoch)
 
                 if phase == 'valid':
 
