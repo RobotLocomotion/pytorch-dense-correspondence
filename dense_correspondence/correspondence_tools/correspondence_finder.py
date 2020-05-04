@@ -925,11 +925,12 @@ def compute_correspondence_data(data_a,  # dict
     image_height = data_a['rgb'].shape[0]
 
     img_size = np.size(data_a['mask'])
-    min_mask_size = 0.01*img_size
+    min_mask_size = 0.005*img_size # you must have 0.5% of the image
 
 
     # skip if not enough pixels in mask
     if (np.sum(data_a['mask']) < min_mask_size) or (np.sum(data_b['mask']) < min_mask_size):
+        print("mask_a %d, mask_b %d, min_size %d" %(np.sum(data_a['mask']), np.sum(data_b['mask']), min_mask_size))
         print("not enough pixels in mask, skipping")
 
         if verbose:
