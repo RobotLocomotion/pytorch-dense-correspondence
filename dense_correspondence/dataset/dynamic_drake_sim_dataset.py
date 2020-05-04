@@ -20,13 +20,14 @@ from dense_correspondence.correspondence_tools.correspondence_finder import comp
 class DynamicDrakeSimDataset(data.Dataset):
     """
     Should be able to consume any EpisodeContainer class
+
+    note: (manuelli) we should rename this to CorrespondenceDataset
     """
 
     def __init__(self,
                  config, # dict
                  episodes, # dict, values of type EpisodeReader
                  phase="train",
-                 epoch_size=None, # optional epoch size
                  ):
 
 
@@ -35,7 +36,6 @@ class DynamicDrakeSimDataset(data.Dataset):
         self._config = config
         self._episodes = episodes
         self._phase = phase
-        self._epoch_size = epoch_size
         self.verbose = False
         self.debug = False
         self.initialize()
@@ -118,7 +118,7 @@ class DynamicDrakeSimDataset(data.Dataset):
 
     def __len__(self):
         if self._epoch_size is not None:
-            return self._epoch_size
+            return min(self._epoch_size, len(self.index))
         else:
             return len(self.index)
 
@@ -154,6 +154,16 @@ class DynamicDrakeSimDataset(data.Dataset):
 
         self._train_index = self.make_index(self._train_episode_names)
         self._valid_index = self.make_index(self._valid_episode_names)
+        self._all_index = self._train_index + self._valid_index
+
+        # setup the epoch size
+        self._epoch_size = None
+        if "epoch_size" in self._config['dataset'] and self._config['dataset']["epoch_size"][self._phase] > 0:
+            print("setting fixed epoch size")
+            self._epoch_size = self._config['dataset']["epoch_size"][self._phase]
+        else:
+            self._epoch_size = len(self.index)
+
 
     def make_index(self,
                    episode_names):
@@ -169,8 +179,12 @@ class DynamicDrakeSimDataset(data.Dataset):
     def index(self):
         if self._phase == "train":
             return self._train_index
-        else:
+        elif self._phase == "valid":
             return self._valid_index
+        elif self._phase == "all":
+            return self._all_index
+        else:
+            raise ValueError
 
     @property
     def episode_names(self):
