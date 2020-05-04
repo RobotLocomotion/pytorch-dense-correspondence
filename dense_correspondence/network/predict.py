@@ -146,6 +146,7 @@ def get_spatial_expectation(des, # [B, N, D] or [N, D]
                             type, # str ['exp', 'softmax']
                             return_heatmap=False,
                             compute_heatmap_values=False,
+                            depth_images=None, # (optional) [B, H, W] or [H, W]
                             ): # [B, N, 2] or [N, 2] in uv ordering
     """
     Computes the spatial expectation in 2D
@@ -196,7 +197,30 @@ def get_spatial_expectation(des, # [B, N, D] or [N, D]
 
         # [M,]
         heatmap_values = heatmap_no_batch[first_idx, uv_int[:, 1], uv_int[:, 0]]
-        print("heatmap_values.shape", heatmap_values.shape)
+
+
+    pred_3d_z = None
+    if depth_images is not None:
+        if not has_batch_dim:
+            depth_images = depth_images.unsqueeze(0)
+
+        # check sizes,
+        Bd, Hd, Wd = depth_images.shape
+        assert (Bd == B) and (Hd == H) and (Wd == W), "dimension mismatch with depth images"
+
+
+        # [B, 1, H, W]
+        depth_images_no_batch = depth_images.unsqueeze(1)
+        depth_images_no_batch = depth_images_no_batch.expand([B, N, H, W])
+
+        # collapse to [M, H, W]
+        depth_images_no_batch = depth_images_no_batch.reshape([B*N, H, W])
+        pred_3d = get_integral_preds_3d(heatmap_no_batch,
+                                        depth_images_no_batch,
+                                        compute_uv=False,
+                                        verbose=False
+                                        )
+        pred_3d_z = pred_3d['z']
 
     # reshape to original dimensions
     if has_batch_dim:
@@ -205,15 +229,21 @@ def get_spatial_expectation(des, # [B, N, D] or [N, D]
         if heatmap_values is not None:
             heatmap_values = heatmap_values.reshape([B, N])
 
+        if pred_3d_z is not None:
+            pred_3d_z = pred_3d_z.reshape([B, N])
+
     if return_heatmap:
         return {'heatmap': heatmap,
                 'heatmap_no_batch': heatmap_no_batch,
                 'uv': uv,
                 'heatmap_values': heatmap_values,
+                'z': pred_3d_z,
                 }
     else:
         return {'uv': uv,
-                'heatmap_values': heatmap_values}
+                'heatmap_values': heatmap_values,
+                'z': pred_3d_z,
+                }
 
 
 

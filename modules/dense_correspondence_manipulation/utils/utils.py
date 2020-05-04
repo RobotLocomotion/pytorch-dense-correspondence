@@ -67,7 +67,7 @@ def getDenseCorrespondenceSourceDir():
     return os.getenv("DC_SOURCE_DIR")
 
 def get_data_dir():
-    return os.path.join(os.path.dirname(os.getenv("DC_DATA_DIR")),"pdc")
+    return os.path.join(os.getenv("DATA_ROOT"),"pdc")
 
 def getPdcPath():
     """

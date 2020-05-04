@@ -3,12 +3,6 @@ import cv2
 import numpy as np
 from random import randrange
 
-# pdc
-from dense_correspondence_manipulation.utils.utils import set_cuda_visible_devices
-
-GPU_LIST = [0]
-set_cuda_visible_devices(GPU_LIST)
-
 # torch
 import torch
 
@@ -49,6 +43,8 @@ class HeatmapVisualization(object):
                  model,
                  rescale_heatmap_for_vis=False, # peak of heatmap is normalized to be one for visualization
                  visualize_3D=False,
+                 camera_list=None, # (optional) list of cameras you are ok getting images from
+                 verbose=False,
                  ):
         self._dataset = dataset
         self._model = model
@@ -56,6 +52,8 @@ class HeatmapVisualization(object):
         self._rescale_heatmap_for_vis = False
         self._visualize_3D = visualize_3D
         self._meshcat_vis = None # to be populated as necessary
+        self._camera_list = camera_list
+        self._verbose = verbose
 
         if self._visualize_3D:
             self.initialize_meshcat()
@@ -108,7 +106,29 @@ class HeatmapVisualization(object):
         :return:
         :rtype:
         """
-        data = self._dataset[randrange(len(self._dataset))]['data_a']
+        data = None
+        for i in range(100): # try 100 times to get image from camera you want
+            data = self._dataset[randrange(len(self._dataset))]['data_a']
+            if self._camera_list is None:
+                break
+            elif data['camera_name'] in self._camera_list:
+                break
+
+        if data is None:
+            raise ValueError("couldn't get an image from camera you specified")
+
+        return data
+
+    def get_random_image_pair(self):
+        data = None
+        for i in range(100):  # try 100 times to get image from camera you want
+            data = self._dataset[randrange(len(self._dataset))]
+            if self._camera_list is None:
+                break
+
+        if data is None:
+            raise ValueError("couldn't get an image from camera you specified")
+
         return data
 
     def _get_new_images(self):
@@ -119,6 +139,27 @@ class HeatmapVisualization(object):
         """
         self._data_a = self.get_random_image()
         self._data_b = self.get_random_image()
+
+        if self._verbose:
+            def print_image_data(data):
+                print("camera_name:", data['camera_name'])
+                print("episode_name:", data['episode_name'])
+                print("idx:", data['idx'])
+
+            print("\n\n-----------------")
+            print("Source Image Data:")
+            print_image_data(self._data_a)
+
+            print("\nTarget Image Data")
+            print_image_data(self._data_b)
+
+
+        #
+        # alternate version
+        # data = self.get_random_image_pair()
+        # self._data_a = data['data_a']
+        # self._data_b = data['data_b']
+
         self._compute_descriptor_images()
 
     def _swap_images(self):

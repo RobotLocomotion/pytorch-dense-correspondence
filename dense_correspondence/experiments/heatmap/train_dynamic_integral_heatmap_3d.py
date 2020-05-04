@@ -25,15 +25,17 @@ from dense_correspondence.training.train_integral_heatmap_3d import train_dense_
 from dense_correspondence_manipulation.utils import dev_utils
 
 
-
 DATASET_NAME = "real_push_box"
 DATASET_NAME = "real_right_many_shoes_se2"
+DATASET_NAME = "real_right_boot"
 
 multi_episode_dict = None
 if DATASET_NAME == "real_push_box":
     multi_episode_dict = dev_utils.load_push_box_episodes()
 elif DATASET_NAME == "real_right_many_shoes_se2":
     multi_episode_dict = dev_utils.load_shoe_imitation_episodes()
+elif DATASET_NAME == "real_right_boot":
+    multi_episode_dict = dev_utils.load_flip_right_boot_episodes()
 else:
     raise ValueError("unknown dataset type")
 
@@ -44,7 +46,7 @@ OUTPUT_DIR = os.path.join(DATA_ROOT, "dev/experiments/heatmap_dynamic/trained_mo
 print("OUTPUT_DIR", OUTPUT_DIR)
 
 # placeholder for now
-config = dev_utils.load_dataset_config()
+config = dev_utils.load_integral_heatmap_3d_config()
 config['dataset']['name'] = DATASET_NAME
 
 

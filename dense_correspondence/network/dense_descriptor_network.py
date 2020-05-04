@@ -31,6 +31,7 @@ class DenseDescriptorNetwork(nn.Module):
     def __init__(self,
                  model,
                  normalize,
+                 config=None,
                  ):
         nn.Module.__init__(self)
         """
@@ -41,6 +42,7 @@ class DenseDescriptorNetwork(nn.Module):
         """
         self.model = model
         self.normalize = normalize
+        self.config = config
         if self.normalize:
             self.sphere_projection = SphereProjection(p=2, dim=1)
 

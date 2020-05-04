@@ -99,7 +99,7 @@ def train_dense_descriptors(config,
     pretrained = config['network']['pretrained']
     backbone = config['network']['backbone']
     fcn_model = fcn_resnet(backbone, descriptor_dim, pretrained=pretrained)
-    model = DenseDescriptorNetwork(fcn_model, normalize=False)
+    model = DenseDescriptorNetwork(fcn_model, normalize=False, config=config)
 
     # setup optimizer
     params = model.parameters()
@@ -298,7 +298,10 @@ def train_dense_descriptors(config,
                             spatial_expectation_pixel_error = torch.mean(torch.norm(pixel_diff_spatial, dim=1))
                             spatial_expectation_pixel_error_percent = spatial_expectation_pixel_error * 100/image_diagonal_pixels
 
-                            meter_loss['spatial_correspondence_pixel_error'] = spatial_expectation_pixel_error.item()
+                            loss_container['spatial_expectation_pixel_error'] = spatial_expectation_pixel_error
+                            loss_container['spatial_expectation_pixel_error_percent'] = spatial_expectation_pixel_error_percent
+
+                            meter_loss['spatial_correspondence_pixel_error'].update( spatial_expectation_pixel_error.item())
 
                             if COMPUTE_3D_LOSS:
                                 # [B, H, W]
@@ -349,7 +352,7 @@ def train_dense_descriptors(config,
 
                                 # this is leading to out of memory error . . .
                                 depth_loss_3d = l1_loss(depth_pred_b/constants.DEPTH_IM_SCALE, depth_gt_valid_b/constants.DEPTH_IM_SCALE)
-                                loss_container['depth'] = l1_loss(depth_pred_b/constants.DEPTH_IM_SCALE, depth_gt_valid_b/constants.DEPTH_IM_SCALE)
+                                loss_container['depth'] = depth_loss_3d
 
 
 
@@ -366,6 +369,8 @@ def train_dense_descriptors(config,
                         if config['loss_function']['depth_3d']['enabled'] and (depth_loss_3d is not None):
                             weight = config['loss_function']['depth_3d']['weight']
                             loss += weight * depth_loss_3d
+
+                        loss_container['loss'] = loss
 
 
                         if COMPUTE_PIXEL_MATCH_ERROR:
