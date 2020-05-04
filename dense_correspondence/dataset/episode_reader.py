@@ -11,6 +11,11 @@ class EpisodeReader(abc.ABC):
 
     @property
     def length(self):
+        """
+        Note: I don't think we actually need this method, make_index sort of plays this role
+        :return:
+        :rtype:
+        """
         raise NotImplementedError
 
     @property
@@ -52,7 +57,6 @@ class EpisodeReader(abc.ABC):
         depth value exists. It should not be used in any computations.
         """
         return
-        # raise NotImplementedError
 
     @abc.abstractmethod
     def get_image_data(self,
@@ -70,6 +74,7 @@ class EpisodeReader(abc.ABC):
                 'K': K,
                 'T_world_camera': T_W_C,
                 'episode_name': episode_name,
+                'camera_name': camera_name,
                 'idx': idx
                 }
 
@@ -99,6 +104,25 @@ class EpisodeReader(abc.ABC):
                  }
 
         :return: list[dict]
+        :rtype:
+        """
+        raise NotImplementedError
+
+    def make_single_image_index(self,
+                                episode_name=None,  # name to give this episode
+                                camera_names=None,  # (optional) list[str]
+                                ):
+        """
+        Makes index to iterate through all the images.
+        A single entry in the list is a dict of the form
+
+        entry = {'episode_name': episode_name,
+                 'idx': idx,
+                 'camera_name': camera_name,
+                 }
+        :param episode_name:
+        :type episode_name:
+        :return:
         :rtype:
         """
         raise NotImplementedError
