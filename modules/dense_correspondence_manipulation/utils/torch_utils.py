@@ -95,6 +95,24 @@ def pinhole_projection(pts, # [B, N, 3] pts in camera frame
 
     return uv.transpose(1,2)
 
+def transform_points_3D(T, # [B, 4, 4]
+                        pts, # [B, N, 3]
+                        ): # [B, N, 3]
+
+    B, N, _ = pts.shape
+
+    # [B, N, 4]
+    pts_homog = torch.cat((pts, torch.ones([B,N,1], dtype=pts.dtype)), dim=-1)
+
+    # we are multiplying two tensors with [B, 4, 4] x [B, 4, N]
+    # [B, 4, N]
+    pts_T_homog = torch.matmul(T.type_as(pts), pts_homog.transpose(1,2))
+    pts_T = pts_T_homog.transpose(1,2)[:, :, :3]
+
+    return pts_T
+
+
+
 
 
 
