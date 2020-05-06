@@ -43,21 +43,57 @@ def random_sample_from_masked_image_torch(img_mask, num_samples, without_replace
     return uv_tensor
 
 
-def pinhole_unprojection(p,  # [B, N, 3] 3D points in camera frame (meters)
-                         K,  # [B, 3, 3] # camera matrix
-                         ): # [N, 2] uv pixels
-    """
-    Project points from camera frame to pixel space
-    """
-    raise NotImplementedError
 
-def pinhole_projection(uv, # [B, N, 2] uv pixel coordinates
-                       z, # [B, N] depth values (meters)
+def pinhole_unprojection(uv,  # [B, N, 2] uv pixel coordinates
+                         z,  # [B, N] depth values (meters) (all valid
+                         K_inv,  # [B, 3, 3] camera matrix inverse
+                         ): # [B, N, 3] pts in camera frame
+    """
+    Projects points from pixels (uv) and depth (z) to 3D space in camera frame
+
+    Test by visualizing in simple_dataset_test_episode_reader.ipynb script
+    """
+    # print("uv.shape", uv.shape)
+    # print("z.shape", z.shape)
+
+    # [B, 2, N]
+    uv_tmp = uv.transpose(1,2).type_as(z) * z.unsqueeze(1)
+
+    # print("uv_tmp.shape", uv_tmp.shape)
+
+    # [B, 3, N]
+    uv_s = torch.cat((uv_tmp, z.unsqueeze(1)), axis=1)
+
+
+    # print("uv_s.shape", uv_s.shape)
+    # print("K_inv.shape", K_inv.shape)
+
+    # [B, 3, N]
+    pts = torch.matmul(K_inv.type_as(uv_s), uv_s)
+
+    return pts.transpose(1,2) # return [B, N, 3]
+
+
+def pinhole_projection(pts, # [B, N, 3] pts in camera frame
                        K, # [B, 3, 3] camera matrix
-                       ):
-    raise NotImplementedError
+                       ): # [B, N, 2] uv coordinates in camera frame
+    """
+    Projects points from camera frame into pixel space
 
 
+    Test by visualizing in simple_dataset_test_episode_reader.ipynb script
+    """
+
+    # [B, N]
+    z = pts.select(dim=-1, index=2)
+
+    # [B, 3, N]
+    uv_s = torch.matmul(K.type_as(pts), pts.transpose(1,2))
+
+    # [B, 2, N]
+    uv = uv_s[:, :2] / z.unsqueeze(1)
+
+    return uv.transpose(1,2)
 
 
 

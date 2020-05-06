@@ -42,9 +42,10 @@ def visualize_points(vis,
     if color is not None:
         N, _ = pts.shape
         color = 1.0 * np.ones([N, 3]) * np.array(color)
+        color = color.transpose()
 
     geom = g.Points(
-        g.PointsGeometry(pts.transpose(), color=color.transpose()),
+        g.PointsGeometry(pts.transpose(), color=color),
         g.PointsMaterial(size=size)
     )
 
