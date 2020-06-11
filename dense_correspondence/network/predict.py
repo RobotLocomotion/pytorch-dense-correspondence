@@ -1,11 +1,17 @@
 import torch
 
 import dense_correspondence_manipulation.utils.utils as pdc_utils
+from dense_correspondence_manipulation.utils import torch_utils
 from dense_correspondence.loss_functions.utils import compute_heatmap_from_descriptors
+
 
 def get_integral_preds_2d(heatmaps, # [N, H, W]
                           verbose=False,
                           ): # [N, 2] uv coordinates ordering
+
+    """
+    Don't use this directly, use the `get_spatial_expectation` function
+    """
 
     device = heatmaps.device
     N, H, W = heatmaps.shape
@@ -71,6 +77,7 @@ def get_integral_preds_3d(heatmaps, # [N, H, W]
 
 
     pred = None
+    xy = None
     if compute_uv:
         # [N,H,W,2]
         heatmaps_norm = (heatmaps/(heatmaps_sum + 1e-8)).unsqueeze(-1).expand(*[-1,-1,-1, 2])
@@ -94,6 +101,8 @@ def get_integral_preds_3d(heatmaps, # [N, H, W]
         # u,v tensor
         pred = torch.sum((heatmaps_norm * uv_grid), dim=[1,2])
 
+        xy = torch_utils.uv_to_xy(pred, H=H, W=W)
+
     # only use valid depth values (i.e. those that are > 0)
     # renormalize the heatmap to sum to one over those value
     # [N, H, W], dtype=bool
@@ -107,6 +116,7 @@ def get_integral_preds_3d(heatmaps, # [N, H, W]
     z_pred = (depth_valid_mask.float() * heatmaps * depth_images).sum(dim=[1,2]) / (heatmaps_valid_norm + 1e-8)
 
     return {'uv': pred,
+            'xy': xy,
             'z': z_pred}
 
 
@@ -184,6 +194,7 @@ def get_spatial_expectation(des, # [B, N, D] or [N, D]
 
     # [M, 2]
     uv = get_integral_preds_2d(heatmap_no_batch)
+    xy = torch_utils.uv_to_xy(uv, H=H, W=W)
     M, _ = uv.shape
 
     # index into the batch image tensor
@@ -225,6 +236,7 @@ def get_spatial_expectation(des, # [B, N, D] or [N, D]
     # reshape to original dimensions
     if has_batch_dim:
         uv = uv.reshape([B, N, 2])
+        xy = xy.reshape([B, N, 2])
 
         if heatmap_values is not None:
             heatmap_values = heatmap_values.reshape([B, N])
@@ -236,11 +248,13 @@ def get_spatial_expectation(des, # [B, N, D] or [N, D]
         return {'heatmap': heatmap,
                 'heatmap_no_batch': heatmap_no_batch,
                 'uv': uv,
+                'xy': xy,
                 'heatmap_values': heatmap_values,
                 'z': pred_3d_z,
                 }
     else:
         return {'uv': uv,
+                'xy': xy,
                 'heatmap_values': heatmap_values,
                 'z': pred_3d_z,
                 }

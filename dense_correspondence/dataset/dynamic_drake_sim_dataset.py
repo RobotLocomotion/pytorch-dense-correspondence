@@ -15,6 +15,7 @@ from dense_correspondence_manipulation.utils import torch_utils
 import dense_correspondence_manipulation.utils.constants as constants
 from dense_correspondence.dataset.utils import make_dynamic_episode_index
 from dense_correspondence.correspondence_tools.correspondence_finder import compute_correspondence_data
+from dense_correspondence.dataset.image_augmentation import ImageAugmentation
 
 
 class DynamicDrakeSimDataset(data.Dataset):
@@ -38,6 +39,13 @@ class DynamicDrakeSimDataset(data.Dataset):
         self._phase = phase
         self.verbose = False
         self.debug = False
+
+
+
+        self._data_augmentation_enabled = self.config['dataset']['data_augmentation'] and (self._phase == "train")
+        self._data_augmenter = ImageAugmentation(enabled=self._data_augmentation_enabled)
+        self._data_augmenter.make_default()
+
         self.initialize()
 
     def _getitem(self,
@@ -56,8 +64,11 @@ class DynamicDrakeSimDataset(data.Dataset):
         if idx_b is None:
             idx_b = idx
 
+
         data_a = episode.get_image_data(camera_name_a, idx_a)
         data_b = episode.get_image_data(camera_name_b, idx_b)
+
+
 
         # if it failed this will be None
         c = self._config['dataset']
@@ -72,6 +83,12 @@ class DynamicDrakeSimDataset(data.Dataset):
                                         device='CPU',
                                         verbose=self.verbose,
                                         )
+
+
+
+
+        self._data_augmenter.augment_image(data_a)
+        self._data_augmenter.augment_image(data_b)
 
         # add rgb_tensor to data_a/data_b
         data_a['rgb_tensor'] = self.rgb_to_tensor_transform(data_a['rgb'])
@@ -169,9 +186,14 @@ class DynamicDrakeSimDataset(data.Dataset):
                    episode_names):
         index = []
 
+        camera_names = None
+        if 'camera_names' in self.config['dataset'] and len(self.config['dataset']['camera_names']) > 0:
+            camera_names = self.config['dataset']['camera_names']
+
+
         for name in episode_names:
             episode = self._episodes[name]
-            index.extend(episode.make_index(episode_name=name))
+            index.extend(episode.make_index(episode_name=name, camera_names=camera_names))
 
         return index
 

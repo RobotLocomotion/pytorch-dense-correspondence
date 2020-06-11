@@ -65,7 +65,6 @@ def load_rgb_image_from_file(filename):
     rgb_numpy = np.array(rgb_PIL)
     return rgb_PIL, rgb_numpy
 
-
 def load_depth_int16_from_file(filename):
     depth_PIL = Image.open(filename) # should have int16 dtype
     depth_np = np.array(depth_PIL)

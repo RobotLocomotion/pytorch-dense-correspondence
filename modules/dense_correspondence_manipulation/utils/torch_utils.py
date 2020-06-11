@@ -1,3 +1,4 @@
+import os
 from torchvision import transforms
 import torch
 import numpy as np
@@ -112,6 +113,33 @@ def transform_points_3D(T, # [B, 4, 4]
     return pts_T
 
 
+def uv_to_xy(uv, # torch.Tensor [M, 2] or [B, N, 2], trailing dimension is 2
+             H, # image height
+             W, # image width
+             ): # torch Tensor with same shape as uv
+
+    """
+    Converts uv image coordinate to xy image coordinates.
+
+    uv in [0, W] x [0, H]
+    xy in [-1,1] x [-1,1]
+
+    See https://docs.opencv.org/2.4/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html
+    """
+
+    # x = 2.0*u/W  - 1
+    x = uv.select(-1, 0)*2.0/W - 1.0
+    y = uv.select(-1, 1)*2.0/H - 1.0
+    xy = torch.stack((x,y), dim=-1)
+    return xy
+
+
+
+def get_freer_gpu():
+    filename = "/tmp/gpu_stats.txt"
+    os.system('nvidia-smi -q -d Memory |grep -A4 GPU|grep Free > %s' %(filename))
+    memory_available = [int(x.split()[2]) for x in open(filename, 'r').readlines()]
+    return np.argmax(memory_available)
 
 
 

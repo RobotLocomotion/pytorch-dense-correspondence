@@ -91,6 +91,7 @@ class EpisodeReader(abc.ABC):
 
     def make_index(self,
                    episode_name=None,
+                   camera_names=None, # (optional) list[str]
                    ):
         """
         Makes the index for training, will be a list of dicts.

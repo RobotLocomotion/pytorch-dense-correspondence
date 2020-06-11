@@ -190,7 +190,9 @@ class SpartanEpisodeReader(EpisodeReader):
         return W, H
 
     def make_index(self,
-                   episode_name=None):
+                   episode_name=None,
+                   camera_names=None, #list[str]
+                   ):
         """
         Makes the index for training, will be a list of dicts.
         A single entry is of the form. Wh
@@ -208,12 +210,24 @@ class SpartanEpisodeReader(EpisodeReader):
         if episode_name is None:
             episode_name = self._name
 
+
         index = []
+
+        if camera_names is None:
+            camera_names = [self.camera_names]
+        else:
+            camera_names = list(set(camera_names) & set(self.camera_names))
+
+        if len(camera_names) == 0:
+            return []
+
+        camera_name = camera_names[0]
+
         for idx_a in self.indices:
             for idx_b in self.indices:
                 data = {'episode_name': episode_name,
-                        'camera_name_a': self._camera_name,
-                        'camera_name_b': self._camera_name,
+                        'camera_name_a': camera_name,
+                        'camera_name_b': camera_name,
                         'idx_a': idx_a,
                         'idx_b': idx_b}
                 index.append(data)

@@ -258,7 +258,9 @@ class DynamicSpartanEpisodeReader(EpisodeReader):
         return W, H
 
     def make_index(self,
-                   episode_name=None):
+                   episode_name=None,
+                   camera_names=None, # (optional) list[str]
+                   ):
         """
         Makes the index for training, will be a list of dicts.
         A single entry is of the form. Wh
@@ -279,7 +281,11 @@ class DynamicSpartanEpisodeReader(EpisodeReader):
         keys = list(self._episode_data.keys())
 
         index = []
-        camera_names = self.camera_names
+
+        if camera_names is None:
+            camera_names = self.camera_names
+        else:
+            camera_names = list(set(camera_names) & set(self.camera_names))
 
         for key in keys:
             for camera_name_a, camera_name_b in itertools.product(camera_names, camera_names):

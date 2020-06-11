@@ -3,6 +3,7 @@ import numpy as np
 # meshcat
 import meshcat
 import meshcat.geometry as g
+from meshcat.geometry import Geometry
 import meshcat.transformations as tf
 
 
@@ -53,3 +54,4 @@ def visualize_points(vis,
 
     if T is not None:
         vis[name].set_transform(T)
+

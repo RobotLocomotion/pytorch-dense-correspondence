@@ -195,6 +195,7 @@ def train_dense_descriptors(config,
                         rgb_tensor_a = data['data_a']['rgb_tensor'].to(device)
                         rgb_tensor_b = data['data_b']['rgb_tensor'].to(device)
 
+
                         B, _, H, W = rgb_tensor_a.shape
 
                         # compute sigma for heatmap loss
@@ -477,7 +478,7 @@ def train_dense_descriptors(config,
                     # scheduler.step(meter_loss['heatmap_loss'].avg)
                     if meter_loss['spatial_correspondence_pixel_error'].avg < best_valid_pixel_error:
                         best_valid_pixel_error = meter_loss['spatial_correspondence_pixel_error'].avg
-                        save_model(model, '%s/net_best_dy' % (train_dir))
+                        save_model(model, '%s/net_best' % (train_dir))
 
                 writer.flush() # flush SummaryWriter events to disk
 

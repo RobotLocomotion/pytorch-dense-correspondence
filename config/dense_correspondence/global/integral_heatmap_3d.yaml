@@ -6,7 +6,7 @@ train:
   lr_scheduler_factor: 0.9
   adam_beta1: 0.9
   batch_size: 2
-  num_workers: 12
+  num_workers: 20
   train_valid_ratio: 0.9
   log_per_iter: 10
   ckp_per_iter: 5000
@@ -22,6 +22,8 @@ dataset:
   epoch_size:
     train: 10000 # set it to -1 if you don't want it
     valid: 1000
+  camera_names: [] # empty list
+  data_augmentation: False
 
 network:
   descriptor_dimension: 3

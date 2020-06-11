@@ -8,19 +8,7 @@ import cv2
 # torch
 import torch
 
-
-
-
-# pdc
-from dense_correspondence.dataset.dynamic_drake_sim_dataset import DynamicDrakeSimDataset
-from dense_correspondence.correspondence_tools.correspondence_finder import reproject_pixels
-from dense_correspondence.correspondence_tools import correspondence_plotter
-from dense_correspondence.correspondence_tools.correspondence_finder import compute_correspondence_data, pad_correspondence_data
-from dense_correspondence_manipulation.utils.utils import getDenseCorrespondenceSourceDir, getDictFromYamlFilename
-
-
 import dense_correspondence_manipulation.utils.utils as pdc_utils
-from dense_correspondence.dataset.dynamic_spartan_episode_reader import DynamicSpartanEpisodeReader
 from dense_correspondence.training.train_integral_heatmap_3d import train_dense_descriptors
 from dense_correspondence_manipulation.utils import dev_utils
 
@@ -28,6 +16,7 @@ from dense_correspondence_manipulation.utils import dev_utils
 DATASET_NAME = "real_push_box"
 DATASET_NAME = "real_right_many_shoes_se2"
 DATASET_NAME = "real_right_boot"
+DATASET_NAME = "hat_on_rack"
 
 multi_episode_dict = None
 if DATASET_NAME == "real_push_box":
@@ -36,6 +25,8 @@ elif DATASET_NAME == "real_right_many_shoes_se2":
     multi_episode_dict = dev_utils.load_shoe_imitation_episodes()
 elif DATASET_NAME == "real_right_boot":
     multi_episode_dict = dev_utils.load_flip_right_boot_episodes()
+elif DATASET_NAME == "hat_on_rack":
+    multi_episode_dict = dev_utils.load_hat_imitation_episodes()
 else:
     raise ValueError("unknown dataset type")
 

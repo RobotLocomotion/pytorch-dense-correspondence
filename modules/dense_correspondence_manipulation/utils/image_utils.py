@@ -18,3 +18,5 @@ def pil_image_to_cv2(pil_image):
     rgb_image = np.array(pil_image).copy()
     bgr_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2BGR)
     return bgr_image
+
+

@@ -66,6 +66,14 @@ def load_flip_right_boot_episodes():
 
 
 def load_hat_imitation_episodes():
+    episodes_root = os.path.join(os.getenv("DATA_ROOT"), "pdc/imitation/logs/hang_hat")
+    episode_list_config = getDictFromYamlFilename(os.path.join(getDenseCorrespondenceSourceDir(),
+                                                               'config/dense_correspondence/dataset/dynamic/hat_on_rack.yaml'))
+
+    multi_episode_dict = DynamicSpartanEpisodeReader.load_dataset(episode_list_config,
+                                                                  episodes_root)
+
+    return multi_episode_dict
     pass
 
 
@@ -78,5 +86,27 @@ def get_push_box_model_file():
 
 def get_real_right_shoes_dynamic_model_file():
     model_file = os.path.join(get_data_dir(), "dev/experiments/heatmap_dynamic/trained_models/2020-03-11-15-15-50_3D_loss_resnet50__dataset_real_right_many_shoes_se2/net_dy_epoch_0_iter_25000_model.pth")
+
+    model_name = "2020-03-11-15-15-50_3D_loss_resnet50__dataset_real_right_many_shoes_se2"
+
+    return model_file
+
+
+def get_flip_boot_dynamic_model_file():
+    model_name = "2020-03-20-02-00-56_3D_loss_resnet50__dataset_real_right_boot"
+
+    model_file = os.path.join(get_data_dir(),
+                              "dev/experiments/heatmap_dynamic/trained_models",
+                 model_name, "net_best_dy_model.pth")
+
+    return model_file
+
+
+def get_hat_on_rack_model_file():
+    model_name = "2020-05-12-22-46-36_3D_loss_resnet50__dataset_hat_on_rack"
+
+    model_file = os.path.join(get_data_dir(),
+                              "dev/experiments/heatmap_dynamic/trained_models",
+                              model_name, "net_best_dy_model.pth")
 
     return model_file
