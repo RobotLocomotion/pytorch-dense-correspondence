@@ -145,6 +145,7 @@ class EpisodeReader(abc.ABC):
                       camera_name,
                       idx,
                       type):
+
         key = "/".join([camera_name, str(idx), type])
         return key
 

@@ -19,6 +19,7 @@ dataset:
   N_masked_non_matches: 150
   N_background_non_matches: 100
   normalization: "ImageNet" # ["ImageNet", "DON"]
+  data_augmentation: False
 
 network:
   descriptor_dimension: 3

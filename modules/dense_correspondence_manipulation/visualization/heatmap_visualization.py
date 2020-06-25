@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 from random import randrange
 import random
-
+from PIL import Image
 # torch
 import torch
 
@@ -48,6 +48,8 @@ class HeatmapVisualization(object):
                  verbose=False,
                  target_camera_names=None,
                  sample_same_episode=False,
+                 display_confidence_value=True,
+                 use_custom_target_image_func=False,
                  ):
         self._dataset = dataset
         self._model = model
@@ -59,6 +61,12 @@ class HeatmapVisualization(object):
         self._verbose = verbose
         self._target_camera_names = target_camera_names
         self._sample_same_episode = sample_same_episode
+        self._display_confidence_value = display_confidence_value
+        self._use_custom_target_image_func = use_custom_target_image_func
+
+
+        self._image_save_dict = dict()
+
 
         if self._visualize_3D:
             self.initialize_meshcat()
@@ -145,6 +153,7 @@ class HeatmapVisualization(object):
         :rtype:
         """
         data = self.get_random_image()
+        # print("data.keys()", data.keys())
 
         if self._sample_same_episode:
             data = self._data_a
@@ -159,9 +168,9 @@ class HeatmapVisualization(object):
             idx = random.randint(0, episode.length-1)
             # idx = data['idx']
 
-        print("idx_a", data['idx'])
-        print("episode.length", episode.length)
-        print("idx_b", idx)
+        # print("idx_a", data['idx'])
+        # print("episode.length", episode.length)
+        # print("idx_b", idx)
 
         camera_names = None
         if self._target_camera_names is not None:
@@ -176,20 +185,12 @@ class HeatmapVisualization(object):
             self._target_data.append(data)
 
 
-        # self._target_data = []
-        # if self._target_camera_names is None:
-        #     self._target_data.append(data)
-        # else:
-        #
-        #     episode_name = data['episode_name']
-        #     camera_name_b = data['camera_name']
-        #     idx = data['idx']
-        #
-        #
-        #     for i, camera_name in enumerate(self._target_camera_names):
-        #         data = episode.get_image_data(camera_name, idx)
-        #         data['rgb_tensor'] = self._dataset._rgb_image_to_tensor(data['rgb'])
-        #         self._target_data.append(data)
+    def _get_multiple_different_target_images(self, num_images=2):
+        self._target_data = []
+        for i in range(num_images):
+            data = self.get_random_image()
+            data['rgb_tensor'] = self._dataset._rgb_image_to_tensor(data['rgb'])
+            self._target_data.append(data)
 
 
 
@@ -201,7 +202,12 @@ class HeatmapVisualization(object):
         """
         self._data_a = self.get_random_image()
         # self._data_b = self._get_new_target_images()
-        self._get_new_target_images()
+
+        if self._use_custom_target_image_func:
+            self._get_multiple_different_target_images()
+        else:
+            self._get_new_target_images()
+
 
         if self._verbose:
             def print_image_data(data):
@@ -215,13 +221,6 @@ class HeatmapVisualization(object):
 
             # print("\nTarget Image Data")
             # print_image_data(self._data_b)
-
-
-        #
-        # alternate version
-        # data = self.get_random_image_pair()
-        # self._data_a = data['data_a']
-        # self._data_b = data['data_b']
 
         self._compute_descriptor_images()
 
@@ -289,6 +288,8 @@ class HeatmapVisualization(object):
         vis_utils.draw_reticle(img_1_with_reticle, u, v, [0, 255, 0])
         cv2.imshow("source", img_1_with_reticle)
 
+        self._image_save_dict['source'] = img_1_with_reticle
+
         # Get descriptor a
         # print("source_data['descriptor_image'].shape", source_data['descriptor_image'].shape)
         des_a = pdc_utils.index_into_batch_image_tensor(
@@ -331,9 +332,13 @@ class HeatmapVisualization(object):
         thickness = 2 # pixels
 
         # text = "%.2f" %(descriptor_distance)
-        text = "%.2f" %(heatmap_value)
-        cv2.putText(img_2_with_reticle, text, org, font, fontScale, color, thickness)
+        if self._display_confidence_value:
+            text = "%.2f" %(heatmap_value)
+            cv2.putText(img_2_with_reticle, text, org, font, fontScale, color, thickness)
         cv2.imshow("target_" + img_suffix, img_2_with_reticle)
+
+        key = "target_" + img_suffix
+        self._image_save_dict[key] = img_2_with_reticle
 
 
         # show heatmap
@@ -344,8 +349,13 @@ class HeatmapVisualization(object):
         heatmap_blend_wr = np.copy(heatmap_blend)
         vis_utils.draw_reticle(
             heatmap_blend_wr, uv_spatial_pred[0], uv_spatial_pred[1], [0, 255, 0])
-        cv2.putText(heatmap_blend_wr, text, org, font, fontScale, color, thickness)
+
+        if self._display_confidence_value:
+            cv2.putText(heatmap_blend_wr, text, org, font, fontScale, color, thickness)
         cv2.imshow("heatmap_" + img_suffix, heatmap_blend_wr)
+
+        key = "heatmap_" + img_suffix
+        self._image_save_dict[key] = heatmap_blend_wr
 
 
         if self._visualize_3D:
@@ -400,117 +410,28 @@ class HeatmapVisualization(object):
         if self._paused:
             return
 
+        self._image_save_dict = dict()
 
         for i, data in enumerate(self._target_data):
             self.find_best_match(u, v, self._data_a, data, img_suffix=str(i))
 
-        # # [2,1] = [2, N] with N = 1
-        # uv = torch.ones([2, 1], dtype=torch.int64, device=self._device)
-        # uv[0, 0] = u
-        # uv[1, 0] = v
-        #
-        # # Show img a
-        # img_1_with_reticle = cv2.cvtColor(self._rgb_a, cv2.COLOR_RGB2BGR)
-        # vis_utils.draw_reticle(img_1_with_reticle, u, v, [0, 255, 0])
-        # cv2.imshow("source", img_1_with_reticle)
-        #
-        # # Get descriptor a
-        # des_a = pdc_utils.index_into_batch_image_tensor(
-        #     self._des_img_a, uv.unsqueeze(0)).permute([0, 2, 1])
-        #
-        # # spatial expectation
-        # spatial_pred = predict.get_spatial_expectation(des_a,
-        #                                                self._des_img_b,
-        #                                                sigma=self._config['network']['sigma_descriptor_heatmap'],
-        #                                                type='exp', return_heatmap=True)
-        #
-        # # [H, W]
-        # heatmap = spatial_pred['heatmap_no_batch'].squeeze()
-        #
-        # # [2,]
-        # uv_spatial_pred = spatial_pred['uv'].squeeze()
-        #
-        #
-        # uv_spatial_pred = uv_spatial_pred.squeeze()
-        # des_b = self._des_img_b[0,:, int(uv_spatial_pred[1]), int(uv_spatial_pred[0])]
-        # heatmap_value = heatmap[int(uv_spatial_pred[1]), int(uv_spatial_pred[0])]
-        #
-        # # distance in descriptor space
-        # descriptor_distance = torch.norm(des_a - des_b).item()
-        #
-        #
-        # # Find match.
-        #
-        # # Show img b
-        # H, W = heatmap.shape
-        # img_2_with_reticle = cv2.cvtColor(self._rgb_b, cv2.COLOR_RGB2BGR)
-        # vis_utils.draw_reticle(
-        #     img_2_with_reticle, uv_spatial_pred[0], uv_spatial_pred[1], [0, 255, 0])
-        #
-        # # print descriptor distance in bottom left of image
-        # org = (int(0.05*W), int(0.95*H))
-        # font = cv2.FONT_HERSHEY_SIMPLEX
-        # fontScale = 1
-        # color = (255, 255, 255) # white
-        # thickness = 2 # pixels
-        #
-        # # text = "%.2f" %(descriptor_distance)
-        # text = "%.2f" %(heatmap_value)
-        # cv2.putText(img_2_with_reticle, text, org, font, fontScale, color, thickness)
-        # cv2.imshow("target", img_2_with_reticle)
-        #
-        #
-        # # show heatmap
-        # heatmap_k = heatmap.detach().cpu().numpy()  # [H, W]
-        # heatmap_rgb = vis_utils.colormap_from_heatmap(heatmap_k, normalize=self._rescale_heatmap_for_vis)
-        # heatmap_blend = (heatmap_rgb * 0.6 + self._rgb_b * 0.4).astype(np.uint8)  # blend
-        # heatmap_blend = cv2.cvtColor(heatmap_blend, cv2.COLOR_RGB2BGR)
-        # heatmap_blend_wr = np.copy(heatmap_blend)
-        # vis_utils.draw_reticle(
-        #     heatmap_blend_wr, uv_spatial_pred[0], uv_spatial_pred[1], [0, 255, 0])
-        # cv2.putText(heatmap_blend_wr, text, org, font, fontScale, color, thickness)
-        # cv2.imshow("heatmap", heatmap_blend_wr)
-        #
-        #
-        # if self._visualize_3D:
-        #
-        #     # do 3D prediction
-        #     # this depth image is already in meters . . .
-        #     depth_img_b = self._data_b['depth_int16'] / constants.DEPTH_IM_SCALE
-        #
-        #     # [1, H, W], N = 1
-        #     depth_img_b = torch.Tensor(depth_img_b).to(self._device).unsqueeze(0)
-        #
-        #     spatial_pred_3D = predict.get_integral_preds_3d(heatmap.unsqueeze(0),
-        #                                                     depth_img_b,
-        #                                                     compute_uv=False)
-        #
-        #     # Predicted uv_b
-        #     # [1, 2]
-        #     uv_spatial_pred_np = uv_spatial_pred.unsqueeze(0).cpu().numpy()
-        #     depth_pred = spatial_pred_3D['z'].cpu().numpy()
-        #     pts_pred = pdc_utils.pinhole_unprojection(uv_spatial_pred_np, depth_pred, self._data_b['K'])
-        #
-        #
-        #     # clear visualizer
-        #     self._meshcat_vis.delete()
-        #     meshcat_utils.visualize_points(self._meshcat_vis, 'spatial_prediction', pts_pred, color=[1, 0, 0], size=0.01, T=self._data_b['T_world_camera'])
-        #     #
-        #     #
-        #     # # visualize pointclouds from data_a, data_b
-        #     # meshcat_utils.visualize_pointcloud(self._meshcat_vis, 'pointcloud_a', self._data_a['depth_int16']/constants.DEPTH_IM_SCALE, K=self._data_a['K'], rgb=self._data_a['rgb'], T_world_camera=self._data_a['T_world_camera'])
-        #     #
-        #     # meshcat_utils.visualize_pointcloud(self._meshcat_vis, 'pointcloud_b',
-        #     #                                    self._data_b['depth_int16'] / constants.DEPTH_IM_SCALE,
-        #     #                                    K=self._data_b['K'], rgb=self._data_b['rgb'],
-        #     #                                    T_world_camera=self._data_b['T_world_camera'])
-        #
-        #     # visualize heatmap pointcloud
-        #     heatmap_blend_rgb = (heatmap_rgb * 0.6 + self._rgb_b * 0.4).astype(np.uint8)
-        #     meshcat_utils.visualize_pointcloud(self._meshcat_vis, 'heatmap',
-        #                                        self._data_b['depth_int16'] / constants.DEPTH_IM_SCALE,
-        #                                        K=self._data_b['K'], rgb=heatmap_blend_rgb,
-        #                                        T_world_camera=self._data_b['T_world_camera'])
+    def _save_images(self):
+        output_dir = os.path.join(getDenseCorrespondenceSourceDir(),
+                                  'sandbox/heatmap_visualization',
+                                  pdc_utils.get_current_YYYY_MM_DD_hh_mm_ss(),
+                                  )
+
+
+        if not os.path.isdir(output_dir):
+            os.makedirs(output_dir)
+
+
+        print("\n\nsaving images to: ", output_dir)
+        for key, img in self._image_save_dict.items():
+            filename = os.path.join(output_dir, "%s.png" %(key))
+            cv2.imwrite(filename, img) # it's already in BGR format
+            # img_PIL = Image.fromarray(img)
+            # img_PIL.save(filename)
 
     def run(self):
         self._get_new_images()
@@ -542,6 +463,14 @@ class HeatmapVisualization(object):
             elif k == ord('b'):
                 self._data_b = self.get_random_image()
                 self._compute_descriptor_images()
+            elif k == ord('t'): # get new target image
+                if self._use_custom_target_image_func:
+                    self._get_multiple_different_target_images()
+                else:
+                    self._get_new_target_images()
+                self._compute_descriptor_images()
+            elif k == ord('f'):
+                self._save_images()
             elif k == ord('p'):
                 if self._paused:
                     print("un pausing")

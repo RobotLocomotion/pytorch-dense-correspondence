@@ -64,14 +64,23 @@ def draw_reticle(img, u, v, label_color):
 def draw_reticles(img,
                   u_vec,
                   v_vec,
-                  label_color,
+                  label_color=None,
+                  label_color_list=None,
                   ):
     # draws multiple reticles
     n = len(u_vec)
     for i in range(n):
         u = u_vec[i]
         v = v_vec[i]
-        draw_reticle(img, u, v, label_color)
+
+        color = None
+        if label_color is not None:
+            color = label_color
+        else:
+            color = label_color_list[i]
+
+        draw_reticle(img, u, v, color)
+
 
 def colormap_from_heatmap(h, # numpy array [H, W]
                           normalize=False, # whether or not to normalize to [0,1]

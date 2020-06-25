@@ -19,20 +19,22 @@ class DynamicSpartanEpisodeReader(EpisodeReader):
     """
 
     def __init__(self,
-                 config,
+                 config, # what does this do . . . .
                  root_dir,  # str: fullpath to 'processed' dir
                  name="",  # str
                  metadata=None,  # dict: optional metadata, e.g. object type etc.
-                 descriptor_keypoints_file=None, #(optional): hdf5 file that stores descriptors
+                 precomputed_data=None,
+                 precomputed_data_file_hdf5=None,
+                 precomputed_data_file=None,  # optional, just for reference of where that data came from
                  ):
         EpisodeReader.__init__(self)
         self._config = config
         self._root_dir = root_dir
         self._name = name
-        self._descriptor_keypoints_file = descriptor_keypoints_file
 
-        if self._descriptor_keypoints_file is not None:
-            assert os.path.isfile(self._descriptor_keypoints_file)
+        self._precomputed_data = precomputed_data
+        self._precomputed_data_file_hdf5 = precomputed_data_file_hdf5
+        self._precomputed_data_file = precomputed_data_file
 
         self._metadata = metadata
 
@@ -234,19 +236,55 @@ class DynamicSpartanEpisodeReader(EpisodeReader):
         T_W_C = self.camera_pose(camera_name, idx)
         K = self.camera_info[camera_name]['K']
 
-        descriptor_keypoints = []
-        if self._descriptor_keypoints_file is not None:
-            descriptor_keypoints = self.get_descriptor_keypoints(camera_name, idx)
+        # descriptor_keypoints = []
+        # if self._descriptor_keypoints_file is not None:
+        #     descriptor_keypoints = self.get_descriptor_keypoints(camera_name, idx)
 
         return {'rgb': rgb,
                 'depth_int16': depth_int16,
                 'mask': mask,
                 'T_world_camera': T_W_C,
                 'K': K,
-                'descriptor_keypoints': descriptor_keypoints,
                 'camera_name': camera_name,
                 'idx': idx,
                 'episode_name': self.episode_name}
+
+    def get_precomputed_data(self,
+                             camera_name,  # str
+                             idx,  # int
+                             type,  # string "descriptor_keypoints/pos_world_frame", etc.
+                             ):
+        """
+        Return some precomupted data of a specified type corresponding to this
+        camera_name, idx and type
+        """
+
+        rgb_key = self.get_image_key(camera_name, idx, 'rgb')
+        key_tree = rgb_key.split("/")[:-1]
+        key_tree.append(type)
+        key = "/".join(key_tree)
+
+        return self.get_precomputed_data_from_key(key)
+
+    def get_precomputed_data_from_key(self,
+                                      key):
+        """
+        Tries to get the data associated with this key.
+        Throws KeyError if that key isn't found
+        """
+
+        data = None
+        if self._precomputed_data is not None:
+            data = self._precomputed_data[key]
+        elif self._precomputed_data_file_hdf5 is not None:
+            with h5py.File(self._descriptor_keypoints_data_file, 'r') as h5_file:
+                data = np.array(h5_file.get(key))  # will throw a key error if not found
+        else:
+            raise KeyError("No precomputed data file was specified")
+
+        return data
+
+
     def get_image_dimensions(self,
                              camera_name,  # str: not needed
                              ):
