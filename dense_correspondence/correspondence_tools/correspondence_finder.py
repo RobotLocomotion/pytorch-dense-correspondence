@@ -1060,7 +1060,7 @@ def compute_correspondence_data(data_a,  # dict
     assert uv_a.shape == uv_b.shape
     matches_data = {'uv_a': uv_a,
                     'uv_b': uv_b,
-                    'valid': torch.ones(uv_a.shape[1]), # could convert this to bool
+                    'valid': torch.ones(uv_a.shape[1], dtype=torch.bool), # could convert this to bool
                     # 'valid': torch.full_like(uv_a, 1, dtype=torch.bool)
                     }
 
@@ -1068,12 +1068,12 @@ def compute_correspondence_data(data_a,  # dict
     assert masked_non_matches_uv_a.shape == masked_non_matches_uv_b.shape
     masked_non_matches_data = {'uv_a': masked_non_matches_uv_a,
                                'uv_b': masked_non_matches_uv_b,
-                               'valid': torch.ones(masked_non_matches_uv_a.shape[1])}
+                               'valid': torch.ones(masked_non_matches_uv_a.shape[1], dtype=torch.bool)}
 
     assert background_non_matches_uv_a.shape == background_non_matches_uv_b.shape
     background_non_matches_data = {'uv_a': background_non_matches_uv_a,
                                    'uv_b': background_non_matches_uv_b,
-                                   'valid': torch.ones(background_non_matches_uv_b.shape[1])}
+                                   'valid': torch.ones(background_non_matches_uv_b.shape[1], dtype=torch.bool)}
 
 
     # data augmentation should happen elsewhere
