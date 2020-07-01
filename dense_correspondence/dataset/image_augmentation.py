@@ -25,7 +25,7 @@ class ImageAugmentation(object):
         aug_list.append(ImageAugmentation.default_contrast())
         # aug_list.append(ImageAugmentation.default_change_color_temperature())
         # aug_list.append(ImageAugmentation.default_grayscale())
-        aug_list.append(ImageAugmentation.default_colorspace())
+        # aug_list.append(ImageAugmentation.default_colorspace())
 
         seq = iaa.Sequential(aug_list, random_order=True)
         self._seq = seq
@@ -121,6 +121,11 @@ class ImageAugmentation(object):
             # [2, N] tensor, currently its torch.float
             # need to convert it to torch.long so it can
             # be used to index into image
+            # u_tensor = uv_tuple[0]
+            # v_tensor = uv_tuple[1]
+
+            # uv = torch.stack((u_tensor, v_tensor))
+            # uv = torch.round(uv).type(torch.long)
             uv = torch.round(torch.stack(uv_tuple)).type(torch.long)
 
 

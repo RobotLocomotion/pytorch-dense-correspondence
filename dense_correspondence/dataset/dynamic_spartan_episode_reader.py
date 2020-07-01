@@ -298,6 +298,7 @@ class DynamicSpartanEpisodeReader(EpisodeReader):
     def make_index(self,
                    episode_name=None,
                    camera_names=None, # (optional) list[str]
+                   include_images_from_same_camera=True,
                    ):
         """
         Makes the index for training, will be a list of dicts.
@@ -327,8 +328,8 @@ class DynamicSpartanEpisodeReader(EpisodeReader):
 
         for key in keys:
             for camera_name_a, camera_name_b in itertools.product(camera_names, camera_names):
-                # don't include ones that are the same camera (at least for now . . . )
-                if camera_name_a == camera_name_b:
+
+                if not include_images_from_same_camera and camera_name_a == camera_name_b:
                     continue
 
                 data = {'episode_name': episode_name,
