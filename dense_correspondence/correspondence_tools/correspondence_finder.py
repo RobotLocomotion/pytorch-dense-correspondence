@@ -859,7 +859,7 @@ def photometric_check(image_a_rgb, image_b_rgb, matches_a, matches_b, PHOTODIFF_
 def make_empty_index_and_flag_tensors(N):
     uv_a = torch.zeros([2, N], dtype=torch.long)
     uv_b = torch.zeros([2, N], dtype=torch.long)
-    valid = torch.zeros(N)
+    valid = torch.zeros(N, dtype=torch.bool)
 
     return {'uv_a': uv_a,
             'uv_b': uv_b,

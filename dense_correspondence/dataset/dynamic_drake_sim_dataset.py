@@ -40,8 +40,6 @@ class DynamicDrakeSimDataset(data.Dataset):
         self.verbose = False
         self.debug = False
 
-
-
         self._data_augmentation_enabled = self.config['dataset']['data_augmentation'] and (self._phase == "train")
         self._data_augmenter = ImageAugmentation(enabled=self._data_augmentation_enabled)
         self._data_augmenter.make_default()
@@ -87,8 +85,10 @@ class DynamicDrakeSimDataset(data.Dataset):
 
 
 
-        self._data_augmenter.augment_image(data_a)
-        self._data_augmenter.augment_image(data_b)
+        self._data_augmenter.augment(correspondence_data)
+        # self._data_augmenter.augment_image(data_a)
+        # self._data_augmenter.augment_image(data_b)
+
 
         # add rgb_tensor to data_a/data_b
         data_a['rgb_tensor'] = self.rgb_to_tensor_transform(data_a['rgb'])
