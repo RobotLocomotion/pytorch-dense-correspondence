@@ -39,5 +39,5 @@ build_director()
   rm -rf director-$director_version-$director_binary.tar.gz
 }
 
-build_director
+#build_director
 

@@ -6,7 +6,7 @@ sudo apt-get update
 sudo pip install requests
 sudo pip install matplotlib
 sudo pip install scipy
-sudo pip install imageio
+sudo pip install imageio==2.6.0
 
 sudo pip install scikit-image
 
