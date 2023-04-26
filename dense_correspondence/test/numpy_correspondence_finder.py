@@ -31,7 +31,7 @@ def find_pixel_correspondence(log_dir, img_a, img_b, uv_a=None):
     posegraph_filename = log_dir+"/posegraph.posegraph"
     with open(posegraph_filename) as f:
         content = f.readlines()
-    pose_list = [x.strip().split() for x in content] 
+    pose_list = [x.strip().split() for x in content]
 
     def get_pose(time, pose_list):
         if (time <= float(pose_list[0][0])):
@@ -42,7 +42,7 @@ def find_pixel_correspondence(log_dir, img_a, img_b, uv_a=None):
             if (time <= float(pose[0])):
                 pose = [float(x) for x in pose[1:]]
                 return pose
-        print "did not find matching pose"
+        print("did not find matching pose")
 
     img1_pose = get_pose(img1_time, pose_list)
     img2_pose = get_pose(img2_time, pose_list)
@@ -92,7 +92,7 @@ def find_pixel_correspondence(log_dir, img_a, img_b, uv_a=None):
     K_inv = inv(K)
 
     depth = img1_depth[uv_a[::-1]]*1.0/1000
-    print "depth, ", depth
+    print("depth, ", depth)
     u = uv_a[0]
     v = uv_a[1]
 

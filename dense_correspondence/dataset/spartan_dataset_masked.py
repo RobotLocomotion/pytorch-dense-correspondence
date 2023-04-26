@@ -102,10 +102,10 @@ class SpartanDataset(DenseCorrespondenceDataset):
             raise ValueError("mode should be one of [test, train]")
 
         self.init_length()
-        print "Using SpartanDataset:"
-        print "   - in", self.mode, "mode"
-        print "   - number of scenes", self._num_scenes
-        print "   - total images:    ", self.num_images_total
+        print("Using SpartanDataset:")
+        print("   - in", self.mode, "mode")
+        print("   - number of scenes", self._num_scenes)
+        print("   - total images:    ", self.num_images_total)
 
 
     def __getitem__(self, index):
@@ -123,31 +123,31 @@ class SpartanDataset(DenseCorrespondenceDataset):
         # Case 0: Same scene, same object
         if data_load_type == SpartanDatasetDataType.SINGLE_OBJECT_WITHIN_SCENE:
             if self._verbose:
-                print "Same scene, same object"
+                print("Same scene, same object")
             return self.get_single_object_within_scene_data()
 
         # Case 1: Same object, different scene
         if data_load_type == SpartanDatasetDataType.SINGLE_OBJECT_ACROSS_SCENE:
             if self._verbose:
-                print "Same object, different scene"
+                print("Same object, different scene")
             return self.get_single_object_across_scene_data()
 
         # Case 2: Different object
         if data_load_type == SpartanDatasetDataType.DIFFERENT_OBJECT:
             if self._verbose:
-                print "Different object"
+                print("Different object")
             return self.get_different_object_data()
 
         # Case 3: Multi object
         if data_load_type == SpartanDatasetDataType.MULTI_OBJECT:
             if self._verbose:
-                print "Multi object"
+                print("Multi object")
             return self.get_multi_object_within_scene_data()
 
         # Case 4: Synthetic multi object
         if data_load_type == SpartanDatasetDataType.SYNTHETIC_MULTI_OBJECT:
             if self._verbose:
-                print "Synthetic multi object"
+                print("Synthetic multi object")
             return self.get_synthetic_multi_object_within_scene_data()
 
 
@@ -269,7 +269,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
             scene_list.append(scene_name)
 
         return scene_list
-    
+
     def get_list_of_objects(self):
         """
         Returns a list of object ids
@@ -1004,7 +1004,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
             import dense_correspondence.correspondence_tools.correspondence_plotter as correspondence_plotter
             num_matches_to_plot = 10
 
-            print "PRE-MERGING"
+            print("PRE-MERGING")
             plot_uv_a1, plot_uv_a2 = SpartanDataset.subsample_tuple_pair(uv_a1, uv_a2, num_samples=num_matches_to_plot)
 
             # correspondence_plotter.plot_correspondences_direct(image_a1_rgb, np.asarray(image_a1_depth),
@@ -1019,7 +1019,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
             #                                                        plot_uv_b1, plot_uv_b2,
             #                                                        circ_color='g', show=True)
 
-            print "MERGED"
+            print("MERGED")
             plot_uv_1, plot_uv_2 = SpartanDataset.subsample_tuple_pair(matches_1, matches_2, num_samples=num_matches_to_plot)
             plot_uv_a_masked_long, plot_uv_b_masked_non_matches_long =\
                 SpartanDataset.subsample_tuple_pair(uv_a_masked_long, uv_b_masked_non_matches_long, num_samples=num_matches_to_plot)
@@ -1212,7 +1212,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
     @property
     def config(self):
         return self._config
-    
+
     @staticmethod
     def merge_single_object_configs(config_list):
         """

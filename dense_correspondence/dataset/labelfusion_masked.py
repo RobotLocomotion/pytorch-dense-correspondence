@@ -16,9 +16,9 @@ class LabelFusionDataset(DenseCorrespondenceDataset):
         #self.scenes = ["2017-06-13-12"] # just drill scene in tool area
 
         self.init_length()
-        print "Using LabelFusionDataset with:"
-        print "   - number of scenes:", len(self.scenes)
-        print "   - total images:    ", self.num_images_total
+        print("Using LabelFusionDataset with:")
+        print("   - number of scenes:", len(self.scenes))
+        print("   - total images:    ", self.num_images_total)
 
         DenseCorrespondenceDataset.__init__(self, debug=debug)
 
@@ -55,5 +55,5 @@ class LabelFusionDataset(DenseCorrespondenceDataset):
             if (time <= float(pose[0])):
                 pose = [float(x) for x in pose[1:]]
                 return pose
-        print "did not find matching pose, must be at end of list"
+        print("did not find matching pose, must be at end of list")
         return pose

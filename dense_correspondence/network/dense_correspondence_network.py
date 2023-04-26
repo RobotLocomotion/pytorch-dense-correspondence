@@ -254,7 +254,7 @@ class DenseCorrespondenceNetwork(nn.Module):
 
         res = self.fcn(img_tensor)
         if self._normalize:
-            #print "normalizing descriptor norm"
+            #print(normalizing descriptor norm)
             norm = torch.norm(res, 2, 1) # [N,1,H,W]
             res = res/norm
 
@@ -287,14 +287,14 @@ class DenseCorrespondenceNetwork(nn.Module):
 
 
         res = self.forward(img_tensor) # shape [1,D,H,W]
-        # print "res.shape 1", res.shape
+        # print("res.shape 1", res.shape)
 
 
         res = res.squeeze(0) # shape [D,H,W]
-        # print "res.shape 2", res.shape
+        # print("res.shape 2", res.shape)
 
         res = res.permute(1,2,0) # shape [H,W,D]
-        # print "res.shape 3", res.shape
+        # print("res.shape 3", res.shape)
 
         return res
 
@@ -369,17 +369,17 @@ class DenseCorrespondenceNetwork(nn.Module):
         :param config: Dict with dcn configuration parameters
 
         """
-        
+
         if config["backbone"]["model_class"] == "Resnet":
             resnet_model = config["backbone"]["resnet_name"]
             fcn = getattr(resnet_dilated, resnet_model)(num_classes=config['descriptor_dimension'])
-        
+
         elif config["backbone"]["model_class"] == "Unet":
             fcn = DenseCorrespondenceNetwork.get_unet(config)
 
         else:
             raise ValueError("Can't build backbone network.  I don't know this backbone model class!")
-        
+
         return fcn
 
     @staticmethod
@@ -405,7 +405,7 @@ class DenseCorrespondenceNetwork(nn.Module):
         :rtype:
         """
 
-        if "backbone" not in config:  
+        if "backbone" not in config:
             # default to CoRL 2018 backbone!
             config["backbone"] = dict()
             config["backbone"]["model_class"] = "Resnet"
@@ -503,9 +503,9 @@ class DenseCorrespondenceNetwork(nn.Module):
         height, width, _ = res_a.shape
 
         if debug:
-            print "height: ", height
-            print "width: ", width
-            print "res_b.shape: ", res_b.shape
+            print("height", height)
+            print("width", width)
+            print("res_b.shape: ", res_b.shape)
 
 
         # non-vectorized version

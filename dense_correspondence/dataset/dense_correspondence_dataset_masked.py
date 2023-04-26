@@ -40,7 +40,7 @@ class ImageType:
 class DenseCorrespondenceDataset(data.Dataset):
 
     def __init__(self, debug=False):
-        
+
         self.debug = debug
         self.mode = "train"
         self.both_to_tensor = ComposeJoint(
@@ -48,10 +48,10 @@ class DenseCorrespondenceDataset(data.Dataset):
                 [transforms.ToTensor(), transforms.ToTensor()]
             ])
 
-      
+
     def __len__(self):
         return self.num_images_total
-    
+
     def __getitem__(self, index):
         """
         The method through which the dataset is accessed for training.
@@ -112,8 +112,8 @@ class DenseCorrespondenceDataset(data.Dataset):
         image_b_depth_numpy = np.asarray(image_b_depth)
 
         # find correspondences
-        uv_a, uv_b = correspondence_finder.batch_find_pixel_correspondences(image_a_depth_numpy, image_a_pose, 
-                                                                           image_b_depth_numpy, image_b_pose, 
+        uv_a, uv_b = correspondence_finder.batch_find_pixel_correspondences(image_a_depth_numpy, image_a_pose,
+                                                                           image_b_depth_numpy, image_b_pose,
                                                                            num_attempts=self.num_matching_attempts, img_a_mask=np.asarray(image_a_mask))
 
         if uv_a is None:
@@ -153,23 +153,23 @@ class DenseCorrespondenceDataset(data.Dataset):
             metadata['non_match_type'] = 'non_masked'
             logging.debug("not masking non-matches")
             image_b_mask = None
-            
+
         image_b_shape = image_b_depth_numpy.shape
         image_width  = image_b_shape[1]
         image_height = image_b_shape[1]
 
-        uv_b_non_matches = correspondence_finder.create_non_correspondences(uv_b, image_b_shape, 
+        uv_b_non_matches = correspondence_finder.create_non_correspondences(uv_b, image_b_shape,
             num_non_matches_per_match=self.num_non_matches_per_match, img_b_mask=image_b_mask)
 
         if self.debug:
             # only want to bring in plotting code if in debug mode
             import correspondence_plotter
 
-            # Just show all images 
-            uv_a_long = (torch.t(uv_a[0].repeat(self.num_non_matches_per_match, 1)).contiguous().view(-1,1), 
+            # Just show all images
+            uv_a_long = (torch.t(uv_a[0].repeat(self.num_non_matches_per_match, 1)).contiguous().view(-1,1),
                      torch.t(uv_a[1].repeat(self.num_non_matches_per_match, 1)).contiguous().view(-1,1))
             uv_b_non_matches_long = (uv_b_non_matches[0].view(-1,1), uv_b_non_matches[1].view(-1,1) )
-            
+
             # Show correspondences
             if uv_a is not None:
                 fig, axes = correspondence_plotter.plot_correspondences_direct(image_a_rgb, image_a_depth_numpy, image_b_rgb, image_b_depth_numpy, uv_a, uv_b, show=False)
@@ -185,7 +185,7 @@ class DenseCorrespondenceDataset(data.Dataset):
         image_a_rgb = self.rgb_image_to_tensor(image_a_rgb)
         image_b_rgb = self.rgb_image_to_tensor(image_b_rgb)
 
-        uv_a_long = (torch.t(uv_a[0].repeat(self.num_non_matches_per_match, 1)).contiguous().view(-1,1), 
+        uv_a_long = (torch.t(uv_a[0].repeat(self.num_non_matches_per_match, 1)).contiguous().view(-1,1),
                      torch.t(uv_a[1].repeat(self.num_non_matches_per_match, 1)).contiguous().view(-1,1))
         uv_b_non_matches_long = (uv_b_non_matches[0].view(-1,1), uv_b_non_matches[1].view(-1,1) )
 
@@ -467,7 +467,7 @@ class DenseCorrespondenceDataset(data.Dataset):
         :return:
         :rtype:
         """
-        
+
         self.num_images_total = 0
         self._num_scenes = 0
         for scene_name in self.scene_generator():
@@ -548,40 +548,40 @@ class DenseCorrespondenceDataset(data.Dataset):
 
         self.cross_scene_num_samples              = training_config['training']["cross_scene_num_samples"]
 
-        self._use_image_b_mask_inv = training_config["training"]["use_image_b_mask_inv"] 
+        self._use_image_b_mask_inv = training_config["training"]["use_image_b_mask_inv"]
 
         from spartan_dataset_masked import SpartanDatasetDataType
 
         self._data_load_types = []
         self._data_load_type_probabilities = []
 
-        p = training_config["training"]["data_type_probabilities"]["SINGLE_OBJECT_WITHIN_SCENE"] 
+        p = training_config["training"]["data_type_probabilities"]["SINGLE_OBJECT_WITHIN_SCENE"]
         if p > 0:
-            print "using SINGLE_OBJECT_WITHIN_SCENE"
+            print("using SINGLE_OBJECT_WITHIN_SCENE")
             self._data_load_types.append(SpartanDatasetDataType.SINGLE_OBJECT_WITHIN_SCENE)
             self._data_load_type_probabilities.append(p)
 
         p = training_config["training"]["data_type_probabilities"]["SINGLE_OBJECT_ACROSS_SCENE"]
         if p > 0:
-            print "using SINGLE_OBJECT_ACROSS_SCENE"
+            print("using SINGLE_OBJECT_ACROSS_SCENE")
             self._data_load_types.append(SpartanDatasetDataType.SINGLE_OBJECT_ACROSS_SCENE)
             self._data_load_type_probabilities.append(p)
 
         p = training_config["training"]["data_type_probabilities"]["DIFFERENT_OBJECT"]
         if p > 0:
-            print "using DIFFERENT_OBJECT"
+            print("using DIFFERENT_OBJECT")
             self._data_load_types.append(SpartanDatasetDataType.DIFFERENT_OBJECT)
             self._data_load_type_probabilities.append(p)
 
         p = training_config["training"]["data_type_probabilities"]["MULTI_OBJECT"]
         if p > 0:
-            print "using MULTI_OBJECT"
+            print("using MULTI_OBJECT")
             self._data_load_types.append(SpartanDatasetDataType.MULTI_OBJECT)
             self._data_load_type_probabilities.append(p)
 
         p = training_config["training"]["data_type_probabilities"]["SYNTHETIC_MULTI_OBJECT"]
         if p > 0:
-            print "using SYNTHETIC_MULTI_OBJECT"
+            print("using SYNTHETIC_MULTI_OBJECT")
             self._data_load_types.append(SpartanDatasetDataType.SYNTHETIC_MULTI_OBJECT)
             self._data_load_type_probabilities.append(p)
 
@@ -716,9 +716,9 @@ class DenseCorrespondenceDataset(data.Dataset):
         plt.show()
         plt.imshow(image_a_depth)
         plt.show()
-        print "image_a_pose", image_a_pose
+        print("image_a_pose", image_a_pose)
         plt.imshow(image_b_rgb)
         plt.show()
         plt.imshow(image_b_depth)
         plt.show()
-        print "image_b_pose", image_b_pose
+        print("image_b_pose", image_b_pose)
