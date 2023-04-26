@@ -250,7 +250,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         if mode is None:
             mode = self.mode
 
-        for object_id, single_object_scene_dict in self._single_object_scene_dict.iteritems():
+        for object_id, single_object_scene_dict in self._single_object_scene_dict.items():
             for scene_name in single_object_scene_dict[mode]:
                 yield scene_name
 
@@ -414,7 +414,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         :rtype:
         """
         pose_data = self.get_pose_data(scene_name)
-        image_idxs = pose_data.keys() # list of integers
+        image_idxs = list(pose_data.keys()) # list of integers
         random.choice(image_idxs)
         random_idx = random.choice(image_idxs)
         return random_idx
@@ -425,7 +425,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         :return:
         :rtype:
         """
-        object_id_list = self._single_object_scene_dict.keys()
+        object_id_list = list(self._single_object_scene_dict.keys())
         return random.choice(object_id_list)
 
     def get_random_object_id_and_int(self):
