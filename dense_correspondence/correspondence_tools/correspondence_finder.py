@@ -104,7 +104,7 @@ def random_sample_from_masked_image_torch(img_mask, num_samples):
     image_height, image_width = img_mask.shape
 
     if isinstance(img_mask, np.ndarray):
-        img_mask_torch = torch.from_numpy(img_mask).float()
+        img_mask_torch = torch.from_numpy(np.array(img_mask)).float()
     else:
         img_mask_torch = img_mask
 
@@ -343,8 +343,8 @@ def create_non_correspondences(uv_b_matches, img_b_shape, num_non_matches_per_ma
     diffs_0 = copied_uv_b_matches_0 - uv_b_non_matches[0].type(dtype_float)
     diffs_1 = copied_uv_b_matches_1 - uv_b_non_matches[1].type(dtype_float)
 
-    diffs_0_flattened = diffs_0.reshape(-1,1) # originally view(-1,1)
-    diffs_1_flattened = diffs_1.reshape(-1,1)
+    diffs_0_flattened = diffs_0.reshape(-1,1) # view(-1,1) in original script
+    diffs_1_flattened = diffs_1.reshape(-1,1) # view(-1,1) in original script
 
     diffs_0_flattened = torch.abs(diffs_0_flattened).squeeze(1)
     diffs_1_flattened = torch.abs(diffs_1_flattened).squeeze(1)
@@ -467,7 +467,7 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
         uv_a_vec = (torch.ones(num_attempts).type(dtype_long)*uv_a[0],torch.ones(num_attempts).type(dtype_long)*uv_a[1])
         uv_a_vec_flattened = uv_a_vec[1]*image_width+uv_a_vec[0]
     else:
-        img_a_mask = torch.from_numpy(img_a_mask).type(dtype_float)
+        img_a_mask = torch.from_numpy(np.array(img_a_mask)).type(dtype_float)
 
         # Option A: This next line samples from img mask
         uv_a_vec = random_sample_from_masked_image_torch(img_a_mask, num_samples=num_attempts)
@@ -491,11 +491,13 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
     body_to_rdf = get_body_to_rdf()
     rdf_to_body = inv(body_to_rdf)
 
-    img_a_depth_torch = torch.from_numpy(img_a_depth).type(dtype_float)
+    img_a_depth_torch = torch.from_numpy(np.array(img_a_depth)).type(dtype_float)
     img_a_depth_torch = torch.squeeze(img_a_depth_torch, 0)
     img_a_depth_torch = img_a_depth_torch.view(-1,1)
 
     uv_a_vec_flattened = uv_a_vec_flattened.type(torch.int64)
+    # select only the point within the index range
+    uv_a_vec_flattened = torch.index_select(uv_a_vec_flattened,0,(uv_a_vec_flattened<img_a_depth_torch.size()[0]).nonzero()[:, 0])
     depth_vec = torch.index_select(img_a_depth_torch, 0, uv_a_vec_flattened)*1.0/DEPTH_IM_SCALE
     depth_vec = depth_vec.squeeze(1)
 
@@ -518,13 +520,13 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
 
     full_vec = torch.stack((u_vec, v_vec, z_vec))
 
-    K_inv_torch = torch.from_numpy(K_inv).type(dtype_float)
+    K_inv_torch = torch.from_numpy(np.array(K_inv)).type(dtype_float)
     point_camera_frame_rdf_vec = K_inv_torch.mm(full_vec)
 
-    point_world_frame_rdf_vec = apply_transform_torch(point_camera_frame_rdf_vec, torch.from_numpy(img_a_pose).type(dtype_float))
-    point_camera_2_frame_rdf_vec = apply_transform_torch(point_world_frame_rdf_vec, torch.from_numpy(invert_transform(img_b_pose)).type(dtype_float))
+    point_world_frame_rdf_vec = apply_transform_torch(point_camera_frame_rdf_vec, torch.from_numpy(np.array(img_a_pose)).type(dtype_float))
+    point_camera_2_frame_rdf_vec = apply_transform_torch(point_world_frame_rdf_vec, torch.from_numpy(np.array(invert_transform(img_b_pose))).type(dtype_float))
 
-    K_torch = torch.from_numpy(K).type(dtype_float)
+    K_torch = torch.from_numpy(np.array(K)).type(dtype_float)
     vec2_vec = K_torch.mm(point_camera_2_frame_rdf_vec)
 
     u2_vec = vec2_vec[0]/vec2_vec[2]
@@ -585,7 +587,7 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
     # Prune based on
     # Case 3: the pixels in image b are occluded, OR there is no depth return in image b so we aren't sure
 
-    img_b_depth_torch = torch.from_numpy(img_b_depth).type(dtype_float)
+    img_b_depth_torch = torch.from_numpy(np.array(img_b_depth)).type(dtype_float)
     img_b_depth_torch = torch.squeeze(img_b_depth_torch, 0)
     img_b_depth_torch = img_b_depth_torch.view(-1,1)
 
