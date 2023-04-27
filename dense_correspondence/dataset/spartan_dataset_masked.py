@@ -684,7 +684,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
 
         # find non_correspondences
-        image_b_mask_torch = torch.from_numpy(np.asarray(image_b_mask)).type(torch.FloatTensor)
+        image_b_mask_torch = torch.from_numpy(np.array(image_b_mask)).type(torch.FloatTensor)
         image_b_shape = image_b_depth_numpy.shape
         image_width = image_b_shape[1]
         image_height = image_b_shape[0]
@@ -734,7 +734,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
 
         # make blind non matches
         matches_a_mask = SD.mask_image_from_uv_flat_tensor(matches_a, image_width, image_height)
-        image_a_mask_torch = torch.from_numpy(np.asarray(image_a_mask)).long()
+        image_a_mask_torch = torch.from_numpy(np.array(image_a_mask)).long()
         mask_a_flat = image_a_mask_torch.view(-1,1).squeeze(1)
         blind_non_matches_a = (mask_a_flat - matches_a_mask).nonzero()
 
@@ -955,7 +955,7 @@ class SpartanDataset(DenseCorrespondenceDataset):
         matches_2 = (matches_2[0].float(), matches_2[1].float())
 
         # find non_correspondences
-        merged_mask_2_torch = torch.from_numpy(merged_mask_2).type(torch.FloatTensor)
+        merged_mask_2_torch = torch.from_numpy(np.array(merged_mask_2)).type(torch.FloatTensor)
         image_b_shape = merged_mask_2_torch.shape
         image_width = image_b_shape[1]
         image_height = image_b_shape[0]

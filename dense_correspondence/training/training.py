@@ -56,6 +56,8 @@ class DenseCorrespondenceTraining(object):
         self._dcn = None
         self._optimizer = None
 
+        self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
     def setup(self):
         """
         Initializes the object
@@ -203,7 +205,7 @@ class DenseCorrespondenceTraining(object):
 
         self._dcn = self.build_network()
         self._dcn.load_state_dict(torch.load(model_param_file))
-        self._dcn.cuda()
+        self._dcn.to(self.device)
         self._dcn.train()
 
         self._optimizer = self._construct_optimizer(self._dcn.parameters())
@@ -242,6 +244,7 @@ class DenseCorrespondenceTraining(object):
         if not use_pretrained:
             # create new network and optimizer
             self._dcn = self.build_network()
+            self._dcn = self._dcn.to(self.device)
             self._optimizer = self._construct_optimizer(self._dcn.parameters())
         else:
             logging.info("using pretrained model")
@@ -252,7 +255,7 @@ class DenseCorrespondenceTraining(object):
 
         # make sure network is using cuda and is in train mode
         dcn = self._dcn
-        dcn.cuda()
+        dcn.to(self.device)
         dcn.train()
 
         optimizer = self._optimizer
@@ -312,20 +315,20 @@ class DenseCorrespondenceTraining(object):
                 data_type = metadata["type"][0]
 
 
-                img_a = img_a.cuda()
-                img_b = img_b.cuda()
+                img_a = img_a.to(self.device)
+                img_b = img_b.to(self.device)
 
-                matches_a = matches_a.cuda().squeeze(0)
-                matches_b = matches_b.cuda().squeeze(0)
+                matches_a = matches_a.squeeze(0).to(self.device)
+                matches_b = matches_b.squeeze(0).to(self.device)
 
-                masked_non_matches_a = masked_non_matches_a.cuda().squeeze(0)
-                masked_non_matches_b = masked_non_matches_b.cuda().squeeze(0)
+                masked_non_matches_a = masked_non_matches_a.squeeze(0).to(self.device)
+                masked_non_matches_b = masked_non_matches_b.squeeze(0).to(self.device)
 
-                background_non_matches_a = background_non_matches_a.cuda().squeeze(0)
-                background_non_matches_b = background_non_matches_b.cuda().squeeze(0)
+                background_non_matches_a = background_non_matches_a.squeeze(0).to(self.device)
+                background_non_matches_b = background_non_matches_b.squeeze(0).to(self.device)
 
-                blind_non_matches_a = blind_non_matches_a.cuda().squeeze(0)
-                blind_non_matches_b = blind_non_matches_b.cuda().squeeze(0)
+                blind_non_matches_a = blind_non_matches_a.squeeze(0).to(self.device)
+                blind_non_matches_b = blind_non_matches_b.squeeze(0).to(self.device)
 
                 optimizer.zero_grad()
                 self.adjust_learning_rate(optimizer, loss_current_iteration)
