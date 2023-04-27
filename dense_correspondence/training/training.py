@@ -304,7 +304,7 @@ class DenseCorrespondenceTraining(object):
                 if (match_type == -1).all():
                     print("\n empty data, continuing \n")
                     continue
-                if (matches_a.size()[0] == 0):
+                if (matches_a.squeeze(0).size()[0] == 0):
                     print("\n no matching, continuing \n")
                     continue
 
@@ -312,20 +312,20 @@ class DenseCorrespondenceTraining(object):
                 data_type = metadata["type"][0]
 
 
-                print(img_a.size(), img_a.requires_grad)
-                img_a = Variable(img_a.cuda(), requires_grad=False)
-                img_b = Variable(img_b.cuda(), requires_grad=False)
+                img_a = img_a.cuda()
+                img_b = img_b.cuda()
 
-                matches_a = Variable(matches_a.cuda().squeeze(0), requires_grad=False)
-                matches_b = Variable(matches_b.cuda().squeeze(0), requires_grad=False)
-                masked_non_matches_a = Variable(masked_non_matches_a.cuda().squeeze(0), requires_grad=False)
-                masked_non_matches_b = Variable(masked_non_matches_b.cuda().squeeze(0), requires_grad=False)
+                matches_a = matches_a.cuda().squeeze(0)
+                matches_b = matches_b.cuda().squeeze(0)
 
-                background_non_matches_a = Variable(background_non_matches_a.cuda().squeeze(0), requires_grad=False)
-                background_non_matches_b = Variable(background_non_matches_b.cuda().squeeze(0), requires_grad=False)
+                masked_non_matches_a = masked_non_matches_a.cuda().squeeze(0)
+                masked_non_matches_b = masked_non_matches_b.cuda().squeeze(0)
 
-                blind_non_matches_a = Variable(blind_non_matches_a.cuda().squeeze(0), requires_grad=False)
-                blind_non_matches_b = Variable(blind_non_matches_b.cuda().squeeze(0), requires_grad=False)
+                background_non_matches_a = background_non_matches_a.cuda().squeeze(0)
+                background_non_matches_b = background_non_matches_b.cuda().squeeze(0)
+
+                blind_non_matches_a = blind_non_matches_a.cuda().squeeze(0)
+                blind_non_matches_b = blind_non_matches_b.cuda().squeeze(0)
 
                 optimizer.zero_grad()
                 self.adjust_learning_rate(optimizer, loss_current_iteration)
