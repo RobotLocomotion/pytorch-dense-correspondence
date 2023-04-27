@@ -1,4 +1,4 @@
-from dense_correspondence_dataset_masked import DenseCorrespondenceDataset, ImageType
+from dense_correspondence.dataset.dense_correspondence_dataset_masked import DenseCorrespondenceDataset, ImageType
 
 import os
 import numpy as np

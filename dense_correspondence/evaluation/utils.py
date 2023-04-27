@@ -143,7 +143,7 @@ def extract_descriptor_images_for_scene(dcn, dataset, scene_name, save_dir,
     for counter, img_idx in enumerate(image_idxs):
 
         if (counter % logging_frequency) == 0:
-            print "processing image %d of %d" % (counter, num_images)
+            print("processing image %d of %d" % (counter, num_images))
 
         rgb_img = dataset.get_rgb_image_from_scene_name_and_idx(scene_name, img_idx)
 
@@ -157,4 +157,4 @@ def extract_descriptor_images_for_scene(dcn, dataset, scene_name, save_dir,
 
 
     elapsed_time = time.time() - start_time
-    print "computing descriptor images took %d seconds" % (elapsed_time)
+    print("computing descriptor images took %d seconds" % (elapsed_time))

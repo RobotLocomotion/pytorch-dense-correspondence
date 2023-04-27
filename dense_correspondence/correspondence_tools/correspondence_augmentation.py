@@ -3,7 +3,7 @@
 The purpose of this file is to perform data augmentation for images
 and lists of pixel positions in them.
 
-- For operations on the images, we can use functions optimized 
+- For operations on the images, we can use functions optimized
 for image data.
 
 - For operations on a list of pixel indices, we need a matching
@@ -18,14 +18,14 @@ import torch
 
 def random_image_and_indices_mutation(images, uv_pixel_positions):
     """
-    This function takes a list of images and a list of pixel positions in the image, 
+    This function takes a list of images and a list of pixel positions in the image,
     and picks some subset of available mutations.
 
-    :param images: a list of images (for example the rgb, depth, and mask) for which the 
+    :param images: a list of images (for example the rgb, depth, and mask) for which the
                         **same** mutation will be applied
     :type  images: list of PIL.image.image
 
-    :param uv_pixel_positions: pixel locations (u, v) in the image. 
+    :param uv_pixel_positions: pixel locations (u, v) in the image.
     	See doc/coordinate_conventions.md for definition of (u, v)
 
     :type  uv_pixel_positions: a tuple of torch Tensors, each of length n, i.e:
@@ -44,7 +44,7 @@ def random_image_and_indices_mutation(images, uv_pixel_positions):
 
     # Current augmentation is:
     # 50% do nothing
-    # 50% rotate the image 180 degrees (by applying flip vertical then flip horizontal) 
+    # 50% rotate the image 180 degrees (by applying flip vertical then flip horizontal)
 
     if random.random() < 0.5:
         return images, uv_pixel_positions
@@ -63,6 +63,7 @@ def flip_vertical(images, uv_pixel_positions):
     See random_image_and_indices_mutation() for documentation of args and return types.
 
     """
+    image = images[0]
     mutated_images = [ImageOps.flip(image) for image in images]
     v_pixel_positions = uv_pixel_positions[1]
     mutated_v_pixel_positions = (image.height-1) - v_pixel_positions
@@ -76,7 +77,7 @@ def flip_horizontal(images, uv_pixel_positions):
     See random_image_and_indices_mutation() for documentation of args and return types.
 
     """
-
+    image = images[0]
     mutated_images = [ImageOps.mirror(image) for image in images]
     u_pixel_positions = uv_pixel_positions[0]
     mutated_u_pixel_positions = (image.width-1) - u_pixel_positions
@@ -97,7 +98,7 @@ def domain_randomize_background(image_rgb, image_mask):
     """
     This function applies domain randomization to the non-masked part of the image.
 
-    :param image_rgb: rgb image for which the non-masked parts of the image will 
+    :param image_rgb: rgb image for which the non-masked parts of the image will
                         be domain randomized
     :type  image_rgb: PIL.image.image
 
@@ -175,7 +176,7 @@ def get_random_entire_image(shape, max_pixel_uint8):
     """
     return np.array(np.random.uniform(size=shape) * max_pixel_uint8, dtype=np.uint8)
 
-# this gradient code roughly taken from: 
+# this gradient code roughly taken from:
 # https://github.com/openai/mujoco-py/blob/master/mujoco_py/modder.py
 def get_gradient_image(rgb1, rgb2, vertical):
     """
@@ -202,7 +203,7 @@ def add_noise(rgb_image):
     """
     Adds noise, and subtracts noise to the rgb_image
 
-    :param rgb_image: image to which noise will be added 
+    :param rgb_image: image to which noise will be added
     :type rgb_image: numpy array of shape (H,W,3)
 
     :return image with noise:
@@ -211,7 +212,7 @@ def add_noise(rgb_image):
     ## Note: do not need to clamp, since uint8 will just overflow -- not bad
     """
     max_noise_to_add_or_subtract = 50
-    return rgb_image + get_random_entire_image(rgb_image.shape, max_noise_to_add_or_subtract) - get_random_entire_image(rgb_image.shape, max_noise_to_add_or_subtract) 
+    return rgb_image + get_random_entire_image(rgb_image.shape, max_noise_to_add_or_subtract) - get_random_entire_image(rgb_image.shape, max_noise_to_add_or_subtract)
 
 
 def merge_images_with_occlusions(image_a, image_b, mask_a, mask_b, matches_pair_a, matches_pair_b):
@@ -269,7 +270,7 @@ def merge_images_with_occlusions(image_a, image_b, mask_a, mask_b, matches_pair_
 
     # Prune occluded matches
     background_matches_pair = prune_matches_if_occluded(foreground_mask_numpy, background_matches_pair)
- 
+
     if foreground == "A":
         matches_a            = foreground_matches_pair[0]
         associated_matches_a = foreground_matches_pair[1]
@@ -310,11 +311,11 @@ def prune_matches_if_occluded(foreground_mask_numpy, background_matches_pair):
         Note: only support torch.LongTensors
     """
 
-    background_matches_a = background_matches_pair[0] 
+    background_matches_a = background_matches_pair[0]
     background_matches_b = background_matches_pair[1]
 
     idxs_to_keep  = []
-    
+
     # this is slow but works
     for i in range(len(background_matches_a[0])):
         u = background_matches_a[0][i]
@@ -351,5 +352,5 @@ def merge_matches(matches_one, matches_two):
 
 
 
-    
+
 

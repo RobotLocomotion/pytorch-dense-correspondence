@@ -89,7 +89,7 @@ class DenseCorrespondenceTraining(object):
         if self._dataset is None:
             self._dataset = SpartanDataset.make_default_10_scenes_drill()
 
-        
+
         self._dataset.load_all_pose_data()
         self._dataset.set_parameters_from_training_config(self._config)
 
@@ -101,7 +101,7 @@ class DenseCorrespondenceTraining(object):
             if self._dataset_test is None:
                 self._dataset_test = SpartanDataset(mode="test", config=self._dataset.config)
 
-            
+
             self._dataset_test.load_all_pose_data()
             self._dataset_test.set_parameters_from_training_config(self._config)
 
@@ -196,7 +196,7 @@ class DenseCorrespondenceTraining(object):
             model_param_file = prefix + ".pth"
             optim_param_file = prefix + ".pth.opt"
 
-        print "model_param_file", model_param_file
+        print("model_param_file", model_param_file)
         model_param_file = os.path.join(model_folder, model_param_file)
         optim_param_file = os.path.join(model_folder, optim_param_file)
 
@@ -271,7 +271,7 @@ class DenseCorrespondenceTraining(object):
         # logging
         self._logging_dict = dict()
         self._logging_dict['train'] = {"iteration": [], "loss": [], "match_loss": [],
-                                           "masked_non_match_loss": [], 
+                                           "masked_non_match_loss": [],
                                            "background_non_match_loss": [],
                                            "blind_non_match_loss": [],
                                            "learning_rate": [],
@@ -302,12 +302,17 @@ class DenseCorrespondenceTraining(object):
                 metadata = data
 
                 if (match_type == -1).all():
-                    print "\n empty data, continuing \n"
+                    print("\n empty data, continuing \n")
+                    continue
+                if (matches_a.size()[0] == 0):
+                    print("\n no matching, continuing \n")
                     continue
 
 
                 data_type = metadata["type"][0]
-                
+
+
+                print(img_a.size(), img_a.requires_grad)
                 img_a = Variable(img_a.cuda(), requires_grad=False)
                 img_b = Variable(img_b.cuda(), requires_grad=False)
 
@@ -340,7 +345,7 @@ class DenseCorrespondenceTraining(object):
                                                                                 masked_non_matches_a, masked_non_matches_b,
                                                                                 background_non_matches_a, background_non_matches_b,
                                                                                 blind_non_matches_a, blind_non_matches_b)
-                
+
 
                 loss.backward()
                 optimizer.step()
@@ -400,7 +405,7 @@ class DenseCorrespondenceTraining(object):
 
                     elif data_type == SpartanDatasetDataType.MULTI_OBJECT:
                         self._tensorboard_logger.log_value("train loss MULTI_OBJECT", loss.item(), loss_current_iteration)
-                    
+
                     elif data_type == SpartanDatasetDataType.SYNTHETIC_MULTI_OBJECT:
                         self._tensorboard_logger.log_value("train loss SYNTHETIC_MULTI_OBJECT", loss.item(), loss_current_iteration)
                     else:
@@ -473,7 +478,7 @@ class DenseCorrespondenceTraining(object):
 
         self._logging_dir = os.path.join(utils.convert_data_relative_path_to_absolute_path(self._config['training']['logging_dir']), dir_name)
 
-        print "logging_dir:", self._logging_dir
+        print("logging_dir:", self._logging_dir)
 
         if os.path.isdir(self._logging_dir):
             shutil.rmtree(self._logging_dir)

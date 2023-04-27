@@ -5,8 +5,8 @@ from torch.autograd import Variable
 class PixelwiseContrastiveLoss(object):
 
     def __init__(self, image_shape, config=None):
-    	self.type = "pixelwise_contrastive"
-        self.image_width  = image_shape[1]
+        self.type = "pixelwise_contrastive"
+        self.image_width = image_shape[1]
         self.image_height = image_shape[0]
 
         assert config is not None
@@ -105,7 +105,7 @@ class PixelwiseContrastiveLoss(object):
         """
         Computes the loss function
 
-        \sum_{triplets} ||D(I_a, u_a, I_b, u_{b,match})||_2^2 - ||D(I_a, u_a, I_b, u_{b,non-match)||_2^2 + alpha 
+        \sum_{triplets} ||D(I_a, u_a, I_b, u_{b,match})||_2^2 - ||D(I_a, u_a, I_b, u_{b,non-match)||_2^2 + alpha
 
         """
         num_matches = matches_a.size()[0]
@@ -118,7 +118,7 @@ class PixelwiseContrastiveLoss(object):
         ## matches_b is the only thing that needs to be replicated up in size
 
         matches_b_long =  torch.t(matches_b.repeat(multiplier, 1)).contiguous().view(-1)
-                         
+
         matches_a_descriptors = torch.index_select(image_a_pred, 1, non_matches_a)
         matches_b_descriptors      = torch.index_select(image_b_pred, 1, matches_b_long)
         non_matches_b_descriptors  = torch.index_select(image_b_pred, 1, non_matches_b)
@@ -150,12 +150,14 @@ class PixelwiseContrastiveLoss(object):
         matches_a_descriptors is torch.FloatTensor with shape torch.Shape([num_matches, descriptor_dimension])
         """
 
+        print("a: ", matches_a.size(), matches_a.dtype)
+        print("b: ", matches_b.size(), matches_b.dtype)
         num_matches = matches_a.size()[0]
         matches_a_descriptors = torch.index_select(image_a_pred, 1, matches_a)
         matches_b_descriptors = torch.index_select(image_b_pred, 1, matches_b)
 
         # crazily enough, if there is only one element to index_select into
-        # above, then the first dimension is collapsed down, and we end up 
+        # above, then the first dimension is collapsed down, and we end up
         # with shape [D,], where we want [1,D]
         # this unsqueeze fixes that case
         if len(matches_a) == 1:
@@ -173,7 +175,7 @@ class PixelwiseContrastiveLoss(object):
         Computes the max(0, M - D(I_a,I_b,u_a,u_b))^2 term
 
         This is effectively:       "a and b should be AT LEAST M away from each other"
-        With invert=True, this is: "a and b should be AT MOST  M away from each other" 
+        With invert=True, this is: "a and b should be AT MOST  M away from each other"
 
          :param image_a_pred: Output of DCN network on image A.
         :type image_a_pred: torch.Variable(torch.FloatTensor) shape [1, W * H, D]
@@ -189,11 +191,13 @@ class PixelwiseContrastiveLoss(object):
         :rtype:
         """
 
+        non_matches_a = non_matches_a.type(torch.int64)
+        non_matches_b = non_matches_b.type(torch.int64)
         non_matches_a_descriptors = torch.index_select(image_a_pred, 1, non_matches_a).squeeze()
         non_matches_b_descriptors = torch.index_select(image_b_pred, 1, non_matches_b).squeeze()
 
         # crazily enough, if there is only one element to index_select into
-        # above, then the first dimension is collapsed down, and we end up 
+        # above, then the first dimension is collapsed down, and we end up
         # with shape [D,], where we want [1,D]
         # this unsqueeze fixes that case
         if len(non_matches_a) == 1:
@@ -292,7 +296,7 @@ class PixelwiseContrastiveLoss(object):
         non_match_loss_vec, num_hard_negatives, _, _ = PCL.non_match_descriptor_loss(image_a_pred, image_b_pred, non_matches_a,
                                                                  non_matches_b, M=M_descriptor, invert=invert)
 
-        num_non_matches = long(non_match_loss_vec.size()[0])
+        num_non_matches = int(non_match_loss_vec.size()[0])
 
 
         non_match_loss = non_match_loss_vec.sum()
@@ -332,9 +336,9 @@ class PixelwiseContrastiveLoss(object):
 
 
         return squared_l2_pixel_loss, ground_truth_u_v_b, sampled_u_v_b
-        
 
-    
+
+
     def flattened_pixel_locations_to_u_v(self, flat_pixel_locations):
         """
         :param flat_pixel_locations: A torch.LongTensor of shape torch.Shape([n,1]) where each element
@@ -347,7 +351,7 @@ class PixelwiseContrastiveLoss(object):
 
         """
         u_v_pixel_locations = flat_pixel_locations.repeat(1,2)
-        u_v_pixel_locations[:,0] = u_v_pixel_locations[:,0]%self.image_width 
+        u_v_pixel_locations[:,0] = u_v_pixel_locations[:,0]%self.image_width
         u_v_pixel_locations[:,1] = u_v_pixel_locations[:,1]/self.image_width
         return u_v_pixel_locations
 
