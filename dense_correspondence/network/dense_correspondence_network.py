@@ -499,7 +499,7 @@ class DenseCorrespondenceNetwork(nn.Module):
 
         """
 
-        descriptor_at_pixel = res_a[pixel_a[1], pixel_a[0]]
+        descriptor_at_pixel = res_a[int(pixel_a[1]), int(pixel_a[0])]
         height, width, _ = res_a.shape
 
         if debug:

@@ -192,7 +192,7 @@ class DenseCorrespondenceEvaluation(object):
         pose_a = dataset.get_pose_from_scene_name_and_idx(scene_name, img_a_idx)
         pos_a = pose_a[0:3, 3]
 
-        for i in xrange(0, max_num_attempts):
+        for i in range(0, max_num_attempts):
             img_b_idx = dataset.get_random_image_index(scene_name)
             pose_b = dataset.get_pose_from_scene_name_and_idx(scene_name, img_b_idx)
             pos_b = pose_b[0:3, 3]
@@ -310,7 +310,7 @@ class DenseCorrespondenceEvaluation(object):
         utils.reset_random_seed()
 
         pd_dataframe_list = []
-        for i in xrange(num_image_pairs):
+        for i in range(num_image_pairs):
 
             object_id_a, object_id_b = dataset.get_two_different_object_ids()
             scene_name_a = dataset.get_random_single_object_scene_name(object_id_a)
@@ -489,7 +489,7 @@ class DenseCorrespondenceEvaluation(object):
 
 
         pd_dataframe_list = []
-        for i in xrange(0, num_image_pairs):
+        for i in range(0, num_image_pairs):
 
 
             scene_name = dataset.get_random_scene_name()
@@ -602,8 +602,8 @@ class DenseCorrespondenceEvaluation(object):
 
     @staticmethod
     def clip_pixel_to_image_size_and_round(uv, image_width, image_height):
-        u = min(int(round(uv[0])), image_width - 1)
-        v = min(int(round(uv[1])), image_height - 1)
+        u = min(int(torch.round(uv[0])), image_width - 1)
+        v = min(int(torch.round(uv[1])), image_height - 1)
         return (u,v)
 
     @staticmethod
@@ -675,6 +675,8 @@ class DenseCorrespondenceEvaluation(object):
             print("now, index of pixel match:", i)
             uv_a = (img_a_pixels[i]["u"], img_a_pixels[i]["v"])
             uv_b = (img_b_pixels[i]["u"], img_b_pixels[i]["v"])
+            uv_a = list(torch.tensor(i) for i in uv_a)
+            uv_b = list(torch.tensor(i) for i in uv_b)
             uv_a = DCE.clip_pixel_to_image_size_and_round(uv_a, image_width, image_height)
             uv_b = DCE.clip_pixel_to_image_size_and_round(uv_b, image_width, image_height)
             print(uv_a)
@@ -706,6 +708,8 @@ class DenseCorrespondenceEvaluation(object):
         for i in range(len(img_a_pixels)):
             uv_a = (img_a_pixels[i]["u"], img_a_pixels[i]["v"])
             uv_b = (img_b_pixels[i]["u"], img_b_pixels[i]["v"])
+            uv_a = list(torch.tensor(i) for i in uv_a)
+            uv_b = list(torch.tensor(i) for i in uv_b)
             uv_a = DCE.clip_pixel_to_image_size_and_round(uv_a, image_width, image_height)
             uv_b = DCE.clip_pixel_to_image_size_and_round(uv_b, image_width, image_height)
 
@@ -732,6 +736,7 @@ class DenseCorrespondenceEvaluation(object):
 
 
                 diff_uv_a = (diff_uv_a_vec[0][0], diff_uv_a_vec[1][0])
+                diff_uv_a = list(torch.tensor(i) for i in diff_uv_a)
                 diff_uv_a = DCE.clip_pixel_to_image_size_and_round(diff_uv_a, image_width, image_height)
 
                 pd_template = DenseCorrespondenceEvaluation.compute_descriptor_match_statistics(diff_depth_a,
@@ -766,6 +771,7 @@ class DenseCorrespondenceEvaluation(object):
                 diff_res_b = dcn.forward_single_image_tensor(diff_rgb_b_tensor).data.cpu().numpy()
 
                 diff_uv_b = (diff_uv_b_vec[0][0], diff_uv_b_vec[1][0])
+                diff_uv_b = list(torch.tensor(i) for i in diff_uv_b)
                 diff_uv_b = DCE.clip_pixel_to_image_size_and_round(diff_uv_b, image_width, image_height)
 
                 pd_template = DenseCorrespondenceEvaluation.compute_descriptor_match_statistics(depth_a,
@@ -838,6 +844,9 @@ class DenseCorrespondenceEvaluation(object):
         for i in range(num_uv_a_samples):
 
             uv_a = [sampled_idx_list[1][i], sampled_idx_list[0][i]]
+
+            print("uv_a, res_a, res_b size: ", uv_a.size(), res_a.size(), res_b.size())
+            print("type: ", uv_a.dtype, res_a.dtype, res_b.dtype)
 
             pd_template = DCE.compute_descriptor_match_statistics_no_ground_truth(uv_a, res_a,
                                                                   res_b,
@@ -930,9 +939,11 @@ class DenseCorrespondenceEvaluation(object):
         DCE = DenseCorrespondenceEvaluation
 
         for i in match_list:
-            uv_a = (uv_a_vec[0][i], uv_a_vec[1][i])
+            uv_a_raw = (uv_a_vec[0][i], uv_a_vec[1][i])
+            uv_a = DCE.clip_pixel_to_image_size_and_round(uv_a_raw, image_width, image_height)
             uv_b_raw = (uv_b_vec[0][i], uv_b_vec[1][i])
             uv_b = DCE.clip_pixel_to_image_size_and_round(uv_b_raw, image_width, image_height)
+
 
             pd_template = DCE.compute_descriptor_match_statistics(depth_a,
                                                                   depth_b,
@@ -1399,7 +1410,7 @@ class DenseCorrespondenceEvaluation(object):
             print("Only normalizing pairs of images!")
             descriptor_image_stats = None
 
-        for i in xrange(0, num_matches):
+        for i in range(0, num_matches):
             # convert to (u,v) format
             pixel_a = [sampled_idx_list[1][i], sampled_idx_list[0][i]]
             best_match_uv, best_match_diff, norm_diffs =\
@@ -1500,7 +1511,7 @@ class DenseCorrespondenceEvaluation(object):
 
         ordering = ["standard", "reverse"]
 
-        for kp_name, data_a in keypoint_data_a['keypoints'].iteritems():
+        for kp_name, data_a in keypoint_data_a['keypoints'].items():
             if kp_name not in keypoint_data_b['keypoints']:
                 raise ValueError("keypoint %s appears in one list of annotated data but"
                                  "not the other" %(kp_name))
@@ -1724,6 +1735,8 @@ class DenseCorrespondenceEvaluation(object):
         image_height, image_width = depth_a.shape[0], depth_a.shape[1]
 
         def clip_pixel_to_image_size_and_round(uv):
+            if isinstance(uv[0], torch.Tensor): uv[0] = uv[0].cpu().numpy()
+            if isinstance(uv[1], torch.Tensor): uv[1] = uv[0].cpu().numpy()
             u = min(int(round(uv[0])), image_width - 1)
             v = min(int(round(uv[1])), image_height - 1)
             return [u,v]
@@ -1854,7 +1867,7 @@ class DenseCorrespondenceEvaluation(object):
         evaluation_labeled_data_paths += dataset.config["multi_object"]["evaluation_labeled_data_path"]
 
         # add all of the single object lists
-        for object_key, val in dataset.config["single_object"].iteritems():
+        for object_key, val in dataset.config["single_object"].items():
             if "evaluation_labeled_data_path" in val:
                 evaluation_labeled_data_paths += val["evaluation_labeled_data_path"]
 
@@ -2267,7 +2280,7 @@ class DenseCorrespondenceEvaluation(object):
         stats['entire_image'] = {'mean': None, 'max': None, 'min': None}
         stats['mask_image'] = {'mean': None, 'max': None, 'min': None}
 
-        for i in xrange(0,num_images):
+        for i in range(0,num_images):
             rgb, depth, mask, _ = dataset.get_random_rgbd_mask_pose()
             img_tensor = dataset.rgb_image_to_tensor(rgb)
             res = dcn.forward_single_image_tensor(img_tensor)  # [H, W, D]
@@ -2286,7 +2299,7 @@ class DenseCorrespondenceEvaluation(object):
             update_stats(stats['mask_image'], mask_image_stats)
 
 
-        for key, val in stats.iteritems():
+        for key, val in stats.items():
             val['mean'] = 1.0/num_images * val['mean']
             for field in val:
                 val[field] = val[field].tolist()
@@ -2587,7 +2600,7 @@ class DenseCorrespondenceEvaluation(object):
 
         print("ALL")
         if not use_3d:
-            for key, value in descriptors_known_objects_samples.iteritems():
+            for key, value in descriptors_known_objects_samples.items():
                 plt.scatter(value[:,0], value[:,1], alpha=0.5, label=key)
 
             if plot_background:
@@ -2596,21 +2609,21 @@ class DenseCorrespondenceEvaluation(object):
             plt.show()
 
         if use_3d:
-            for key, value in descriptors_known_objects_samples_xy.iteritems():
+            for key, value in descriptors_known_objects_samples_xy.items():
                 plt.scatter(value[:,0], value[:,1], alpha=0.5, label=key)
             if plot_background:
                 plt.scatter(descriptors_background_samples_xy[:,0], descriptors_background_samples_xy[:,1], alpha=0.5, label="background")
             plt.legend()
             plt.show()
 
-            for key, value in descriptors_known_objects_samples_yz.iteritems():
+            for key, value in descriptors_known_objects_samples_yz.items():
                 plt.scatter(value[:,0], value[:,1], alpha=0.5, label=key)
             if plot_background:
                 plt.scatter(descriptors_background_samples_yz[:,0], descriptors_background_samples_yz[:,1], alpha=0.5, label="background")
             plt.legend()
             plt.show()
 
-            for key, value in descriptors_known_objects_samples_xz.iteritems():
+            for key, value in descriptors_known_objects_samples_xz.items():
                 plt.scatter(value[:,0], value[:,1], alpha=0.5, label=key)
             if plot_background:
                 plt.scatter(descriptors_background_samples_xz[:,0], descriptors_background_samples_xz[:,1], alpha=0.5, label="background")

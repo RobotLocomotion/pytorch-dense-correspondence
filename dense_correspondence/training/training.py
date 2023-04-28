@@ -156,7 +156,7 @@ class DenseCorrespondenceTraining(object):
         d['train'] = dict()
         d['test'] = dict()
 
-        for key, val in d.iteritems():
+        for key, val in d.items():
             for field in logging_dict[key].keys():
                 vec = logging_dict[key][field]
 

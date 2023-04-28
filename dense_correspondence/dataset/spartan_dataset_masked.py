@@ -834,9 +834,26 @@ class SpartanDataset(DenseCorrespondenceDataset):
                 plt.title("Mask of img a object pixels for which there was NO match")
                 plt.show()
 
-
+        # take care of the unprecedent out of range case
+        matches_a, matches_b = self.out_of_range_filter(image_a_rgb, matches_a, matches_b)
+        masked_non_matches_a, masked_non_matches_b = self.out_of_range_filter(image_a_rgb, masked_non_matches_a, masked_non_matches_b)
+        background_non_matches_a, background_non_matches_b = self.out_of_range_filter(image_a_rgb, background_non_matches_a, background_non_matches_b)
+        blind_non_matches_a, blind_non_matches_b = self.out_of_range_filter(image_a_rgb, blind_non_matches_a, blind_non_matches_b)
 
         return metadata["type"], image_a_rgb, image_b_rgb, matches_a, matches_b, masked_non_matches_a, masked_non_matches_b, background_non_matches_a, background_non_matches_b, blind_non_matches_a, blind_non_matches_b, metadata
+
+    def out_of_range_filter(self, image, m_a, m_b):
+        index_limit = image.size()[1] * image.size()[2]
+        m_a = m_a.type(torch.int64)
+        m_b = m_b.type(torch.int64)
+        # find the indices that the both m_a and m_b elements are below the index limit.
+        idx_a = (m_a<index_limit).nonzero()[:,0]
+        idx_b = (m_b<index_limit).nonzero()[:,0]
+        a_cat_b, counts = torch.cat([idx_a, idx_b]).unique(return_counts=True)
+        intersection = a_cat_b[torch.where(counts.gt(1))]
+        m_a = torch.index_select(m_a, 0, intersection)
+        m_b = torch.index_select(m_b, 0, intersection)
+        return m_a, m_b
 
     def create_non_matches(self, uv_a, uv_b_non_matches, multiplier):
         """

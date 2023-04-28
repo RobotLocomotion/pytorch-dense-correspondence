@@ -482,7 +482,7 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
 
         # Always use this line
         uv_a_vec_flattened = uv_a_vec[1]*image_width+uv_a_vec[0]
-
+        uv_a_vec_flattened = uv_a_vec_flattened.type(dtype_long)
 
     if K is None:
         K = get_default_K_matrix()
@@ -495,7 +495,6 @@ def batch_find_pixel_correspondences(img_a_depth, img_a_pose, img_b_depth, img_b
     img_a_depth_torch = torch.squeeze(img_a_depth_torch, 0)
     img_a_depth_torch = img_a_depth_torch.view(-1,1)
 
-    uv_a_vec_flattened = uv_a_vec_flattened.type(torch.int64)
     # select only the point within the index range
     uv_a_vec_flattened = torch.index_select(uv_a_vec_flattened,0,(uv_a_vec_flattened<img_a_depth_torch.size()[0]).nonzero()[:, 0])
     depth_vec = torch.index_select(img_a_depth_torch, 0, uv_a_vec_flattened)*1.0/DEPTH_IM_SCALE
