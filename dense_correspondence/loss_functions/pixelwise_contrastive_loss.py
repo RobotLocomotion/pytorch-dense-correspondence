@@ -320,7 +320,7 @@ class PixelwiseContrastiveLoss(object):
         if M_pixel is None:
             M_pixel = self._config['M_pixel']
 
-        num_non_matches_per_match = len(non_matches_b)/len(matches_b)
+        num_non_matches_per_match = int(len(non_matches_b)/len(matches_b))
 
         ground_truth_pixels_for_non_matches_b = torch.t(matches_b.repeat(num_non_matches_per_match,1)).contiguous().view(-1,1)
 
